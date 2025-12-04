@@ -1,6 +1,6 @@
 # All in one
 
-![Digital-Student-Assistant/QA/01 General objectives and context of the project.md]
+![[Digital-Student-Assistant/QA/01 General objectives and context of the project.md]]
 
 ![[Digital-Student-Assistant/QA/02 Functional requirements.md]]
 
