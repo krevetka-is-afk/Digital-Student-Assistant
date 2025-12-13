@@ -1,7 +1,7 @@
 pytest
 python-jose
 passlib
-bcrypt==4.2.0
+bcrypt==5.0.0
 sqlalchemy
 pydantic
 fastapi==0.124.3
