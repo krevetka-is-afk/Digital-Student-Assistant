@@ -13,6 +13,10 @@ pip install -r requirements.txt -r requirements-dev.txt
 pre-commit install
 ```
 
+```bash
+uvicorn app.main:app --reload
+```
+
 ## Ритуал перед PR
 
 ```bash
