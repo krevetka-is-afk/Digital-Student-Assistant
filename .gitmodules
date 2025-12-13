@@ -1,0 +1,3 @@
+[submodule "docs/technical-specification/personal-tz-RSE/TZGeneration"]
+	path = docs/technical-specification/personal-tz-RSE/TZGeneration
+	url = https://github.com/krevetka-is-afk/TZGeneration.git
