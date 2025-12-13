@@ -32,3 +32,9 @@ pre-commit run --all-files
 ```bash
 pytest -q
 ```
+
+## Docker
+
+```bash
+docker compose --profile dev up --build
+```
