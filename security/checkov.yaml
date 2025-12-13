@@ -1,5 +1,0 @@
-quiet: true
-soft-fail: true
-compact: true
-framework: all
-skip-check: []
