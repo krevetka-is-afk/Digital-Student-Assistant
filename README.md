@@ -8,7 +8,8 @@
 
 ```bash
 git submodule update --init --recursive  # или клонируйте с флагом --recurse-submodules
-python3 -m venv .venv
+# python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
 ```
