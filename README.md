@@ -23,3 +23,19 @@ uvicorn app.main:app --reload
 ```bash
 docker compose --profile dev up --build
 ```
+
+## Contribute
+
+```bash
+pre-commit install
+```
+
+before PR
+
+```bash
+ruff check --fix .
+black .
+isort .
+pytest -q
+pre-commit run --all-files
+```
