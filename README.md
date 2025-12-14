@@ -7,7 +7,9 @@
 ## Быстрый старт
 
 ```bash
-python3 -m venv .venv
+git submodule update --init --recursive  # или клонируйте с флагом --recurse-submodules
+# python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
 ```
@@ -20,4 +22,20 @@ uvicorn app.main:app --reload
 
 ```bash
 docker compose --profile dev up --build
+```
+
+## Contribute
+
+```bash
+pre-commit install
+```
+
+before PR
+
+```bash
+ruff check --fix .
+black .
+isort .
+pytest -q
+pre-commit run --all-files
 ```
