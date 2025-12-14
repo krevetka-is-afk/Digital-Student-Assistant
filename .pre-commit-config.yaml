@@ -12,7 +12,7 @@ repos:
         args:
           - --branch
           - main
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
