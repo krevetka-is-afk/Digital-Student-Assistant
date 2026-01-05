@@ -78,7 +78,7 @@ jobs:
       - name: Tests
         run: |
           mkdir -p reports
-          pytest --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
+          uv run pytest --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
 
       - name: Upload test reports
         if: always()
