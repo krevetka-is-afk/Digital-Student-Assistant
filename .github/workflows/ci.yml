@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
+        python-version: [ "3.12", "3.13", "3.14" ]
     env:
       DATABASE_URL: "${{ secrets.DEV_DATABASE_URL || 'sqlite:///data/ci_test.sqlite' }}"
       TEST_DB_URL: "${{ secrets.DEV_TEST_DB_URL || 'sqlite:///data/ci_test.sqlite' }}"
@@ -71,9 +71,9 @@ jobs:
 
       - name: Lint & Format
         run: |
-          ruff check --output-format=github .
-          black --check .
-          isort --check-only .
+          uv run ruff check --output-format=github .
+          uv run black --check .
+          uv run isort --check-only .
 
       - name: Tests
         run: |
