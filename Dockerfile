@@ -8,9 +8,15 @@ RUN apt-get update && \
         gcc && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+ENV VIRTUAL_ENV=/opt/venv
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN pip install --no-cache-dir --prefix=/install --requirement requirements.txt
+RUN pip install --no-cache-dir uv
+
+COPY pyproject.toml uv.lock ./
+
+RUN uv sync --frozen --no-install-project
 
 COPY . .
 
@@ -18,7 +24,9 @@ FROM python:3.11-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONFAULTHANDLER=1
+    PYTHONFAULTHANDLER=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
 ARG APP_UID=1000
 ARG APP_GID=1000
@@ -29,7 +37,7 @@ RUN addgroup --gid ${APP_GID} appgroup && \
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /install /usr/local
+COPY --from=build --chown=appuser:appgroup /opt/venv /opt/venv
 
 COPY --from=build --chown=appuser:appgroup /build .
 

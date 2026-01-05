@@ -11,7 +11,8 @@ git submodule update --init --recursive  # или клонируйте с фла
 # python3 -m venv .venv
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install --upgrade uv
+uv sync --group dev
 export PYTHONPATH=.
 ```
 
