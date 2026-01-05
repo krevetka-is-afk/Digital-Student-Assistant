@@ -27,6 +27,14 @@ version = "0.1.0"
 description = "..."
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "django>=5.2.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
 
 [tool.setuptools]
 package-dir = {"" = "."}
