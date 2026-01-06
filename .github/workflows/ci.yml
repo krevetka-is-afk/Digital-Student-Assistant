@@ -145,7 +145,7 @@ jobs:
       - name: Tests with coverage
         run: |
           mkdir -p reports
-          pytest --cov=app --cov=domain \
+          uv run pytest --cov=app --cov=domain \
             --cov-report=xml --cov-report=html --cov-report=term-missing \
             --junitxml=reports/junit-coverage.xml
 
