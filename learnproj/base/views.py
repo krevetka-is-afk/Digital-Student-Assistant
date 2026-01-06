@@ -6,7 +6,7 @@ from rest_framework.response import Response
 # from django.http import JsonResponse # need to set cookie
 
 
-@api_view(["POST"])
+@api_view(["GET"])
 def api_home(request, *args, **kwargs):
     """
     Docstring for api_home
