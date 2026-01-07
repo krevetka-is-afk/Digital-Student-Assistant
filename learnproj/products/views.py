@@ -4,7 +4,7 @@ from .models import Product
 from .serializers import PrimaryProductSerializer
 
 
-class ProductCreateApiView(generics.CreateAPIView):
+class ProductListCreateApiView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = PrimaryProductSerializer
 
@@ -24,7 +24,7 @@ class ProductCreateApiView(generics.CreateAPIView):
         # return super().perform_create(serializer)
 
 
-product_create_view = ProductCreateApiView.as_view()
+product_list_create_view = ProductListCreateApiView.as_view()
 
 
 class ProductDetailApiView(generics.RetrieveAPIView):
@@ -35,3 +35,15 @@ class ProductDetailApiView(generics.RetrieveAPIView):
 
 
 product_detail_view = ProductDetailApiView.as_view()
+
+
+class ProductListAPIView(generics.ListAPIView):
+    """
+    Docstring for ProductListAPIView
+    """
+
+    queryset = Product.objects.all()
+    serializer_class = PrimaryProductSerializer
+
+
+product_list_view = ProductListAPIView.as_view()
