@@ -8,9 +8,9 @@ from .models import Product
 from .serializers import PrimaryProductSerializer
 
 
-class ProductListCreateApiView(generics.ListCreateAPIView):
+class ProductListCreateAPIView(generics.ListCreateAPIView):
     """
-    Docstring for ProductListCreateApiView
+    Docstring for ProductListCreateAPIView
 
     GET for List
     POST for creation
@@ -35,12 +35,12 @@ class ProductListCreateApiView(generics.ListCreateAPIView):
         # return super().perform_create(serializer)
 
 
-product_list_create_view = ProductListCreateApiView.as_view()
+product_list_create_view = ProductListCreateAPIView.as_view()
 
 
-class ProductDetailApiView(generics.RetrieveAPIView):
+class ProductDetailAPIView(generics.RetrieveAPIView):
     """
-    Docstring for ProductDetailApiView
+    Docstring for ProductDetailAPIView
 
     GET for lookup_field
     """
@@ -51,7 +51,41 @@ class ProductDetailApiView(generics.RetrieveAPIView):
     # Product.objects.get(pk)
 
 
-product_detail_view = ProductDetailApiView.as_view()
+product_detail_view = ProductDetailAPIView.as_view()
+
+
+class ProductUpdateAPIView(generics.UpdateAPIView):
+    """
+    Docstring for ProductUpdateAPIView
+    """
+
+    queryset = Product.objects.all()
+    serializer_class = PrimaryProductSerializer
+    lookup_field = "pk"
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if not instance.content:
+            instance.content = instance.titile
+
+
+product_update_view = ProductUpdateAPIView.as_view()
+
+
+class ProductDestroyAPIView(generics.DestroyAPIView):
+    """
+    Docstring for ProductDestroyAPIView
+    """
+
+    queryset = Product.objects.all()
+    serializer_class = PrimaryProductSerializer
+    lookup_field = "pk"
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+
+
+product_destroy_view = ProductDestroyAPIView.as_view()
 
 
 # class ProductListAPIView(generics.ListAPIView):
