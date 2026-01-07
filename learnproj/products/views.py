@@ -5,6 +5,13 @@ from .serializers import PrimaryProductSerializer
 
 
 class ProductListCreateApiView(generics.ListCreateAPIView):
+    """
+    Docstring for ProductListCreateApiView
+
+    GET for List
+    POST for creation
+    """
+
     queryset = Product.objects.all()
     serializer_class = PrimaryProductSerializer
 
@@ -28,6 +35,12 @@ product_list_create_view = ProductListCreateApiView.as_view()
 
 
 class ProductDetailApiView(generics.RetrieveAPIView):
+    """
+    Docstring for ProductDetailApiView
+
+    GET for lookup_field
+    """
+
     queryset = Product.objects.all()
     serializer_class = PrimaryProductSerializer
     # lookup_field = 'pk'
@@ -40,6 +53,8 @@ product_detail_view = ProductDetailApiView.as_view()
 class ProductListAPIView(generics.ListAPIView):
     """
     Docstring for ProductListAPIView
+
+    GET for List
     """
 
     queryset = Product.objects.all()
