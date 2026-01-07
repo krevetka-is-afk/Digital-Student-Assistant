@@ -6,7 +6,7 @@ from rest_framework.response import Response
 # from django.http import JsonResponse # need to set cookie
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 def api_home(request, *args, **kwargs):
     """
     Docstring for api_home
@@ -19,8 +19,7 @@ def api_home(request, *args, **kwargs):
     # if request.method != "POST":
     #     return Response({"detail": "GET method not allowed"}, status=405)
 
-    data = request.data
-    serializer = PrimaryProductSerializer(data=data)
+    serializer = PrimaryProductSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
         # instance = serializer.save()
         print(serializer.data)
