@@ -8,7 +8,7 @@ class PrimaryProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ["title", "content", "price", "sale_price", "get_discount", "my_discount"]
+        fields = ["pk", "title", "content", "price", "sale_price", "get_discount", "my_discount"]
 
     def get_my_discount(self, obj):
         # obj.user -> user.username
