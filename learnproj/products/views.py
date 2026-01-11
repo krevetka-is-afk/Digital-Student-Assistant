@@ -1,7 +1,6 @@
 # from django.http import Http404
-from base.authentication import TokenAuthentication
 from django.shortcuts import get_object_or_404
-from rest_framework import authentication, generics, mixins
+from rest_framework import generics, mixins
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -21,7 +20,7 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
 
     queryset = Product.objects.all()
     serializer_class = PrimaryProductSerializer
-    authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
+
     permission_classes = [IsAdminUser, IsStaffEditorPermission]
 
     def perform_create(self, serializer):
@@ -55,6 +54,8 @@ class ProductDetailAPIView(generics.RetrieveAPIView):
     # lookup_field = 'pk'
     # Product.objects.get(pk)
 
+    permission_classes = [IsAdminUser, IsStaffEditorPermission]
+
 
 product_detail_view = ProductDetailAPIView.as_view()
 
@@ -67,6 +68,8 @@ class ProductUpdateAPIView(generics.UpdateAPIView):
     queryset = Product.objects.all()
     serializer_class = PrimaryProductSerializer
     lookup_field = "pk"
+
+    permission_classes = [IsAdminUser, IsStaffEditorPermission]
 
     def perform_update(self, serializer):
         instance = serializer.save()
@@ -85,6 +88,8 @@ class ProductDestroyAPIView(generics.DestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = PrimaryProductSerializer
     lookup_field = "pk"
+
+    permission_classes = [IsAdminUser, IsStaffEditorPermission]
 
     def perform_destroy(self, instance):
         super().perform_destroy(instance)

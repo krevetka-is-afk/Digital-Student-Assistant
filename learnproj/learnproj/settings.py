@@ -120,13 +120,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-auth_classes = [
-    "rest_framework.authentication.SessionAuthentication",
-    "base.authentication.TokenAuthentication",
-]
-if DEBUG:
-    auth_classes = ["base.authentication.TokenAuthentication"]
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": auth_classes,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "base.authentication.TokenAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
 }
