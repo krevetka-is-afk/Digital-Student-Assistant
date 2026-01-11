@@ -16,4 +16,4 @@ def validate_title_no_hello(value):
     return value
 
 
-unique_product_title = UniqueValidator(queryset=Product.objects.all())
+unique_product_title = UniqueValidator(queryset=Product.objects.all(), lookup="iexact")

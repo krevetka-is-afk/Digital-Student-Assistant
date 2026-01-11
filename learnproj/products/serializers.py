@@ -22,6 +22,7 @@ class PrimaryProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
+            # "user",
             "url",
             "url_",
             "edit_url",

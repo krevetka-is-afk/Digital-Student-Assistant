@@ -1,5 +1,5 @@
 # from django.http import Http404
-from base.mixins import StaffEditorPermissionMixin
+from base.mixins import StaffEditorPermissionMixin, UserQuerySetMixin
 from base.permissions import IsStaffEditorPermission
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, mixins
@@ -10,7 +10,9 @@ from .models import Product
 from .serializers import PrimaryProductSerializer
 
 
-class ProductListCreateAPIView(generics.ListCreateAPIView, StaffEditorPermissionMixin):
+class ProductListCreateAPIView(
+    generics.ListCreateAPIView, UserQuerySetMixin, StaffEditorPermissionMixin
+):
     """
     Docstring for ProductListCreateAPIView
 
@@ -32,16 +34,26 @@ class ProductListCreateAPIView(generics.ListCreateAPIView, StaffEditorPermission
         if content is None:
             content = title
 
-        serializer.save(content=content)  # form.save() model.save()
+        serializer.save(user=self.request.user, content=content)  # form.save() model.save()
         # send django signal
 
         # return super().perform_create(serializer)
+
+    # def get_queryset(self, *args, **kwargs):
+    #     qs = super().get_queryset(*args, **kwargs)
+    #     request = self.request
+    #     user = request.user
+    #     # print(request.user)
+    #     if not user.is_authenticated:
+    #         return Product.objects.none()
+
+    #     return qs.filter(user=request.user)
 
 
 product_list_create_view = ProductListCreateAPIView.as_view()
 
 
-class ProductDetailAPIView(StaffEditorPermissionMixin, generics.RetrieveAPIView):
+class ProductDetailAPIView(StaffEditorPermissionMixin, UserQuerySetMixin, generics.RetrieveAPIView):
     """
     Docstring for ProductDetailAPIView
 
@@ -57,7 +69,7 @@ class ProductDetailAPIView(StaffEditorPermissionMixin, generics.RetrieveAPIView)
 product_detail_view = ProductDetailAPIView.as_view()
 
 
-class ProductUpdateAPIView(IsStaffEditorPermission, generics.UpdateAPIView):
+class ProductUpdateAPIView(IsStaffEditorPermission, UserQuerySetMixin, generics.UpdateAPIView):
     """
     Docstring for ProductUpdateAPIView
     """
@@ -75,7 +87,7 @@ class ProductUpdateAPIView(IsStaffEditorPermission, generics.UpdateAPIView):
 product_update_view = ProductUpdateAPIView.as_view()
 
 
-class ProductDestroyAPIView(IsStaffEditorPermission, generics.DestroyAPIView):
+class ProductDestroyAPIView(IsStaffEditorPermission, UserQuerySetMixin, generics.DestroyAPIView):
     """
     Docstring for ProductDestroyAPIView
     """
@@ -105,7 +117,7 @@ product_destroy_view = ProductDestroyAPIView.as_view()
 # product_list_view = ProductListAPIView.as_view()
 
 
-class CreateAPIView(mixins.CreateModelMixin, generics.GenericAPIView):
+class CreateAPIView(mixins.CreateModelMixin, UserQuerySetMixin, generics.GenericAPIView):
     pass
 
 
