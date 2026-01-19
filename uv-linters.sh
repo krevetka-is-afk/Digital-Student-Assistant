@@ -1,3 +1,4 @@
+export PYTHONPATH=.
 uv run ruff check --fix .
 uv run black .
 uv run isort .
