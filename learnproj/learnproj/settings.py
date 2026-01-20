@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "base",
     "products",
+    "search",
 ]
 
 MIDDLEWARE = [
