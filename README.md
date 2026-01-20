@@ -17,6 +17,13 @@ export PYTHONPATH=.
 ```
 
 ```bash
+uv venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
+uv sync --group dev
+export PYTHONPATH=.
+```
+
+```bash
 uvicorn app.main:app --reload
 ```
 

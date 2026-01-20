@@ -10,10 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,8 +41,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # third party api services
+    "algoliasearch_django",
+    # third party packages
     "rest_framework",
     "rest_framework.authtoken",
+    # internal apps
     "base",
     "products",
     "search",
@@ -129,4 +137,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 10,
+}
+
+# ENV -> django-dotenv -> reads .env
+ALGOLIA = {
+    "APPLICATION_ID": os.environ["ALGOLIA_APPLICATION_ID"],
+    "API_KEY": os.environ["ALGOLIA_API_KEY"],
+    "INDEX_PREFIX": "SERJ",
 }
