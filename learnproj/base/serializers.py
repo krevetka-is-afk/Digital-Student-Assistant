@@ -15,13 +15,9 @@ class UserPublicSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     # other_products = serializers.SerializerMethodField(read_only=True)
 
-    # class Meta:
-    #     model = User
-    #     fields = [
-    #         'username',
-    #         'this_is_not_real',
-    #         'id'
-    #     ]
+    class Meta:
+        model = User
+        fields = ["username", "this_is_not_real", "id"]
 
     # def get_other_products(self, obj):
     #     # request = self.context.get('request')
