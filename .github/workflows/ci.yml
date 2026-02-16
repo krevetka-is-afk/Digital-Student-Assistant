@@ -49,8 +49,8 @@ jobs:
       DATABASE_URL: "${{ secrets.DEV_DATABASE_URL || 'sqlite:///data/ci_test.sqlite' }}"
       TEST_DB_URL: "${{ secrets.DEV_TEST_DB_URL || 'sqlite:///data/ci_test.sqlite' }}"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: serets.ALGOLIA_APPLICATION_ID
-      ALGOLIA_API_KEY: secrets.ALGOLIA_API_KEY
+      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
+      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
       PYTHONPATH: .
     steps:
       - name: Checkout
@@ -91,7 +91,7 @@ jobs:
           if-no-files-found: error
 
       - name: Pre-commit (all files)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         env:
           SKIP: no-commit-to-branch
         run: pre-commit run --all-files
@@ -123,8 +123,8 @@ jobs:
       DATABASE_URL: "${{ secrets.DEV_DATABASE_URL || 'sqlite:///data/ci_test.sqlite' }}"
       TEST_DB_URL: "${{ secrets.DEV_TEST_DB_URL || 'sqlite:///data/ci_test.sqlite' }}"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: serets.ALGOLIA_APPLICATION_ID
-      ALGOLIA_API_KEY: secrets.ALGOLIA_API_KEY
+      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
+      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
       PYTHONPATH: .
 
     steps:
@@ -134,7 +134,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.14"
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
@@ -149,7 +149,7 @@ jobs:
       - name: Tests with coverage
         run: |
           mkdir -p reports
-          uv run pytest --cov=app --cov=domain \
+          uv run pytest --cov=services \
             --cov-report=xml --cov-report=html --cov-report=term-missing \
             --junitxml=reports/junit-coverage.xml
 
