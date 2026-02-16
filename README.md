@@ -24,13 +24,13 @@ export PYTHONPATH=.
 ```
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn services.ml.app.main:app --reload
 ```
 
 ## Docker
 
 ```bash
-docker compose --profile dev up --build
+docker compose -f infra/docker-compose.yaml --profile dev up --build
 ```
 
 ## Contribute

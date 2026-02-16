@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS build
+FROM python:3.14-slim AS build
 WORKDIR /build
 
 # hadolint ignore=DL3008
@@ -20,7 +20,7 @@ RUN uv sync --frozen --no-install-project
 
 COPY . .
 
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -48,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 USER appuser
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "services.ml.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
