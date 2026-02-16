@@ -44,7 +44,7 @@ body:
     id: sprint
     attributes:
       label: Target sprint / milestone
-      description: Example: Sprint 3 (2026-03-23 → 2026-04-05) or KT1/KT2.
+      description: "Example: Sprint 3 (2026-03-23 → 2026-04-05) or KT1/KT2."
       placeholder: "Sprint X / KT1 / KT2"
     validations:
       required: false
