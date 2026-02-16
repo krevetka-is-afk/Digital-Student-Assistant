@@ -53,7 +53,7 @@ body:
     id: owner
     attributes:
       label: Owner / assignee suggestion
-      description: Who should drive this? (e.g., @krevetka-is-afk, @frontend-teammate)
+      description: Who should drive this? (e.g., @krevetka-is-afk, @NikitaRadionov)
       placeholder: "@username"
     validations:
       required: false
