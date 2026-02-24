@@ -1,0 +1,18 @@
+[project]
+name = "ml"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+ml = [
+    "fastapi==0.127.1",
+    "uvicorn==0.38.0",
+    "python-multipart",
+    "pydantic",
+    "sqlalchemy",
+    "sqlmodel~=0.0.30",
+    "starlette==0.49.1",
+]
