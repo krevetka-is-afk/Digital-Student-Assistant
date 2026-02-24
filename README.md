@@ -33,6 +33,21 @@ uvicorn services.ml.app.main:app --reload
 docker compose -f infra/docker-compose.yaml --profile dev up --build
 ```
 
+## Django settings profiles
+
+```bash
+cd services/learnproj
+python manage.py check --settings=learnproj.settings.dev
+python manage.py runserver --settings=learnproj.settings.dev
+```
+
+```bash
+cd services/learnproj
+DJANGO_SECRET_KEY=change-me \
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
+python manage.py check --deploy --settings=learnproj.settings.prod
+```
+
 ## Contribute
 
 ```bash

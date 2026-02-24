@@ -28,6 +28,7 @@ services:
       - ../.env
     environment:
       - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=learnproj.settings.dev
       # - DATABASE_URL=${DEV_DATABASE_URL:-postgresql+psycopg2://db_user:db_pass@db:5432/db_name}
       - JWT_SECRET=${DEV_JWT_SECRET:?set DEV_JWT_SECRET in .env}
     profiles: ["dev"]
