@@ -1,5 +1,5 @@
 """
-URL configuration for learnproj project.
+URL configuration for web project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/6.0/topics/http/urls/
@@ -20,9 +20,9 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("api.urls")),
-    path("base/search", include("search.urls")),
-    path("base/", include("base.urls")),
-    path("base/products/", include("products.urls")),
-    path("base/v2/", include("learnproj.routers")),
+    path("api/", include("apps.api.urls")),
+    path("base/search", include("apps.search.urls")),
+    path("base/", include("apps.base.urls")),
+    path("base/products/", include("apps.products.urls")),
+    path("base/v2/", include("config.routers")),
 ]

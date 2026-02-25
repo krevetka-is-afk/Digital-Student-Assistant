@@ -1,5 +1,4 @@
-from products.models import Product
-from products.serializers import PrimaryProductSerializer
+from apps.products import PrimaryProductSerializer, Product
 from rest_framework import generics
 
 

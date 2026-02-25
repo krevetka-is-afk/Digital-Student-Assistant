@@ -1,4 +1,4 @@
-from base.serializers import UserPublicSerializer
+from apps.base.serializers import UserPublicSerializer
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 

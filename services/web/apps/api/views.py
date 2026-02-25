@@ -1,4 +1,4 @@
-from base.models import Item
+from apps.base.models import Item
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 

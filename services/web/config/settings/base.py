@@ -4,7 +4,7 @@ from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
-# `base.py` lives in `learnproj/settings/`, so BASE_DIR is three levels up.
+# `base.py` lives in `web/settings/`, so BASE_DIR is three levels up.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # third party api services
+    "debug_toolbar",
     "algoliasearch_django",
     # third party packages
     "rest_framework",
@@ -76,6 +77,13 @@ INSTALLED_APPS = [
     "base",
     "products",
     "search",
+    # healthchecks
+    "health_check",  # core
+    # "health_check.urls",
+    # "health_check.db",  # database check
+    # "health_check.cache",  # cache check
+    # "health_check.storage",  # storage check
+    # "health_check.contrib.celery",  # celery check (optional)
 ]
 
 MIDDLEWARE = [
@@ -86,9 +94,14 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
-ROOT_URLCONF = "learnproj.urls"
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -105,7 +118,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "learnproj.wsgi.application"
+WSGI_APPLICATION = "web.wsgi.application"
 
 
 DATABASES = database_from_env()

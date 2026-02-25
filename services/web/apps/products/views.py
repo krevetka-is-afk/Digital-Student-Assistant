@@ -1,6 +1,6 @@
 # from django.http import Http404
-from base.mixins import StaffEditorPermissionMixin, UserQuerySetMixin
-from base.permissions import IsStaffEditorPermission
+from apps.base.mixins import StaffEditorPermissionMixin, UserQuerySetMixin
+from apps.base.permissions import IsStaffEditorPermission
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, mixins
 from rest_framework.decorators import api_view
