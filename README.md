@@ -36,16 +36,16 @@ docker compose -f infra/docker-compose.yaml --profile dev up --build
 ## Django settings profiles
 
 ```bash
-cd services/learnproj
-python manage.py check --settings=learnproj.settings.dev
-python manage.py runserver --settings=learnproj.settings.dev
+cd services/web
+python manage.py check --settings=web.settings.dev
+python manage.py runserver --settings=web.settings.dev
 ```
 
 ```bash
-cd services/learnproj
+cd services/web
 DJANGO_SECRET_KEY=change-me \
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
-python manage.py check --deploy --settings=learnproj.settings.prod
+python manage.py check --deploy --settings=web.settings.prod
 ```
 
 ## Contribute
@@ -71,3 +71,8 @@ uv run isort .
 uv run pytest -q
 uv run pre-commit run --all-files
 ```
+
+## Issues
+Now we have two options for issues:
+1. [Bug report](.github/ISSUE_TEMPLATE/bug_report.yml)
+2. [Feature request](.github/ISSUE_TEMPLATE/feature.yml)
