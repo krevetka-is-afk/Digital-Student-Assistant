@@ -12,8 +12,7 @@ RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN pip install --no-cache-dir uv==0.9.22
-COPY services/web/pyproject.toml  dest
-COPY pyproject.toml uv.lock services/web/uv.lock /build/
+COPY pyproject.toml uv.lock ./
 RUN uv sync --active --frozen --no-install-project
 
 COPY . .
@@ -31,7 +30,7 @@ ARG APP_UID=1000
 ARG APP_GID=1000
 RUN addgroup --gid ${APP_GID} appgroup && \
     adduser --disabled-password --gecos '' --uid ${APP_UID} --gid ${APP_GID} \
-      --home ./ --shell /usr/sbin/nologin appuser
+      --home /app --shell /usr/sbin/nologin appuser
 
 WORKDIR /app
 
@@ -45,4 +44,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 USER appuser
 
-CMD ["uv run", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
