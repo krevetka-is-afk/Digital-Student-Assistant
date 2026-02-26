@@ -4,8 +4,8 @@ from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
-# `base.py` lives in `web/settings/`, so BASE_DIR is three levels up.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# `base.py` lives in `web/config.settings/`, so BASE_DIR is four levels up.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
@@ -118,7 +118,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "web.wsgi.application"
+WSGI_APPLICATION = "web.config.wsgi.application"
 
 
 DATABASES = database_from_env()
