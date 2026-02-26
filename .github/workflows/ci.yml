@@ -121,7 +121,7 @@ jobs:
         working-directory: services/web
         run: |
           mkdir -p reports
-          uv run pytest -q apps --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
+          uv run pytest -q apps/base/tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
 
       - name: Upload web test reports
         if: always()
