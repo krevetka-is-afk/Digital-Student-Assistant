@@ -18,6 +18,7 @@ dependencies = [
     "passlib",
     "python-jose",
     "django-debug-toolbar>=6.2.0",
+    "dotenv>=0.9.9",
 ]
 
 [dependency-groups]
