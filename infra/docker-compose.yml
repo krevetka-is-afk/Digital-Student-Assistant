@@ -64,7 +64,7 @@ services:
       - ALL
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys,urllib.request as u; u.urlopen('http://127.0.0.1:8000/health').read(); sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import sys,urllib.request as u; u.urlopen('http://127.0.0.1:8000/health/').read(); sys.exit(0)"]
       interval: 30s
       timeout: 3s
       retries: 3
