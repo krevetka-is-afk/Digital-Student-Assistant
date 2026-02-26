@@ -137,6 +137,8 @@ jobs:
     if: ${{ needs.changes.outputs.ml == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -280,6 +282,8 @@ jobs:
     if: ${{ needs.changes.outputs.ml == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

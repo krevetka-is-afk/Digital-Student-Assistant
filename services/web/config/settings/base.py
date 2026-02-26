@@ -4,8 +4,8 @@ from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
-# `base.py` lives in `web/config.settings/`, so BASE_DIR is four levels up.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+# `base.py` lives in `web/config/settings/`, so BASE_DIR is four levels up.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 

@@ -1,7 +1,12 @@
 import pytest
 from starlette.testclient import TestClient
 
-from services.ml.app.main import app
+try:
+    # Works when pytest is started from services/ml
+    from app.main import app
+except ModuleNotFoundError:
+    # Works when pytest is started from repo root
+    from services.ml.app.main import app
 
 
 @pytest.fixture
