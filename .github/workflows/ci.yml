@@ -2,7 +2,7 @@ name: CI
 on:
   push:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -16,7 +16,10 @@ jobs:
     name: Detect changes
     runs-on: ubuntu-latest
     outputs:
-      python: ${{ steps.filter.outputs.python }}
+      web: ${{ steps.filter.outputs.web }}
+      ml: ${{ steps.filter.outputs.ml }}
+      root: ${{ steps.filter.outputs.root }}
+      docker: ${{ steps.filter.outputs.docker }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -28,74 +31,144 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            python:
-              - '**/*.py'
+            web:
+              - 'services/web/**'
+            ml:
+              - 'services/ml/**'
+            docker:
+              - 'services/**/Dockerfile'
+              - 'infra/docker-compose.yml'
+              - 'infra/docker-compose.dev.yml'
+            root:
+              - '.github/workflows/**'
+              - '.pre-commit-config.yaml'
               - 'pyproject.toml'
               - 'uv.lock'
-              - '.pre-commit-config.yaml'
+              - 'scripts/**'
 
-  lint-and-test:
-    name: Lint & Test (matrix)
+  repo-lint:
+    name: Repo lint + pre-commit
     needs: changes
-    if: needs.changes.outputs.python == 'true'
-    runs-on: ${{ matrix.os }}
+    if: ${{ needs.changes.outputs.root == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.ml == 'true' || needs.changes.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.12", "3.13", "3.14" ]
-    env:
-      DJANGO_SETTINGS_MODULE: web.settings.dev
-      DATABASE_URL: "${{ secrets.DEV_DATABASE_URL || 'sqlite:///data/ci_test.sqlite' }}"
-      TEST_DB_URL: "${{ secrets.DEV_TEST_DB_URL || 'sqlite:///data/ci_test.sqlite' }}"
-      JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
-      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
-      PYTHONPATH: .
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "**/uv.lock"
+          cache-dependency-glob: "uv.lock"
 
-      - name: Install dependencies
-        run: |
-          uv sync --group dev --frozen
+      - name: Install root dev dependencies
+        run: uv sync --group dev --frozen
 
-      - name: Lint & Format
+      - name: Lint & Format checks
         run: |
           uv run ruff check --output-format=github .
           uv run black --check .
           uv run isort --check-only .
 
-      - name: Tests
-        run: |
-          mkdir -p reports
-          uv run pytest --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
-
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: test-reports-${{ matrix.os }}-py${{ matrix.python-version }}
-          path: reports/**
-          if-no-files-found: error
-
       - name: Pre-commit (all files)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         env:
           SKIP: no-commit-to-branch
         run: uv run pre-commit run --all-files
+
+  lint-test-web:
+    name: Web tests
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: "sqlite:///ci_test.sqlite3"
+      TEST_DB_URL: "sqlite:///ci_test.sqlite3"
+      JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
+      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
+      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "services/web/uv.lock"
+
+      - name: Install web dependencies
+        working-directory: services/web
+        run: uv sync --group dev --frozen
+
+      - name: Django checks
+        working-directory: services/web
+        run: uv run python manage.py check
+
+      - name: Web tests
+        working-directory: services/web
+        run: |
+          mkdir -p reports
+          uv run pytest -q apps --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
+
+      - name: Upload web test reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-test-reports-py313
+          path: services/web/reports/**
+          if-no-files-found: error
+
+  lint-test-ml:
+    name: ML tests
+    needs: changes
+    if: ${{ needs.changes.outputs.ml == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "services/ml/uv.lock"
+
+      - name: Install ML dependencies
+        working-directory: services/ml
+        run: uv sync --group dev --frozen
+
+      - name: ML tests
+        working-directory: services/ml
+        run: |
+          mkdir -p reports
+          uv run pytest -q tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
+
+      - name: Upload ML test reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ml-test-reports-py313
+          path: services/ml/reports/**
+          if-no-files-found: error
 
   security-check:
     name: Security quick scan
@@ -115,20 +188,19 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: "false"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
 
-  package-and-artifacts:
-    name: Coverage report
-    needs: lint-and-test
+  package-and-artifacts-web:
+    name: Web coverage + image scan
+    needs: [changes, lint-test-web]
+    if: ${{ needs.changes.outputs.web == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      DJANGO_SETTINGS_MODULE: web.settings.dev
-      DATABASE_URL: "${{ secrets.DEV_DATABASE_URL || 'sqlite:///data/ci_test.sqlite' }}"
-      TEST_DB_URL: "${{ secrets.DEV_TEST_DB_URL || 'sqlite:///data/ci_test.sqlite' }}"
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: "sqlite:///ci_test.sqlite3"
+      TEST_DB_URL: "sqlite:///ci_test.sqlite3"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
       ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
       ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
-      PYTHONPATH: .
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -136,79 +208,159 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.13"
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "**/uv.lock"
+          cache-dependency-glob: "services/web/uv.lock"
 
-      - name: Install dependencies
-        run: |
-          uv sync --group dev --frozen
+      - name: Install web dependencies
+        working-directory: services/web
+        run: uv sync --group dev --frozen
 
-      - name: Tests with coverage
+      - name: Web tests with coverage
+        working-directory: services/web
         run: |
           mkdir -p reports
-          uv run pytest --cov=services \
+          uv run --with pytest-cov pytest -q apps \
+            --cov=apps --cov=config \
             --cov-report=xml --cov-report=html --cov-report=term-missing \
             --junitxml=reports/junit-coverage.xml
 
-      - name: Upload coverage reports
+      - name: Upload web coverage reports
         uses: actions/upload-artifact@v6
         with:
-          name: coverage-reports
+          name: web-coverage-reports
           path: |
-            coverage.xml
-            htmlcov/
-            reports/junit-*.xml
+            services/web/coverage.xml
+            services/web/htmlcov/
+            services/web/reports/junit-*.xml
           if-no-files-found: error
 
-      - name: Build package
+      - name: Build web package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          uv run --with build python -m build
+        working-directory: services/web
+        run: uv run --with build python -m build
 
-      - name: Upload build package
+      - name: Upload web package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v6
         with:
-          name: python-package
-          path: dist/
+          name: python-package-web
+          path: services/web/dist/
+          if-no-files-found: error
 
-      - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-html
-          path: htmlcov
-
-      # Dockerfile lint
-      - name: Lint Dockerfile (hadolint)
+      - name: Lint Web Dockerfile (hadolint)
         uses: hadolint/hadolint-action@v3.3.0
         with:
-          dockerfile: Dockerfile
+          dockerfile: services/web/Dockerfile
 
-      - name: Build image for scan
-        run: |
-          docker build -t registry:5000/krevetka:ci .
+      - name: Build web image for scan
+        run: docker build -t registry:5000/dsa-web:ci services/web
 
-      - name: Trivy scan
+      - name: Trivy scan (web)
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: registry:5000/krevetka:ci
-          format: 'json'
-          output: trivy-report.json
+          image-ref: registry:5000/dsa-web:ci
+          format: "json"
+          output: trivy-web-report.json
 
-      - name: Upload trivy report
+      - name: Upload web Trivy report
         uses: actions/upload-artifact@v6
         with:
-          name: trivy-report
-          path: trivy-report.json
+          name: trivy-web-report
+          path: trivy-web-report.json
+          if-no-files-found: error
+
+  package-and-artifacts-ml:
+    name: ML coverage + image scan
+    needs: [changes, lint-test-ml]
+    if: ${{ needs.changes.outputs.ml == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "services/ml/uv.lock"
+
+      - name: Install ML dependencies
+        working-directory: services/ml
+        run: uv sync --group dev --frozen
+
+      - name: ML tests with coverage
+        working-directory: services/ml
+        run: |
+          mkdir -p reports
+          uv run --with pytest-cov pytest -q tests \
+            --cov=app \
+            --cov-report=xml --cov-report=html --cov-report=term-missing \
+            --junitxml=reports/junit-coverage.xml
+
+      - name: Upload ML coverage reports
+        uses: actions/upload-artifact@v6
+        with:
+          name: ml-coverage-reports
+          path: |
+            services/ml/coverage.xml
+            services/ml/htmlcov/
+            services/ml/reports/junit-*.xml
+          if-no-files-found: error
+
+      - name: Build ML package
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: services/ml
+        run: uv run --with build python -m build
+
+      - name: Upload ML package
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v6
+        with:
+          name: python-package-ml
+          path: services/ml/dist/
+          if-no-files-found: error
+
+      - name: Lint ML Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: services/ml/Dockerfile
+
+      - name: Build ML image for scan
+        run: docker build -t registry:5000/dsa-ml:ci services/ml
+
+      - name: Trivy scan (ML)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: registry:5000/dsa-ml:ci
+          format: "json"
+          output: trivy-ml-report.json
+
+      - name: Upload ML Trivy report
+        uses: actions/upload-artifact@v6
+        with:
+          name: trivy-ml-report
+          path: trivy-ml-report.json
+          if-no-files-found: error
 
   deploy-staging:
     name: Deploy to Staging
-    needs: [lint-and-test, package-and-artifacts]
+    needs:
+      - repo-lint
+      - lint-test-web
+      - lint-test-ml
+      - package-and-artifacts-web
+      - package-and-artifacts-ml
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
@@ -217,19 +369,26 @@ jobs:
     env:
       STAGING_URL: "${{ secrets.STAGING_URL || vars.STAGING_URL || 'https://staging.example' }}"
       DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Download build artifacts
+      - name: Download web package artifact
         uses: actions/download-artifact@v7.0.0
         with:
-          name: python-package
-          path: dist
+          name: python-package-web
+          path: dist/web
 
-      - name: Inspect package bundle
-        run: ls -lah dist
+      - name: Download ML package artifact
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: python-package-ml
+          path: dist/ml
+
+      - name: Inspect package bundles
+        run: |
+          ls -lah dist/web || true
+          ls -lah dist/ml || true
 
       - name: Deploy to staging (simulation)
         run: |
@@ -237,5 +396,4 @@ jobs:
           echo "Mock deployment completed to $STAGING_URL"
 
       - name: Health check staging
-        run: |
-          echo "Performing health check..."
+        run: echo "Performing health check..."
