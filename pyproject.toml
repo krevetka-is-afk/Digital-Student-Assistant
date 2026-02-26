@@ -30,7 +30,9 @@ authors = [
 description = "..."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "starlette>=0.52.1",
+]
 
 [dependency-groups]
 dev = [
@@ -49,9 +51,3 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 include = ["services*"]
 exclude = ["tests*", "docs*", "reports*", "EVIDENCE*", "security*", "htmlcov*"]
-
-[tool.uv.workspace]
-members = [
-    "services/web",
-    "services/ml",
-]
