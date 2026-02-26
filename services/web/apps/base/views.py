@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 
 @api_view(["POST"])
-async def api_home(request, *args, **kwargs):
+def api_home(request, *args, **kwargs):
     """
     Docstring for api_home
 
@@ -28,5 +28,5 @@ async def api_home(request, *args, **kwargs):
 
 
 @api_view(["GET"])
-async def health_custom(request, *args, **kwargs):
+def health_custom(request, *args, **kwargs):
     return Response({"status": "ok", "service": "web"})
