@@ -118,7 +118,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "web.config.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 DATABASES = database_from_env()
