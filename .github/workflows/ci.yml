@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-${{ matrix.os }}-py${{ matrix.python-version }}
           path: reports/**
@@ -161,7 +161,7 @@ jobs:
             --junitxml=reports/junit-coverage.xml
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
           path: |
@@ -178,13 +178,13 @@ jobs:
 
       - name: Upload build package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: python-package
           path: dist/
 
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-html
           path: htmlcov
@@ -207,7 +207,7 @@ jobs:
           output: trivy-report.json
 
       - name: Upload trivy report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-report
           path: trivy-report.json
