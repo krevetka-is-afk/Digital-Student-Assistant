@@ -51,3 +51,8 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 include = ["services*"]
 exclude = ["tests*", "docs*", "reports*", "EVIDENCE*", "security*", "htmlcov*"]
+
+[tool.uv.workspace]
+members = [
+    "services/graph",
+]
