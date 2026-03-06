@@ -8,7 +8,7 @@ except BaseException:
     product_id = None
 
 if product_id:
-    endpoint = f"http://localhost:8001/base/products/{product_id}/delete/"
+    endpoint = f"http://localhost:8001/base/projects/{product_id}/delete/"
 
     get_response = requests.delete(endpoint)
     print(get_response.status_code, get_response.status_code == 204)

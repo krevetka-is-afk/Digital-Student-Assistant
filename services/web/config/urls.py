@@ -27,6 +27,6 @@ urlpatterns = [
     path("api/", include("apps.api.urls")),
     path("base/search", include("apps.search.urls")),
     path("base/", include("apps.base.urls")),
-    path("base/products/", include("apps.products.urls")),
+    path("base/projects/", include("apps.projects.urls")),
     path("base/v2/", include("config.routers")),
 ]

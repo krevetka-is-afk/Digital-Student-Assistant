@@ -75,7 +75,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     # internal apps
     "apps.base",
-    "apps.products",
+    "apps.projects",
     "apps.search",
     # healthchecks
     "health_check",  # core

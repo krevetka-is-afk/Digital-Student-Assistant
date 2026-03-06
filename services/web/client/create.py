@@ -1,6 +1,6 @@
 import requests
 
-endpoint = "http://localhost:8001/base/products/"
+endpoint = "http://localhost:8001/base/projects/"
 
 headers = {"Authorization": "Bearer 3e236df4bd5474938b488fea98a946107f4e5b68"}
 

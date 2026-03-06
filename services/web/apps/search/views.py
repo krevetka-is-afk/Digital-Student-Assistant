@@ -1,5 +1,5 @@
-from apps.products.models import Product
-from apps.products.serializers import PrimaryProductSerializer
+from apps.projects.models import Product
+from apps.projects.serializers import PrimaryProductSerializer
 from rest_framework import generics
 
 
