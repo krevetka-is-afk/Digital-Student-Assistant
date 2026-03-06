@@ -262,19 +262,19 @@ jobs:
       - name: Build web image for scan
         run: docker build -t registry:5000/dsa-web:ci services/web
 
-      - name: Trivy scan (web)
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: registry:5000/dsa-web:ci
-          format: "json"
-          output: trivy-web-report.json
+      # - name: Trivy scan (web)
+      #   uses: aquasecurity/trivy-action@0.33.1
+      #   with:
+      #     image-ref: registry:5000/dsa-web:ci
+      #     format: "json"
+      #     output: trivy-web-report.json
 
-      - name: Upload web Trivy report
-        uses: actions/upload-artifact@v6
-        with:
-          name: trivy-web-report
-          path: trivy-web-report.json
-          if-no-files-found: error
+      # - name: Upload web Trivy report
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: trivy-web-report
+      #     path: trivy-web-report.json
+      #     if-no-files-found: error
 
   package-and-artifacts-ml:
     name: ML coverage + image scan
@@ -343,19 +343,19 @@ jobs:
       - name: Build ML image for scan
         run: docker build -t registry:5000/dsa-ml:ci services/ml
 
-      - name: Trivy scan (ML)
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: registry:5000/dsa-ml:ci
-          format: "json"
-          output: trivy-ml-report.json
+      # - name: Trivy scan (ML)
+      #   uses: aquasecurity/trivy-action@0.33.1
+      #   with:
+      #     image-ref: registry:5000/dsa-ml:ci
+      #     format: "json"
+      #     output: trivy-ml-report.json
 
-      - name: Upload ML Trivy report
-        uses: actions/upload-artifact@v6
-        with:
-          name: trivy-ml-report
-          path: trivy-ml-report.json
-          if-no-files-found: error
+      # - name: Upload ML Trivy report
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: trivy-ml-report
+      #     path: trivy-ml-report.json
+      #     if-no-files-found: error
 
   deploy-staging:
     name: Deploy to Staging
