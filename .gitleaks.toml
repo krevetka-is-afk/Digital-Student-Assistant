@@ -1,6 +1,14 @@
-title = "Gitleaks baseline (extend in P10)"
-[[rules]]
-description = "Generic secret (example disabled)"
-regex = '''(?i)dummy-never-match'''
-entropy = 5.0
-filename = "nowhere"
+title = "Digital Student Assistant gitleaks config"
+
+[extend]
+# Use Gitleaks default built-in rules.
+
+[allowlist]
+description = "ignore non-sensitive patterns"
+paths = [
+  "EVIDENCE/",
+]
+commits = []
+regexes = [
+  '''SECRET_DO_NOT_USE''',
+]
