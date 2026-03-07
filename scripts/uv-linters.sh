@@ -22,6 +22,7 @@ uv run --group dev black .
 uv run --group dev isort .
 (
     cd services/web
+    uv run python manage.py migrate --noinput
     uv run --with pytest pytest -q apps/base/tests/tests.py
 )
 (

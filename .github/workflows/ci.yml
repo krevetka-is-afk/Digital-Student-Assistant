@@ -117,6 +117,10 @@ jobs:
         working-directory: services/web
         run: uv run python manage.py check
 
+      - name: Apply migrations
+        working-directory: services/web
+        run: uv run python manage.py migrate --noinput
+
       - name: Web tests
         working-directory: services/web
         run: |
@@ -221,6 +225,10 @@ jobs:
       - name: Install web dependencies
         working-directory: services/web
         run: uv sync --group dev --frozen
+
+      - name: Apply migrations
+        working-directory: services/web
+        run: uv run python manage.py migrate --noinput
 
       - name: Web tests with coverage
         working-directory: services/web
