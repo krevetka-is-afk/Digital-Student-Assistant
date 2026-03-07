@@ -1,79 +1,117 @@
-# Project Structure
+# Project Structure (Actual State)
+
+Updated: 2026-03-07
 
 ```txt
 Digital-Student-Assistant/
 ├─ README.md
-├─ .env.example
+├─ LICENSE
+├─ EVIDENCE/
 ├─ .github/
-│  └─ workflows/                 # CI: lint/test/build
+│  ├─ workflows/
+│  │  └─ ci.yml
+│  └─ ISSUE_TEMPLATE/
 ├─ docs/
-│  ├─ adr/                       # ADR-001, ADR-002...
-│  ├─ architecture/              # diagrams, C4, sequence
-│  └─ api/                       # exported OpenAPI schemas (optional)
+│  ├─ adr/
+│  ├─ technical-specification/
+│  │  └─ technical-specification-3/
+│  ├─ 01 General objectives and context of the project.md
+│  ├─ 02 Functional requirements.md
+│  ├─ 03 NFR.md
+│  ├─ 04 Limits.md
+│  ├─ 05 Support, development, operation.md
+│  ├─ 10 architectural decision.md
+│  └─ structure_of_project.md
 ├─ infra/
 │  ├─ docker-compose.yml
-│  ├─ nginx/                     # optional reverse proxy
-│  └─ postgres/                  # init scripts, backups
+│  ├─ docker-compose.dev.yml
+│  └─ .dockerignore
 ├─ scripts/
-│  ├─ seed_db.py
-│  ├─ import_projects_xlsx.py
-│  └─ dev_reset.sh
-└─ services/
-   ├─ web/                       # Django modular monolith (SSR + DRF)
-   │  ├─ pyproject.toml
-   │  ├─ manage.py
-   │  ├─ config/                 # Django project package
-   │  │  ├─ settings/
-   │  │  │  ├─ base.py
-   │  │  │  ├─ dev.py
-   │  │  │  └─ prod.py
-   │  │  ├─ urls.py
-   │  │  ├─ asgi.py
-   │  │  ├─ wsgi.py
-   │  │  └─ celery_app.py         # Celery config lives with Django
-   │  ├─ apps/                    # domain modules (bounded contexts)
-   │  │  ├─ users/
-   │  │  ├─ projects/
-   │  │  ├─ applications/
-   │  │  ├─ cpprp/
-   │  │  ├─ integrations/         # sheets, LMS, SSO
-   │  │  └─ recs/                 # facade client to ML service
-   │  ├─ templates/               # project-level templates
-   │  ├─ static/
-   │  └─ tests/
-   │
-   └─ ml/                        # FastAPI ML service (embeddings/search/recs)
-      ├─ pyproject.toml
-      ├─ app/
-      │  ├─ main.py
-      │  ├─ api/
-      │  │  ├─ v1/
-      │  │  │  ├─ routes_embeddings.py
-      │  │  │  ├─ routes_search.py
-      │  │  │  └─ routes_recs.py
-      │  │  └─ router.py
-      │  ├─ core/                 # config, logging
-      │  ├─ services/             # embedding, rerank, summarization
-      │  ├─ repositories/         # pgvector queries, index persistence
-      │  └─ schemas/              # pydantic DTOs
-      └─ tests/
+│  └─ uv-linters.sh
+├─ security/
+│  ├─ seccomp/
+│  └─ semgrep/
+├─ services/
+│  ├─ web/                         # Django + DRF
+│  │  ├─ Dockerfile
+│  │  ├─ pyproject.toml
+│  │  ├─ uv.lock
+│  │  ├─ manage.py
+│  │  ├─ config/
+│  │  │  ├─ settings/
+│  │  │  │  ├─ base.py
+│  │  │  │  ├─ dev.py
+│  │  │  │  └─ prod.py
+│  │  │  ├─ urls.py
+│  │  │  ├─ routers.py
+│  │  │  ├─ asgi.py
+│  │  │  └─ wsgi.py
+│  │  ├─ apps/
+│  │  │  ├─ api/
+│  │  │  ├─ applications/
+│  │  │  ├─ base/
+│  │  │  ├─ imports/
+│  │  │  ├─ outbox/
+│  │  │  ├─ projects/
+│  │  │  ├─ search/
+│  │  │  └─ tags/
+│  │  ├─ templates/
+│  │  │  └─ home.html
+│  │  ├─ client/                   # local API client scripts
+│  │  └─ tests/                    # scaffolds: unit/api/integration/contract
+│  ├─ ml/                          # FastAPI ML service
+│  │  ├─ Dockerfile
+│  │  ├─ pyproject.toml
+│  │  ├─ uv.lock
+│  │  ├─ app/
+│  │  │  ├─ main.py
+│  │  │  ├─ api/
+│  │  │  ├─ core/
+│  │  │  ├─ repositories/
+│  │  │  ├─ schemas/
+│  │  │  ├─ services/
+│  │  │  └─ workers/
+│  │  └─ tests/
+│  │     ├─ unit/
+│  │     ├─ api/
+│  │     ├─ integration/
+│  │     └─ contract/
+│  └─ graph/                       # graph projector service
+│     ├─ Dockerfile
+│     ├─ pyproject.toml
+│     ├─ app/
+│     │  ├─ main.py
+│     │  ├─ checkpoints/
+│     │  ├─ consumers/
+│     │  ├─ mappers/
+│     │  └─ neo4j/
+│     └─ tests/
+│        ├─ unit/
+│        └─ integration/
+├─ tests/                          # repository-level tests
+│  ├─ e2e/
+│  ├─ integration/
+│  │  ├─ conftest.py
+│  │  └─ docker-compose.test.yml
+│  └─ contract/
+├─ pyproject.toml
+└─ uv.lock
 ```
 
-## DRF app structure (example for `projects` app):
+## Web Domain Apps (`services/web/apps`)
 
-Keep each domain as a Django app under apps/:
-- apps/projects owns Project model + logic
-- apps/applications owns workflow/status transitions
-- apps/integrations owns Sheets/XLSX/LMS clients
-- apps/recs is only a client facade to ML service
+- `base`: authentication, permissions, shared API endpoints, health endpoint.
+- `projects`: main project domain (models, serializers, validators, viewsets).
+- `applications`: application workflow domain (currently scaffold/basic files).
+- `search`: search endpoints/domain.
+- `tags`: tags domain scaffold.
+- `imports`: import pipeline scaffold.
+- `outbox`: outbox domain scaffold.
+- `api`: top-level DRF API wiring.
 
-```txt
-apps/projects/
-├─ models.py
-├─ services.py           # business logic (important boundary)
-├─ selectors.py          # read/query functions
-└─ api/
-   ├─ serializers.py
-   ├─ views.py (ViewSets)
-   └─ urls.py / router.py
-```
+## Notes vs Target Architecture
+
+- `services/graph/` is already present as a separate service; naming can be aligned later to `services/graph_projector/` if needed.
+- `contracts/` directory is not created yet (OpenAPI/events source-of-truth still pending as a separate step).
+- `docs/architecture`, `docs/data`, `docs/events`, `docs/openapi`, `docs/security` are not yet split into dedicated folders.
+- `infra/docker-compose.test.yml` currently lives in `tests/integration/docker-compose.test.yml`.
