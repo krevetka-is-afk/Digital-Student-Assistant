@@ -1,5 +1,6 @@
 # from django.http import JsonResponse
 from apps.projects.serializers import PrimaryProjectSerializer
+from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -29,4 +30,8 @@ def api_home(request, *args, **kwargs):
 
 @api_view(["GET"])
 def health_custom(request, *args, **kwargs):
-    return Response({"status": "ok", "service": "web"})
+    return Response({"status": "ok"})
+
+
+def home_page(request, *args, **kwargs):
+    return render(request, "home.html")
