@@ -15,6 +15,8 @@ class ApiRootView(APIView):
                 "versions": {
                     "v1": reverse("api-v1-root", request=request),
                 },
+                "schema": reverse("api-schema", request=request),
+                "docs": reverse("api-docs", request=request),
                 "legacy": {
                     "deprecated": True,
                     "root": reverse("legacy-api-root", request=request),

@@ -170,7 +170,14 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "PAGE_SIZE": 10,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Digital Student Assistant API",
+    "DESCRIPTION": "Versioned REST API for web and future service integrations.",
+    "VERSION": "1.0.0",
 }
 
 ALGOLIA = {

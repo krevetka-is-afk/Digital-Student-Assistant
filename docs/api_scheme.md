@@ -7,6 +7,8 @@ Updated: 2026-03-08
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/` | Stable API index with links to versioned and legacy endpoints |
+| GET | `/api/schema/` | OpenAPI schema (machine-readable contract) |
+| GET | `/api/docs/` | Swagger UI for API schema |
 | GET | `/api/v1/` | Canonical API v1 index |
 | GET | `/api/legacy/` | Deprecated legacy API root |
 | POST | `/api/add/` | Backward-compatible alias for legacy add endpoint |
@@ -20,7 +22,7 @@ Use these endpoints for manual testing and frontend integration.
 | GET | `/api/v1/health/` | no | Service liveness |
 | POST | `/api/v1/auth/token/` | no | Obtain DRF token by `username/password` |
 | GET | `/api/v1/search/?q=<text>` | optional | Search published projects (plus own projects for logged-in user) |
-| GET | `/api/v1/projects/` | optional | List projects |
+| GET | `/api/v1/projects/` | optional | List projects (`page`, `page_size`, `status`, `q`, `ordering`) |
 | POST | `/api/v1/projects/` | yes | Create project (owner = current user) |
 | GET | `/api/v1/projects/<id>/` | optional | Get project by id |
 | PATCH | `/api/v1/projects/<id>/` | yes | Update project (owner or staff) |

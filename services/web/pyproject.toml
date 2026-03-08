@@ -17,6 +17,7 @@ dependencies = [
     "bcrypt==5.0.0",
     "passlib",
     "python-jose",
+    "drf-spectacular>=0.29.0",
     "django-debug-toolbar>=6.2.0",
     "dotenv>=0.9.9",
 ]

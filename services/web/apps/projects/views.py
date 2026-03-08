@@ -1,24 +1,79 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
 from rest_framework import generics, mixins
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from .models import Project, ProjectStatus
+from .pagination import ProjectListPagination
 from .serializers import PrimaryProjectSerializer
 
 
+@extend_schema_view(
+    get=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="status",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                enum=list(ProjectStatus.values),
+                description="Filter by project status.",
+            ),
+            OpenApiParameter(
+                name="q",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Case-insensitive search by project title.",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Ordering by created_at/updated_at. " "Prefix with '-' for descending order."
+                ),
+            ),
+        ]
+    )
+)
 class ProjectListCreateAPIView(generics.ListCreateAPIView):
     queryset = Project.objects.select_related("owner")
     serializer_class = PrimaryProjectSerializer
+    pagination_class = ProjectListPagination
+    ordering_fields = ("created_at", "updated_at")
 
     def get_queryset(self):
         user = self.request.user
+        status = self.request.query_params.get("status")
+        q = self.request.query_params.get("q")
+        ordering = self.request.query_params.get("ordering")
+
         if user.is_authenticated:
-            return self.queryset.filter(
+            queryset = self.queryset.filter(
                 Q(status=ProjectStatus.PUBLISHED) | Q(owner=user)
             ).distinct()
-        return self.queryset.filter(status=ProjectStatus.PUBLISHED)
+        else:
+            queryset = self.queryset.filter(status=ProjectStatus.PUBLISHED)
+
+        if status:
+            if status not in ProjectStatus.values:
+                raise ValidationError({"status": [f"Unsupported status '{status}'."]})
+            queryset = queryset.filter(status=status)
+
+        if q:
+            queryset = queryset.filter(title__icontains=q.strip())
+
+        if ordering:
+            ordering_field = ordering[1:] if ordering.startswith("-") else ordering
+            if ordering_field not in self.ordering_fields:
+                raise ValidationError(
+                    {"ordering": ["Unsupported ordering field. Allowed: created_at, updated_at."]}
+                )
+            queryset = queryset.order_by(ordering)
+
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

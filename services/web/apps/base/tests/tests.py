@@ -37,6 +37,8 @@ def test_api_root_ok():
     payload = r.json()
     assert payload["default_version"] == "v1"
     assert payload["versions"]["v1"].endswith("/api/v1/")
+    assert payload["schema"].endswith("/api/schema/")
+    assert payload["docs"].endswith("/api/docs/")
 
 
 def test_api_v1_root_ok():
@@ -46,6 +48,17 @@ def test_api_v1_root_ok():
     payload = r.json()
     assert payload["version"] == "v1"
     assert payload["projects"].endswith("/api/v1/projects/")
+
+
+def test_api_schema_exposes_projects_query_params():
+    c = Client()
+    r = c.get(reverse("api-schema"), HTTP_ACCEPT="application/vnd.oai.openapi+json")
+    assert r.status_code == 200
+
+    payload = r.json()
+    params = payload["paths"]["/api/v1/projects/"]["get"]["parameters"]
+    param_names = {param["name"] for param in params}
+    assert {"page", "page_size", "status", "q", "ordering"}.issubset(param_names)
 
 
 def test_legacy_api_is_under_legacy_prefix():
