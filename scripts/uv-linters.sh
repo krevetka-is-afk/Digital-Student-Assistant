@@ -23,7 +23,7 @@ uv run --group dev isort .
 (
     cd services/web
     uv run python manage.py migrate --noinput
-    uv run --with pytest pytest -q apps/base/tests/tests.py
+    uv run --with pytest pytest -q
 )
 (
     cd services/ml

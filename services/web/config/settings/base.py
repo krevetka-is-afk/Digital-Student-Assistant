@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from debug_toolbar.settings import PANELS_DEFAULTS
 from dotenv import load_dotenv
 
 # `base.py` lives in `web/config/settings/`, so BASE_DIR is four levels up.
@@ -178,3 +179,7 @@ ALGOLIA = {
     "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "SERJ"),
     "AUTO_INDEXING": env_bool("ALGOLIA_AUTO_INDEXING", False),
 }
+
+DEBUG_TOOLBAR_PANELS = [
+    p for p in PANELS_DEFAULTS if p != "debug_toolbar.panels.redirects.RedirectsPanel"
+]

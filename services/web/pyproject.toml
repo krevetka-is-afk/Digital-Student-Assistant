@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-python_files = ["tests.py", "test_*.py", "*_test.py"]
+python_files = ["tests.py", "test_*.py", "*_test.py", "tests_*.py"]
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
