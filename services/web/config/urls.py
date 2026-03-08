@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from apps.base.views import health_custom, home_page
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
@@ -23,11 +24,14 @@ urlpatterns = [
     path("", home_page, name="home"),
     path("health/", health_custom, name="health-root"),
     path("admin/", admin.site.urls),
-    path("api/v1/", include("config.api_v1_urls")),
-    # Legacy routes kept for backward compatibility.
-    path("api/", include("apps.api.urls")),
+    path("api/", include("config.api_root_urls")),
     path("base/search", include("apps.search.urls")),
     path("base/", include("apps.base.urls")),
     path("base/projects/", include("apps.projects.urls")),
     path("base/v2/", include("config.routers")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += [
+        path("__debug__/", include("debug_toolbar.urls")),
+    ]

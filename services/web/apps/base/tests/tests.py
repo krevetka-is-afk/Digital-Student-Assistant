@@ -28,3 +28,34 @@ def test_api_v1_projects_list_ok():
     c = Client()
     r = c.get(reverse("api-v1-project-list"))
     assert r.status_code == 200
+
+
+def test_api_root_ok():
+    c = Client()
+    r = c.get(reverse("api-index"))
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["default_version"] == "v1"
+    assert payload["versions"]["v1"].endswith("/api/v1/")
+
+
+def test_api_v1_root_ok():
+    c = Client()
+    r = c.get(reverse("api-v1-root"))
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["version"] == "v1"
+    assert payload["projects"].endswith("/api/v1/projects/")
+
+
+def test_legacy_api_is_under_legacy_prefix():
+    c = Client()
+    r = c.get(reverse("legacy-api-root"))
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_legacy_add_compat_alias_exists():
+    c = Client()
+    r = c.get(reverse("legacy-api-add-compat"))
+    assert r.status_code == 405

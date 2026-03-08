@@ -1,4 +1,3 @@
-from debug_toolbar.toolbar import debug_toolbar_urls
 from django.urls import path
 from health_check.views import HealthCheckView
 from rest_framework.authtoken.views import obtain_auth_token
@@ -16,4 +15,4 @@ urlpatterns = [
         name="health",
     ),
     path("health_custom/", views.health_custom, name="health_custom"),
-] + debug_toolbar_urls()
+]
