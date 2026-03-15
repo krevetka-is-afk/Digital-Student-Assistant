@@ -386,13 +386,13 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download web package artifact
-        uses: actions/download-artifact@v7.0.0
+        uses: actions/download-artifact@v8.0.1
         with:
           name: python-package-web
           path: dist/web
 
       - name: Download ML package artifact
-        uses: actions/download-artifact@v7.0.0
+        uses: actions/download-artifact@v8.0.1
         with:
           name: python-package-ml
           path: dist/ml
