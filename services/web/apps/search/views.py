@@ -1,10 +1,10 @@
-from apps.projects.models import Project
+from apps.projects.models import Project, ProjectStatus
 from apps.projects.serializers import PrimaryProjectSerializer
 from rest_framework import generics
 
 
 class SearchListView(generics.ListAPIView):
-    queryset = Project.objects.all()
+    queryset = Project.objects.filter(status__in=ProjectStatus.catalog_values())
     serializer_class = PrimaryProjectSerializer
 
     def get_queryset(self, *args, **kwargs):

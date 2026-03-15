@@ -87,7 +87,7 @@ INSTALLED_APPS = [
     # "health_check.db",  # database check
     # "health_check.cache",  # cache check
     # "health_check.storage",  # storage check
-    # "health_check.contrib.celery",  # celery check (optional)
+    # "health_check.contrib.celery",  # celery check
 ]
 
 MIDDLEWARE = [

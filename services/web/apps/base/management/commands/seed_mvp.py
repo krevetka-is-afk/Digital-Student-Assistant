@@ -63,7 +63,7 @@ class Command(BaseCommand):
             project=project,
             applicant=applicant,
             defaults={
-                "status": ApplicationStatus.PENDING,
+                "status": ApplicationStatus.SUBMITTED,
                 "motivation": "I want to build and validate the MVP.",
             },
         )

@@ -6,9 +6,9 @@ User = settings.AUTH_USER_MODEL
 
 
 class ApplicationStatus(models.TextChoices):
-    PENDING = "pending", "Pending"
+    SUBMITTED = "submitted", "Submitted"
     ACCEPTED = "accepted", "Accepted"
-    DECLINED = "declined", "Declined"
+    REJECTED = "rejected", "Rejected"
 
 
 class Application(models.Model):
@@ -29,7 +29,7 @@ class Application(models.Model):
     status = models.CharField(
         max_length=20,
         choices=ApplicationStatus.choices,
-        default=ApplicationStatus.PENDING,
+        default=ApplicationStatus.SUBMITTED,
         db_index=True,
         verbose_name="Status",
         help_text="Current status of application review.",
@@ -38,6 +38,27 @@ class Application(models.Model):
         blank=True,
         verbose_name="Motivation",
         help_text="Free-text motivation from the applicant.",
+    )
+    review_comment = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Review comment",
+        help_text="Teacher/CPPRP decision comment.",
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_applications",
+        null=True,
+        blank=True,
+        verbose_name="Reviewed by",
+        help_text="User who reviewed this application.",
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Reviewed at",
+        help_text="Timestamp of the application review decision.",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

@@ -7,8 +7,15 @@ User = settings.AUTH_USER_MODEL
 
 class ProjectStatus(models.TextChoices):
     DRAFT = "draft", "Draft"
+    ON_MODERATION = "on_moderation", "On moderation"
     PUBLISHED = "published", "Published"
+    REJECTED = "rejected", "Rejected"
+    STAFFED = "staffed", "Staffed"
     ARCHIVED = "archived", "Archived"
+
+    @classmethod
+    def catalog_values(cls) -> tuple[str, ...]:
+        return (cls.PUBLISHED, cls.STAFFED)
 
 
 class ProjectSourceType(models.TextChoices):
@@ -20,7 +27,7 @@ class ProjectSourceType(models.TextChoices):
 
 class ProjectQuerySet(models.QuerySet):
     def published(self):
-        return self.filter(status=ProjectStatus.PUBLISHED)
+        return self.filter(status__in=ProjectStatus.catalog_values())
 
     def search(self, query, user=None):
         lookup = Q(title__icontains=query) | Q(description__icontains=query)
@@ -68,6 +75,16 @@ class Project(models.Model):
         verbose_name="Status",
         help_text="Publishing lifecycle state used in filters and workflows.",
     )
+    team_size = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Team size",
+        help_text="Number of students needed for this project.",
+    )
+    accepted_participants_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Accepted participants count",
+        help_text="Current number of accepted student applications.",
+    )
     source_type = models.CharField(
         max_length=20,
         choices=ProjectSourceType.choices,
@@ -87,6 +104,27 @@ class Project(models.Model):
         blank=True,
         verbose_name="Extra data",
         help_text="Unstructured source-specific payload for hybrid MVP model.",
+    )
+    moderated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="moderated_projects",
+        null=True,
+        blank=True,
+        verbose_name="Moderated by",
+        help_text="User who made the latest moderation decision.",
+    )
+    moderated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Moderated at",
+        help_text="Timestamp of the latest moderation decision.",
+    )
+    moderation_comment = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Moderation comment",
+        help_text="Reason/comment for moderation decision.",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -117,7 +155,7 @@ class Project(models.Model):
         return self.title
 
     def is_public(self) -> bool:
-        return self.status == ProjectStatus.PUBLISHED
+        return self.status in ProjectStatus.catalog_values()
 
     def get_tags_list(self) -> list[str]:
         if isinstance(self.tech_tags, list):

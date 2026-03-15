@@ -1,14 +1,16 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
-from rest_framework import generics, mixins
+from rest_framework import generics, mixins, permissions, serializers
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Project, ProjectStatus
 from .pagination import ProjectListPagination
 from .serializers import PrimaryProjectSerializer
+from .transitions import moderate_project, submit_project_for_moderation
 
 
 @extend_schema_view(
@@ -52,10 +54,10 @@ class ProjectListCreateAPIView(generics.ListCreateAPIView):
 
         if user.is_authenticated:
             queryset = self.queryset.filter(
-                Q(status=ProjectStatus.PUBLISHED) | Q(owner=user)
+                Q(status__in=ProjectStatus.catalog_values()) | Q(owner=user)
             ).distinct()
         else:
-            queryset = self.queryset.filter(status=ProjectStatus.PUBLISHED)
+            queryset = self.queryset.filter(status__in=ProjectStatus.catalog_values())
 
         if status:
             if status not in ProjectStatus.values:
@@ -76,7 +78,7 @@ class ProjectListCreateAPIView(generics.ListCreateAPIView):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        serializer.save(owner=self.request.user, status=ProjectStatus.DRAFT)
 
 
 project_list_create_view = ProjectListCreateAPIView.as_view()
@@ -90,9 +92,9 @@ class ProjectDetailAPIView(generics.RetrieveAPIView):
         user = self.request.user
         if user.is_authenticated:
             return self.queryset.filter(
-                Q(status=ProjectStatus.PUBLISHED) | Q(owner=user)
+                Q(status__in=ProjectStatus.catalog_values()) | Q(owner=user)
             ).distinct()
-        return self.queryset.filter(status=ProjectStatus.PUBLISHED)
+        return self.queryset.filter(status__in=ProjectStatus.catalog_values())
 
 
 project_detail_view = ProjectDetailAPIView.as_view()
@@ -138,9 +140,9 @@ class ProjectRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
         if self.request.method in {"GET", "HEAD", "OPTIONS"}:
             if user.is_authenticated:
                 return self.queryset.filter(
-                    Q(status=ProjectStatus.PUBLISHED) | Q(owner=user)
+                    Q(status__in=ProjectStatus.catalog_values()) | Q(owner=user)
                 ).distinct()
-            return self.queryset.filter(status=ProjectStatus.PUBLISHED)
+            return self.queryset.filter(status__in=ProjectStatus.catalog_values())
 
         if user.is_staff:
             return self.queryset
@@ -148,6 +150,39 @@ class ProjectRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
 
 
 project_rud_view = ProjectRetrieveUpdateDestroyAPIView.as_view()
+
+
+class ProjectModerationInputSerializer(serializers.Serializer):
+    decision = serializers.ChoiceField(choices=["approve", "reject"])
+    comment = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ProjectSubmitForModerationAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk: int):
+        project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)
+        submit_project_for_moderation(project=project, actor=request.user)
+        serializer = PrimaryProjectSerializer(project, context={"request": request})
+        return Response(serializer.data)
+
+
+class ProjectModerationAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk: int):
+        payload = ProjectModerationInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)
+        moderate_project(
+            project=project,
+            actor=request.user,
+            decision=payload.validated_data["decision"],
+            comment=payload.validated_data["comment"],
+        )
+        serializer = PrimaryProjectSerializer(project, context={"request": request})
+        return Response(serializer.data)
 
 
 class CreateAPIView(mixins.CreateModelMixin, generics.GenericAPIView):
@@ -168,9 +203,9 @@ class ProjectMixinView(
         user = self.request.user
         if user.is_authenticated:
             return self.queryset.filter(
-                Q(status=ProjectStatus.PUBLISHED) | Q(owner=user)
+                Q(status__in=ProjectStatus.catalog_values()) | Q(owner=user)
             ).distinct()
-        return self.queryset.filter(status=ProjectStatus.PUBLISHED)
+        return self.queryset.filter(status__in=ProjectStatus.catalog_values())
 
     def get(self, request, *args, **kwargs):
         if kwargs.get("pk") is not None:
@@ -194,10 +229,10 @@ def project_alt_view(request, pk=None, *args, **kwargs):
             obj = get_object_or_404(Project, pk=pk)
             return Response(PrimaryProjectSerializer(obj, many=False).data)
 
-        queryset = Project.objects.filter(status=ProjectStatus.PUBLISHED)
+        queryset = Project.objects.filter(status__in=ProjectStatus.catalog_values())
         if request.user.is_authenticated:
             queryset = Project.objects.filter(
-                Q(status=ProjectStatus.PUBLISHED) | Q(owner=request.user)
+                Q(status__in=ProjectStatus.catalog_values()) | Q(owner=request.user)
             ).distinct()
         return Response(PrimaryProjectSerializer(queryset, many=True).data)
 
