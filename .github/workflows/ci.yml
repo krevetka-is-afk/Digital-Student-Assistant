@@ -129,7 +129,7 @@ jobs:
 
       - name: Upload web test reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: web-test-reports-py313
           path: src/web/reports/**
@@ -170,7 +170,7 @@ jobs:
 
       - name: Upload ML test reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ml-test-reports-py313
           path: src/ml/reports/**
@@ -240,7 +240,7 @@ jobs:
             --junitxml=reports/junit-coverage.xml
 
       - name: Upload web coverage reports
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: web-coverage-reports
           path: |
@@ -256,7 +256,7 @@ jobs:
 
       - name: Upload web package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: python-package-web
           path: src/web/dist/
@@ -278,7 +278,7 @@ jobs:
       #     output: trivy-web-report.json
 
       # - name: Upload web Trivy report
-      #   uses: actions/upload-artifact@v6
+      #   uses: actions/upload-artifact@v7
       #   with:
       #     name: trivy-web-report
       #     path: trivy-web-report.json
@@ -321,7 +321,7 @@ jobs:
             --junitxml=reports/junit-coverage.xml
 
       - name: Upload ML coverage reports
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ml-coverage-reports
           path: |
@@ -337,7 +337,7 @@ jobs:
 
       - name: Upload ML package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: python-package-ml
           path: src/ml/dist/
@@ -359,7 +359,7 @@ jobs:
       #     output: trivy-ml-report.json
 
       # - name: Upload ML Trivy report
-      #   uses: actions/upload-artifact@v6
+      #   uses: actions/upload-artifact@v7
       #   with:
       #     name: trivy-ml-report
       #     path: trivy-ml-report.json
