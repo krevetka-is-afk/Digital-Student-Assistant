@@ -1,6 +1,6 @@
 name: dsa-test
 
-services:
+src:
   postgres:
     image: postgres:16-alpine
     environment:
@@ -30,7 +30,7 @@ services:
 
   web:
     build:
-      context: ../services/web
+      context: ../src/web
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.test
       DATABASE_HOST: postgres
@@ -46,7 +46,7 @@ services:
 
   ml:
     build:
-      context: ../services/ml
+      context: ../src/ml
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
@@ -66,7 +66,7 @@ services:
 
   graph:
     build:
-      context: ../services/graph
+      context: ../src/graph
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"

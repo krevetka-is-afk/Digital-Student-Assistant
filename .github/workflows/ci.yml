@@ -32,11 +32,11 @@ jobs:
         with:
           filters: |
             web:
-              - 'services/web/**'
+              - 'src/web/**'
             ml:
-              - 'services/ml/**'
+              - 'src/ml/**'
             docker:
-              - 'services/**/Dockerfile'
+              - 'src/**/Dockerfile'
               - 'infra/docker-compose.yml'
               - 'infra/docker-compose.dev.yml'
             root:
@@ -107,22 +107,22 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "services/web/uv.lock"
+          cache-dependency-glob: "src/web/uv.lock"
 
       - name: Install web dependencies
-        working-directory: services/web
+        working-directory: src/web
         run: uv sync --group dev --frozen
 
       - name: Django checks
-        working-directory: services/web
+        working-directory: src/web
         run: uv run python manage.py check
 
       - name: Apply migrations
-        working-directory: services/web
+        working-directory: src/web
         run: uv run python manage.py migrate --noinput
 
       - name: Web tests
-        working-directory: services/web
+        working-directory: src/web
         run: |
           mkdir -p reports
           uv run pytest -q apps/base/tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
@@ -132,7 +132,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: web-test-reports-py313
-          path: services/web/reports/**
+          path: src/web/reports/**
           if-no-files-found: error
 
   lint-test-ml:
@@ -156,14 +156,14 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "services/ml/uv.lock"
+          cache-dependency-glob: "src/ml/uv.lock"
 
       - name: Install ML dependencies
-        working-directory: services/ml
+        working-directory: src/ml
         run: uv sync --group dev --frozen
 
       - name: ML tests
-        working-directory: services/ml
+        working-directory: src/ml
         run: |
           mkdir -p reports
           uv run pytest -q tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
@@ -173,7 +173,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ml-test-reports-py313
-          path: services/ml/reports/**
+          path: src/ml/reports/**
           if-no-files-found: error
 
   security-check:
@@ -220,18 +220,18 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "services/web/uv.lock"
+          cache-dependency-glob: "src/web/uv.lock"
 
       - name: Install web dependencies
-        working-directory: services/web
+        working-directory: src/web
         run: uv sync --group dev --frozen
 
       - name: Apply migrations
-        working-directory: services/web
+        working-directory: src/web
         run: uv run python manage.py migrate --noinput
 
       - name: Web tests with coverage
-        working-directory: services/web
+        working-directory: src/web
         run: |
           mkdir -p reports
           uv run --with pytest-cov pytest -q apps \
@@ -244,14 +244,14 @@ jobs:
         with:
           name: web-coverage-reports
           path: |
-            services/web/coverage.xml
-            services/web/htmlcov/
-            services/web/reports/junit-*.xml
+            src/web/coverage.xml
+            src/web/htmlcov/
+            src/web/reports/junit-*.xml
           if-no-files-found: error
 
       - name: Build web package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: services/web
+        working-directory: src/web
         run: uv run --with build python -m build
 
       - name: Upload web package
@@ -259,16 +259,16 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: python-package-web
-          path: services/web/dist/
+          path: src/web/dist/
           if-no-files-found: error
 
       - name: Lint Web Dockerfile (hadolint)
         uses: hadolint/hadolint-action@v3.3.0
         with:
-          dockerfile: services/web/Dockerfile
+          dockerfile: src/web/Dockerfile
 
       - name: Build web image for scan
-        run: docker build -t registry:5000/dsa-web:ci services/web
+        run: docker build -t registry:5000/dsa-web:ci src/web
 
       # - name: Trivy scan (web)
       #   uses: aquasecurity/trivy-action@0.33.1
@@ -305,14 +305,14 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "services/ml/uv.lock"
+          cache-dependency-glob: "src/ml/uv.lock"
 
       - name: Install ML dependencies
-        working-directory: services/ml
+        working-directory: src/ml
         run: uv sync --group dev --frozen
 
       - name: ML tests with coverage
-        working-directory: services/ml
+        working-directory: src/ml
         run: |
           mkdir -p reports
           uv run --with pytest-cov pytest -q tests \
@@ -325,14 +325,14 @@ jobs:
         with:
           name: ml-coverage-reports
           path: |
-            services/ml/coverage.xml
-            services/ml/htmlcov/
-            services/ml/reports/junit-*.xml
+            src/ml/coverage.xml
+            src/ml/htmlcov/
+            src/ml/reports/junit-*.xml
           if-no-files-found: error
 
       - name: Build ML package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: services/ml
+        working-directory: src/ml
         run: uv run --with build python -m build
 
       - name: Upload ML package
@@ -340,16 +340,16 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: python-package-ml
-          path: services/ml/dist/
+          path: src/ml/dist/
           if-no-files-found: error
 
       - name: Lint ML Dockerfile (hadolint)
         uses: hadolint/hadolint-action@v3.3.0
         with:
-          dockerfile: services/ml/Dockerfile
+          dockerfile: src/ml/Dockerfile
 
       - name: Build ML image for scan
-        run: docker build -t registry:5000/dsa-ml:ci services/ml
+        run: docker build -t registry:5000/dsa-ml:ci src/ml
 
       # - name: Trivy scan (ML)
       #   uses: aquasecurity/trivy-action@0.33.1

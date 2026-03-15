@@ -24,7 +24,7 @@ export PYTHONPATH=.
 ```
 
 ```bash
-uvicorn services.ml.app.main:app --reload
+uvicorn src.ml.app.main:app --reload
 ```
 
 ## Docker
@@ -36,7 +36,7 @@ docker compose -f infra/docker-compose.yml --profile dev up --build
 ## Web (Django) локальный запуск
 
 ```bash
-cd services/web/
+cd src/web/
 cp .env.example .env
 uv sync --group dev
 uv run python manage.py migrate
@@ -51,7 +51,7 @@ uv run python manage.py runserver --settings=config.settings.dev
 ## Django settings profiles
 
 ```bash
-cd services/web
+cd src/web
 DJANGO_SECRET_KEY=change-me \
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
 python manage.py check --deploy --settings=config.settings.prod
@@ -59,9 +59,9 @@ python manage.py check --deploy --settings=config.settings.prod
 
 ## Структура проекта
 
-- `services/web/` - Django + DRF сервис
-- `services/ml/` - FastAPI ML сервис
-- `services/graph/` – Neo4J
+- `src/web/` - Django + DRF сервис
+- `src/ml/` - FastAPI ML сервис
+- `src/graph/` – Neo4J
 - `infra/` - docker compose и инфраструктурные файлы
 - `docs/` - архитектура, спецификации и заметки
 - `security/` - security-проверки и конфигурации

@@ -9,11 +9,11 @@ export PYTHONPATH="$repo_root"
 # Root env is used only for shared linters/checkers.
 uv sync --group dev --frozen
 (
-    cd services/web
+    cd src/web
     uv sync
 )
 (
-    cd services/ml
+    cd src/ml
     uv sync
 )
 
@@ -21,22 +21,22 @@ uv run --group dev ruff check --fix .
 uv run --group dev black .
 uv run --group dev isort .
 (
-    cd services/web
+    cd src/web
     uv run python manage.py migrate --noinput
     uv run --with pytest pytest -q
 )
 (
-    cd services/ml
+    cd src/ml
     uv run --with pytest pytest -q tests
 )
 
 if [[ "${CHECK_BUILD:-0}" == "1" ]]; then
     (
-        cd services/web
+        cd src/web
         uv run --with build python -m build
     )
     (
-        cd services/ml
+        cd src/ml
         uv run --with build python -m build
     )
 fi

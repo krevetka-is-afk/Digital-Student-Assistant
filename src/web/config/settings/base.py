@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # third party api services
+    # third party api src
     "debug_toolbar",
     "algoliasearch_django",
     # third party packages

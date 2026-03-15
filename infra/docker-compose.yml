@@ -1,4 +1,4 @@
-services:
+src:
   postgres_master:
     container_name: web_data
     image: postgres:16-alpine
@@ -39,14 +39,14 @@ services:
   web:
     container_name: web_service
     build:
-      context: ../services/web
+      context: ../src/web
     depends_on:
       postgres_master:
         condition: service_healthy
     ports:
       - "8000:8000"
     env_file:
-      - ../services/web/.env
+      - ../src/web/.env
     environment:
       - PYTHONUNBUFFERED=1
       - DJANGO_SETTINGS_MODULE=config.settings.dev
@@ -74,14 +74,14 @@ services:
   ml:
     container_name: ml_service
     build:
-      context: ../services/ml
+      context: ../src/ml
     # depends_on:
     #   vector_db:
     #     condition: service_healthy
     ports:
       - "8001:8000"
     env_file:
-      - ../services/ml/.env
+      - ../src/ml/.env
     environment:
       - PYTHONUNBUFFERED=1
     profiles: ["dev"]
