@@ -16,6 +16,7 @@ urlpatterns = [
     path("health/", health_custom, name="api-v1-health"),
     path("auth/token/", obtain_auth_token, name="api-v1-auth-token"),
     path("search/", SearchListView.as_view(), name="api-v1-search"),
+    path("account/", include("apps.account.urls")),
     path("projects/", project_list_create_view, name="api-v1-project-list"),
     path(
         "projects/<int:pk>/actions/submit/",
