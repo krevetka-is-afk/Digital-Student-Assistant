@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     # internal apps
     "apps.base",
+    "apps.account",
     "apps.users",
     "apps.projects",
     "apps.applications",

@@ -36,6 +36,19 @@ def test_owner_can_submit_project_for_moderation():
     assert project.status == ProjectStatus.ON_MODERATION
 
 
+def test_owner_can_submit_project_for_moderation_from_revision_requested():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    project = _make_project(owner, status=ProjectStatus.REVISION_REQUESTED)
+    client = Client()
+    client.force_login(owner)
+
+    response = client.post(reverse("api-v1-project-submit", kwargs={"pk": project.pk}))
+
+    assert response.status_code == 200
+    project.refresh_from_db()
+    assert project.status == ProjectStatus.ON_MODERATION
+
+
 def test_project_submit_requires_owner_or_staff():
     owner = _make_user(role=UserRole.CUSTOMER)
     outsider = _make_user(role=UserRole.STUDENT)
