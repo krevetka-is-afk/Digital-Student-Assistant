@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../src/web/.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dsa}
+      POSTGRES_USER: ${POSTGRES_USER:-dsa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dsa}
+    volumes:
+      - postgres-prod:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: ../src/web
+    restart: unless-stopped
+    env_file:
+      - ../src/web/.env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://dsa:dsa@postgres:5432/dsa}
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://ml:8000}
+    depends_on:
+      - postgres
+      - ml
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+      python manage.py runserver 0.0.0.0:8000"
+
+  ml:
+    build:
+      context: ../src/ml
+    restart: unless-stopped
+    env_file:
+      - ../src/ml/.env
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  graph:
+    build:
+      context: ../src/graph
+    restart: unless-stopped
+    env_file:
+      - ../src/graph/.env
+    volumes:
+      - graph-prod:/app/data
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  postgres-prod:
+  graph-prod:

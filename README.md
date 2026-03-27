@@ -46,6 +46,9 @@ uv run python manage.py runserver --settings=config.settings.dev
 - Health: `http://127.0.0.1:8000/health/`
 - API root: `http://127.0.0.1:8000/api/v1/`
 - Account API: `http://127.0.0.1:8000/api/v1/account/me/`
+- Recs search: `http://127.0.0.1:8000/api/v1/recs/search/?q=graph`
+- ML readiness: `http://127.0.0.1:8001/ready`
+- Graph state: `http://127.0.0.1:8002/state`
 
 ## Текущий product focus
 
@@ -65,6 +68,16 @@ uv run python manage.py import_epp_xlsx --settings=config.settings.dev
 ```
 
 Подробности mapping и нормализации статусов описаны в `docs/epp-account-workflow.md`.
+
+## Release Contracts
+
+- `users/me/favorites` — student bookmarks
+- `recs/search`, `recs/recommendations`, `recs/reindex` — recommendation/search gateway
+- `imports/epp` — tracked XLSX import run
+- `outbox/events` — event feed for graph/ML consumers
+- `account/cpprp/deadlines`, `account/cpprp/templates` — CPPRP configuration surfaces
+
+Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `docs/deployment_runbook.md`.
 
 ## Django settings profiles
 
