@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -198,6 +200,18 @@ class Project(models.Model):
         verbose_name="Team size",
         help_text="Number of students needed for this project.",
     )
+    study_course = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Study course",
+        help_text="Recommended course for applicants when known.",
+    )
+    education_program = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Education program",
+        help_text="Recommended education program or OP for applicants.",
+    )
     accepted_participants_count = models.PositiveIntegerField(
         default=0,
         verbose_name="Accepted participants count",
@@ -327,6 +341,18 @@ class Project(models.Model):
         blank=True,
         verbose_name="Work format",
         help_text="Work format from source data.",
+    )
+    application_opened_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Applications open at",
+        help_text="Date when the application window opens for this project.",
+    )
+    application_deadline = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Application deadline",
+        help_text="Date when the application window closes for this project.",
     )
     student_participation_format = models.CharField(
         max_length=255,
@@ -609,3 +635,22 @@ class Project(models.Model):
         if isinstance(self.tech_tags, list):
             return [str(tag) for tag in self.tech_tags]
         return []
+
+    @property
+    def is_team_project(self) -> bool:
+        return self.team_size > 1
+
+    @property
+    def staffing_state(self) -> str:
+        if self.accepted_participants_count >= self.team_size:
+            return "full"
+        return "open"
+
+    @property
+    def application_window_state(self) -> str:
+        today = date.today()
+        if self.application_opened_at and today < self.application_opened_at:
+            return "upcoming"
+        if self.application_deadline and today > self.application_deadline:
+            return "closed"
+        return "open"

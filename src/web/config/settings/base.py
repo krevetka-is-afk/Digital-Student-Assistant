@@ -82,6 +82,9 @@ INSTALLED_APPS = [
     "apps.projects",
     "apps.applications",
     "apps.search",
+    "apps.imports",
+    "apps.outbox",
+    "apps.recs",
     # healthchecks
     "health_check",  # core
     # "health_check.urls",

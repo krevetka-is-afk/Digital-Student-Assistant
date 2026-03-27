@@ -1,0 +1,10 @@
+{
+  "required_event_types": [
+    "project.changed",
+    "application.changed",
+    "user_profile.changed",
+    "deadline.changed",
+    "import.completed",
+    "recs.reindex_requested"
+  ]
+}

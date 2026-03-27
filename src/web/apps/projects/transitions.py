@@ -3,7 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from .models import Project, ProjectStatus
+from .models import Project, ProjectSourceType, ProjectStatus
 
 
 def _is_project_owner(actor, project: Project) -> bool:
@@ -62,13 +62,19 @@ def moderate_project(project: Project, actor, decision: str, comment: str = "") 
     if normalized_decision not in {"approve", "reject"}:
         raise ValidationError({"decision": ["Unsupported decision. Use 'approve' or 'reject'."]})
 
-    if normalized_decision == "reject" and len(normalized_comment) < 20:
+    if normalized_decision == "reject" and len(normalized_comment) < 100:
         raise ValidationError(
-            {"comment": ["Comment is required and must be at least 20 characters for rejection."]}
+            {"comment": ["Comment is required and must be at least 100 characters for rejection."]}
         )
 
     project.status = (
-        ProjectStatus.PUBLISHED if normalized_decision == "approve" else ProjectStatus.REJECTED
+        ProjectStatus.PUBLISHED
+        if normalized_decision == "approve"
+        else (
+            ProjectStatus.REVISION_REQUESTED
+            if project.source_type == ProjectSourceType.INITIATIVE
+            else ProjectStatus.REJECTED
+        )
     )
     project.moderated_by = actor
     project.moderated_at = timezone.now()

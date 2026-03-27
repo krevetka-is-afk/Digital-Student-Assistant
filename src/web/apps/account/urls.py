@@ -3,9 +3,13 @@ from django.urls import path
 from .views import (
     AccountMeAPIView,
     CPPRPApplicationsAPIView,
+    CPPRPApplicationsExportAPIView,
     CPPRPModerationQueueAPIView,
+    CPPRPProjectsExportAPIView,
     CustomerApplicationsAPIView,
     CustomerProjectsAPIView,
+    DocumentTemplateListCreateAPIView,
+    PlatformDeadlineListCreateAPIView,
     StudentOverviewAPIView,
 )
 
@@ -27,5 +31,25 @@ urlpatterns = [
         "cpprp/applications/",
         CPPRPApplicationsAPIView.as_view(),
         name="account-cpprp-applications",
+    ),
+    path(
+        "cpprp/deadlines/",
+        PlatformDeadlineListCreateAPIView.as_view(),
+        name="account-cpprp-deadlines",
+    ),
+    path(
+        "cpprp/templates/",
+        DocumentTemplateListCreateAPIView.as_view(),
+        name="account-cpprp-templates",
+    ),
+    path(
+        "cpprp/export/projects/",
+        CPPRPProjectsExportAPIView.as_view(),
+        name="account-cpprp-export-projects",
+    ),
+    path(
+        "cpprp/export/applications/",
+        CPPRPApplicationsExportAPIView.as_view(),
+        name="account-cpprp-export-applications",
     ),
 ]

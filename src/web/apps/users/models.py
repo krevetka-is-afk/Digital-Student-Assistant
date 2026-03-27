@@ -32,6 +32,12 @@ class UserProfile(models.Model):
         verbose_name="Interests",
         help_text="Student interests used by search and recommendations.",
     )
+    favorite_project_ids = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Favorite project ids",
+        help_text="Project ids bookmarked by the user for the student catalog.",
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         db_index=True,
@@ -54,3 +60,14 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} ({self.role})"
+
+    def set_favorite_project_ids(self, project_ids: list[int]) -> None:
+        normalized: list[int] = []
+        seen: set[int] = set()
+        for raw_project_id in project_ids:
+            project_id = int(raw_project_id)
+            if project_id in seen:
+                continue
+            seen.add(project_id)
+            normalized.append(project_id)
+        self.favorite_project_ids = normalized

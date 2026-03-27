@@ -1,3 +1,4 @@
+from apps.outbox.services import emit_event
 from apps.projects.models import ProjectStatus
 from rest_framework import generics, permissions
 from rest_framework import serializers as drf_serializers
@@ -27,7 +28,28 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
             raise ValidationError(
                 {"project": ["Applications are allowed only for projects visible in catalog."]}
             )
-        serializer.save(applicant=self.request.user, status=ApplicationStatus.SUBMITTED)
+        if project.application_window_state != "open":
+            raise ValidationError(
+                {
+                    "project": [
+                        (
+                            "Applications are allowed only while the project "
+                            "application window is open."
+                        )
+                    ]
+                }
+            )
+        application = serializer.save(
+            applicant=self.request.user,
+            status=ApplicationStatus.SUBMITTED,
+        )
+        emit_event(
+            event_type="application.changed",
+            aggregate_type="application",
+            aggregate_id=application.pk,
+            payload=ApplicationSerializer(application, context={"request": self.request}).data,
+            idempotency_key=f"application.changed:{application.pk}:{application.updated_at.isoformat()}:create",
+        )
 
 
 class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -65,5 +87,12 @@ class ApplicationReviewAPIView(APIView):
             decision=payload.validated_data["decision"],
             comment=payload.validated_data["comment"],
         )
-        serializer = ApplicationSerializer(application)
+        emit_event(
+            event_type="application.changed",
+            aggregate_type="application",
+            aggregate_id=application.pk,
+            payload=ApplicationSerializer(application, context={"request": request}).data,
+            idempotency_key=f"application.changed:{application.pk}:{application.updated_at.isoformat()}:review",
+        )
+        serializer = ApplicationSerializer(application, context={"request": request})
         return Response(serializer.data)

@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "required_paths": [
+    "/api/v1/projects/",
+    "/api/v1/applications/",
+    "/api/v1/account/me/",
+    "/api/v1/users/me/",
+    "/api/v1/users/me/favorites/",
+    "/api/v1/recs/search/",
+    "/api/v1/recs/recommendations/",
+    "/api/v1/recs/reindex/",
+    "/api/v1/imports/epp/",
+    "/api/v1/outbox/events/",
+    "/api/v1/account/cpprp/deadlines/",
+    "/api/v1/account/cpprp/templates/"
+  ]
+}

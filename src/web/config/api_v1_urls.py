@@ -1,9 +1,16 @@
 from apps.base.views import health_custom
+from apps.imports.views import ImportRunListCreateAPIView
+from apps.outbox.views import OutboxEventListAPIView
 from apps.projects.views import (
     ProjectModerationAPIView,
     ProjectSubmitForModerationAPIView,
     project_list_create_view,
     project_rud_view,
+)
+from apps.recs.views import (
+    RecommendationListAPIView,
+    RecommendationReindexAPIView,
+    SearchProxyAPIView,
 )
 from apps.search.views import SearchListView
 from django.urls import include, path
@@ -16,7 +23,16 @@ urlpatterns = [
     path("health/", health_custom, name="api-v1-health"),
     path("auth/token/", obtain_auth_token, name="api-v1-auth-token"),
     path("search/", SearchListView.as_view(), name="api-v1-search"),
+    path("recs/search/", SearchProxyAPIView.as_view(), name="api-v1-recs-search"),
+    path(
+        "recs/recommendations/",
+        RecommendationListAPIView.as_view(),
+        name="api-v1-recs-recommendations",
+    ),
+    path("recs/reindex/", RecommendationReindexAPIView.as_view(), name="api-v1-recs-reindex"),
     path("account/", include("apps.account.urls")),
+    path("imports/epp/", ImportRunListCreateAPIView.as_view(), name="api-v1-import-epp"),
+    path("outbox/events/", OutboxEventListAPIView.as_view(), name="api-v1-outbox-events"),
     path("projects/", project_list_create_view, name="api-v1-project-list"),
     path(
         "projects/<int:pk>/actions/submit/",

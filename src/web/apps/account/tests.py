@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from apps.account.models import DeadlineAudience, DocumentTemplate, PlatformDeadline
 from apps.applications.models import Application, ApplicationStatus
 from apps.projects.models import EPP, Project, ProjectSourceType, ProjectStatus
 from apps.users.models import UserProfile, UserRole
@@ -114,3 +115,59 @@ def test_account_cpprp_endpoints_return_moderation_queue_and_application_totals(
     assert matching["source_status_raw"] == "Опубликована"
     assert applications_response.status_code == 200
     assert applications_response.json()["totals"][ApplicationStatus.SUBMITTED] >= 1
+
+
+def test_student_overview_includes_favorites_deadlines_and_templates():
+    student = _make_user(role=UserRole.STUDENT)
+    project = Project.objects.create(
+        title="Recommended systems",
+        status=ProjectStatus.PUBLISHED,
+        source_type=ProjectSourceType.MANUAL,
+    )
+    student.profile.favorite_project_ids = [project.pk]
+    student.profile.save(update_fields=["favorite_project_ids", "updated_at"])
+    suffix = uuid4().hex[:8]
+    PlatformDeadline.objects.create(
+        slug=f"student-window-{suffix}",
+        title="Student window",
+        audience=DeadlineAudience.STUDENT,
+    )
+    DocumentTemplate.objects.create(
+        slug=f"student-template-{suffix}",
+        title="Student template",
+        audience=DeadlineAudience.STUDENT,
+        url="https://example.com/doc",
+    )
+
+    client = Client()
+    client.force_login(student)
+    response = client.get(reverse("account-student-overview"))
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["favorite_projects"][0]["pk"] == project.pk
+    assert any(item["slug"] == f"student-window-{suffix}" for item in payload["deadlines"])
+    assert any(item["slug"] == f"student-template-{suffix}" for item in payload["templates"])
+
+
+def test_cpprp_can_create_deadlines_and_export_projects():
+    cpprp = _make_user(role=UserRole.CPPRP)
+    suffix = uuid4().hex[:8]
+    client = Client()
+    client.force_login(cpprp)
+
+    deadline_response = client.post(
+        reverse("account-cpprp-deadlines"),
+        data={
+            "slug": f"global-deadline-{suffix}",
+            "title": "Global deadline",
+            "audience": DeadlineAudience.GLOBAL,
+            "description": "Important date",
+        },
+        content_type="application/json",
+    )
+    export_response = client.get(reverse("account-cpprp-export-projects"))
+
+    assert deadline_response.status_code == 201
+    assert export_response.status_code == 200
+    assert "project_id" in export_response.content.decode("utf-8")

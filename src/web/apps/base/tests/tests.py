@@ -48,6 +48,8 @@ def test_api_v1_root_ok():
     payload = r.json()
     assert payload["version"] == "v1"
     assert payload["projects"].endswith("/api/v1/projects/")
+    assert payload["recs_search"].endswith("/api/v1/recs/search/")
+    assert payload["imports_epp"].endswith("/api/v1/imports/epp/")
 
 
 def test_api_schema_exposes_projects_query_params():
@@ -58,7 +60,22 @@ def test_api_schema_exposes_projects_query_params():
     payload = r.json()
     params = payload["paths"]["/api/v1/projects/"]["get"]["parameters"]
     param_names = {param["name"] for param in params}
-    assert {"page", "page_size", "status", "q", "ordering"}.issubset(param_names)
+    assert {
+        "page",
+        "page_size",
+        "status",
+        "q",
+        "ordering",
+        "source_type",
+        "tech_tag",
+        "education_program",
+        "study_course",
+        "work_format",
+        "staffing_state",
+        "application_state",
+        "is_team_project",
+        "uses_ai",
+    }.issubset(param_names)
 
 
 def test_api_docs_page_ok():

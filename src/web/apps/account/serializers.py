@@ -1,8 +1,44 @@
 from apps.applications.models import Application
 from apps.projects.models import Project
-from apps.projects.serializers import EPPSummarySerializer
+from apps.projects.serializers import EPPSummarySerializer, PrimaryProjectSerializer
 from apps.users.serializers import UserProfileSerializer
 from rest_framework import serializers
+
+from .models import DocumentTemplate, PlatformDeadline
+
+
+class PlatformDeadlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlatformDeadline
+        fields = [
+            "id",
+            "slug",
+            "title",
+            "audience",
+            "description",
+            "starts_at",
+            "ends_at",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class DocumentTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentTemplate
+        fields = [
+            "id",
+            "slug",
+            "title",
+            "audience",
+            "url",
+            "description",
+            "is_active",
+            "metadata",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class AccountProjectSerializer(serializers.ModelSerializer):
@@ -16,6 +52,8 @@ class AccountProjectSerializer(serializers.ModelSerializer):
     )
     source_status_raw = serializers.CharField(source="status_raw", read_only=True)
     submitted_applications_count = serializers.SerializerMethodField()
+    staffing_state = serializers.CharField(read_only=True)
+    application_window_state = serializers.CharField(read_only=True)
 
     class Meta:
         model = Project
@@ -26,8 +64,14 @@ class AccountProjectSerializer(serializers.ModelSerializer):
             "source_type",
             "source_ref",
             "team_size",
+            "study_course",
+            "education_program",
             "accepted_participants_count",
             "submitted_applications_count",
+            "staffing_state",
+            "application_window_state",
+            "application_opened_at",
+            "application_deadline",
             "epp",
             "epp_id",
             "epp_title",
@@ -68,6 +112,9 @@ class AccountOverviewSerializer(serializers.Serializer):
 
 class StudentOverviewSerializer(AccountOverviewSerializer):
     applications = AccountApplicationSerializer(many=True)
+    favorite_projects = PrimaryProjectSerializer(many=True)
+    deadlines = PlatformDeadlineSerializer(many=True)
+    templates = DocumentTemplateSerializer(many=True)
 
 
 class CPPRPApplicationsOverviewSerializer(serializers.Serializer):
