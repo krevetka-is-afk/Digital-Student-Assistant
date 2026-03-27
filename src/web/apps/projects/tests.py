@@ -75,8 +75,8 @@ def test_create_project_normalizes_null_tech_tags():
 
     assert response.status_code == 201
     project = Project.objects.get(pk=response.json()["pk"])
-    assert project.tech_tags == {}
-    assert response.json()["tech_tags"] == {}
+    assert project.tech_tags == []
+    assert response.json()["tech_tags"] == []
 
 
 def _make_project(

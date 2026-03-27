@@ -26,9 +26,18 @@ def submit_project_for_moderation(project: Project, actor) -> Project:
     if not (_is_project_owner(actor, project) or getattr(actor, "is_staff", False)):
         raise PermissionDenied("Only the project owner or staff can submit this project.")
 
-    if project.status not in {ProjectStatus.DRAFT, ProjectStatus.REJECTED}:
+    if project.status not in {
+        ProjectStatus.DRAFT,
+        ProjectStatus.REVISION_REQUESTED,
+        ProjectStatus.SUPERVISOR_REVIEW,
+    }:
         raise ValidationError(
-            {"status": ["Project can be submitted only from draft/rejected status."]}
+            {
+                "status": [
+                    "Project can be submitted only from draft, \
+                        revision requested, or supervisor review status."
+                ]
+            }
         )
 
     project.status = ProjectStatus.ON_MODERATION
@@ -70,6 +79,41 @@ def moderate_project(project: Project, actor, decision: str, comment: str = "") 
 
     recalculate_project_staffing(project)
     return project
+
+
+SOURCE_STATUS_MAPPING = {
+    "Создана": ProjectStatus.CREATED,
+    "Черновик": ProjectStatus.DRAFT,
+    "Доработка инициатором": ProjectStatus.REVISION_REQUESTED,
+    "Рассмотрение руководителем": ProjectStatus.SUPERVISOR_REVIEW,
+    "Опубликована": ProjectStatus.PUBLISHED,
+    "Завершена": ProjectStatus.COMPLETED,
+    "Отменена": ProjectStatus.CANCELLED,
+}
+
+LOCAL_IMPORT_LOCKED_STATUSES = {
+    ProjectStatus.ON_MODERATION,
+    ProjectStatus.REJECTED,
+    ProjectStatus.STAFFED,
+}
+
+
+def normalize_source_status(status_raw: str) -> str:
+    normalized = SOURCE_STATUS_MAPPING.get(status_raw.strip())
+    if normalized is None:
+        raise ValidationError({"status_raw": [f"Unsupported source status '{status_raw}'."]})
+    return normalized
+
+
+def apply_imported_status(project: Project, status_raw: str) -> tuple[Project, bool]:
+    next_status = normalize_source_status(status_raw)
+    if project.pk and project.status in LOCAL_IMPORT_LOCKED_STATUSES:
+        project.status_raw = status_raw
+        return project, True
+
+    project.status = next_status
+    project.status_raw = status_raw
+    return project, False
 
 
 def recalculate_project_staffing(project: Project) -> Project:

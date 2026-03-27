@@ -37,6 +37,7 @@ class ApiV1RootView(APIView):
                 "health": reverse("api-v1-health", request=request),
                 "auth_token": reverse("api-v1-auth-token", request=request),
                 "search": reverse("api-v1-search", request=request),
+                "account": reverse("account-me", request=request),
                 "projects": reverse("api-v1-project-list", request=request),
                 "applications": reverse("application-list", request=request),
                 "users_me": reverse("user-profile-me", request=request),

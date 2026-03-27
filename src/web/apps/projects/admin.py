@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Project, ProjectStatus
+from .models import EPP, Project, ProjectStatus
 
 
 class ProjectAdminForm(forms.ModelForm):
@@ -27,16 +27,29 @@ class ProjectAdmin(admin.ModelAdmin):
     list_per_page = 50
     actions = ("publish_selected", "archive_selected")
     fieldsets = (
-        ("Core information", {"fields": ("title", "description", "owner", "status")}),
+        (
+            "Core information",
+            {"fields": ("title", "vacancy_title", "description", "owner", "status")},
+        ),
         (
             "Source and tags",
             {
-                "fields": ("source_type", "source_ref", "tech_tags"),
+                "fields": (
+                    "epp",
+                    "source_type",
+                    "source_ref",
+                    "source_row_index",
+                    "status_raw",
+                    "tech_tags",
+                ),
                 "description": "Use source details only when project \
                     data comes from an external import.",
             },
         ),
-        ("Additional metadata", {"fields": ("extra_data",), "classes": ("collapse",)}),
+        (
+            "Additional metadata",
+            {"fields": ("extra_data", "raw_payload"), "classes": ("collapse",)},
+        ),
         ("System fields", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
 
@@ -53,3 +66,10 @@ class ProjectAdmin(admin.ModelAdmin):
             status=ProjectStatus.ARCHIVED
         )
         self.message_user(request, f"Archived {updated} project(s).")
+
+
+@admin.register(EPP)
+class EPPAdmin(admin.ModelAdmin):
+    list_display = ("id", "source_ref", "title", "campaign_title", "status_raw", "updated_at")
+    search_fields = ("source_ref", "title", "campaign_title", "supervisor_email")
+    readonly_fields = ("created_at", "updated_at")

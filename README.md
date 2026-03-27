@@ -36,6 +36,7 @@ cd src/web/
 cp .env.example .env
 uv sync --group dev
 uv run python manage.py migrate
+uv run python manage.py import_epp_xlsx --settings=config.settings.dev
 uv run python manage.py runserver --settings=config.settings.dev
 ```
 
@@ -43,6 +44,27 @@ uv run python manage.py runserver --settings=config.settings.dev
 
 - Home: `http://127.0.0.1:8000/`
 - Health: `http://127.0.0.1:8000/health/`
+- API root: `http://127.0.0.1:8000/api/v1/`
+- Account API: `http://127.0.0.1:8000/api/v1/account/me/`
+
+## Текущий product focus
+
+- Каноническая схема данных берется из `docs/data_source/EPP.xlsx`.
+- `EPP` хранится в `projects` как родительская сущность.
+- `Project` представляет vacancy/topic строку из файла и остается основным объектом модерации и заявок.
+- `account` предоставляет role-based API, но не заменяет существующие `/api/v1/projects/` и `/api/v1/applications/`.
+- `SSR` и вузовский `SSO` не реализуются в этой итерации.
+
+## Import
+
+По умолчанию импорт читает файл `docs/data_source/EPP.xlsx`.
+
+```bash
+cd src/web
+uv run python manage.py import_epp_xlsx --settings=config.settings.dev
+```
+
+Подробности mapping и нормализации статусов описаны в `docs/epp-account-workflow.md`.
 
 ## Django settings profiles
 
