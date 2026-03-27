@@ -1,6 +1,6 @@
 # Digital-Student-Assistant
 
-Цифровой Ассистент Студента на текущем этапе развивается как `Django + DRF` сервис для импорта ЭПП-данных, публикации вакансий/тем, модерации и role-based `account` API для студента, заказчика и CPPRP. Рекомендательная часть, `ml` и `graph` остаются вне scope этой итерации.
+Цифровой Ассистент Студента - это рекомендательная система студенческих проектов на основе интересов студентов. Большую популярность получили рекомендательные системы на основе больших языковых моделей (LLM). В этом проекте предполагается использование как локальной большой языковой модели (Qwen-14b), так и облачной YandexGPT-5.
 
 ![CI](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/ci.yml/badge.svg)
 
@@ -78,8 +78,8 @@ python manage.py check --deploy --settings=config.settings.prod
 ## Структура проекта
 
 - `src/web/` - Django + DRF сервис
-- `src/ml/` - FastAPI ML сервис, не расширяется в этой feature
-- `src/graph/` – Neo4J, не расширяется в этой feature
+- `src/ml/` - FastAPI ML сервис
+- `src/graph/` – Neo4J
 - `infra/` - docker compose и инфраструктурные файлы
 - `docs/` - архитектура, спецификации и заметки
 - `security/` - security-проверки и конфигурации
