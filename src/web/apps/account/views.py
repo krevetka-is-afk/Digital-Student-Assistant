@@ -11,12 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import DeadlineAudience, DocumentTemplate, PlatformDeadline
-from .permissions import (
-    IsCpprpOrStaff,
-    IsCustomerOrStaff,
-    IsStudentOrStaff,
-    get_user_role,
-)
+from .permissions import IsCpprpOrStaff, IsCustomerOrStaff, IsStudentOrStaff, get_user_role
 from .serializers import (
     AccountApplicationSerializer,
     AccountOverviewSerializer,
