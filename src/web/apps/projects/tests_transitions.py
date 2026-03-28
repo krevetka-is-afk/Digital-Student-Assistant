@@ -61,6 +61,17 @@ def test_project_submit_requires_owner_or_staff():
     assert response.status_code == 403
 
 
+def test_student_owner_cannot_submit_project_for_moderation():
+    owner = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.DRAFT)
+    client = Client()
+    client.force_login(owner)
+
+    response = client.post(reverse("api-v1-project-submit", kwargs={"pk": project.pk}))
+
+    assert response.status_code == 403
+
+
 def test_cpprp_can_approve_project_on_moderation():
     owner = _make_user(role=UserRole.CUSTOMER)
     cpprp = _make_user(role=UserRole.CPPRP)
@@ -78,6 +89,22 @@ def test_cpprp_can_approve_project_on_moderation():
     project.refresh_from_db()
     assert project.status == ProjectStatus.PUBLISHED
     assert project.moderated_by_id == cpprp.id
+
+
+def test_customer_cannot_moderate_project():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    customer = _make_user(role=UserRole.CUSTOMER)
+    project = _make_project(owner, status=ProjectStatus.ON_MODERATION)
+    client = Client()
+    client.force_login(customer)
+
+    response = client.post(
+        reverse("api-v1-project-moderate", kwargs={"pk": project.pk}),
+        data={"decision": "approve"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
 
 
 def test_project_reject_requires_comment():

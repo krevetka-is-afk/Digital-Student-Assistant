@@ -1,3 +1,4 @@
+from apps.account.permissions import has_any_role
 from apps.users.models import UserRole
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
@@ -23,8 +24,12 @@ def _is_cpprp_or_staff(actor) -> bool:
 
 
 def submit_project_for_moderation(project: Project, actor) -> Project:
-    if not (_is_project_owner(actor, project) or getattr(actor, "is_staff", False)):
-        raise PermissionDenied("Only the project owner or staff can submit this project.")
+    if getattr(actor, "is_staff", False):
+        pass
+    elif not _is_project_owner(actor, project) or not has_any_role(
+        actor, allowed={UserRole.CUSTOMER}, allow_staff=False
+    ):
+        raise PermissionDenied("Only the customer project owner or staff can submit this project.")
 
     if project.status not in {
         ProjectStatus.DRAFT,

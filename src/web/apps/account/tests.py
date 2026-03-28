@@ -171,3 +171,15 @@ def test_cpprp_can_create_deadlines_and_export_projects():
     assert deadline_response.status_code == 201
     assert export_response.status_code == 200
     assert "project_id" in export_response.content.decode("utf-8")
+
+
+def test_student_cannot_access_cpprp_configuration_endpoints():
+    student = _make_user(role=UserRole.STUDENT)
+    client = Client()
+    client.force_login(student)
+
+    deadlines_response = client.get(reverse("account-cpprp-deadlines"))
+    export_response = client.get(reverse("account-cpprp-export-projects"))
+
+    assert deadlines_response.status_code == 403
+    assert export_response.status_code == 403

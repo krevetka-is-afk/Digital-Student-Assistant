@@ -1,3 +1,4 @@
+from apps.account.permissions import IsCpprpOrStaff, IsCustomerOrStaff
 from apps.outbox.services import emit_event
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
@@ -179,6 +180,11 @@ class ProjectListCreateAPIView(generics.ListCreateAPIView):
     pagination_class = ProjectListPagination
     ordering_fields = ("created_at", "updated_at")
 
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsCustomerOrStaff()]
+        return [permissions.AllowAny()]
+
     def get_queryset(self):
         queryset = _base_queryset(self.request.user)
         return _apply_project_filters(queryset, self.request.query_params)
@@ -202,6 +208,7 @@ class ProjectDetailAPIView(generics.RetrieveAPIView):
         applications_count=Count("applications")
     )
     serializer_class = PrimaryProjectSerializer
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         user = self.request.user
@@ -219,6 +226,7 @@ class ProjectUpdateAPIView(generics.UpdateAPIView):
     queryset = Project.objects.select_related("owner", "epp")
     serializer_class = PrimaryProjectSerializer
     lookup_field = "pk"
+    permission_classes = [IsCustomerOrStaff]
 
     def get_queryset(self):
         user = self.request.user
@@ -234,6 +242,7 @@ class ProjectDestroyAPIView(generics.DestroyAPIView):
     queryset = Project.objects.select_related("owner", "epp")
     serializer_class = PrimaryProjectSerializer
     lookup_field = "pk"
+    permission_classes = [IsCustomerOrStaff]
 
     def get_queryset(self):
         user = self.request.user
@@ -251,6 +260,11 @@ class ProjectRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
     )
     serializer_class = PrimaryProjectSerializer
     lookup_field = "pk"
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [IsCustomerOrStaff()]
 
     def get_queryset(self):
         user = self.request.user
@@ -285,7 +299,7 @@ class ProjectModerationInputSerializer(serializers.Serializer):
 
 
 class ProjectSubmitForModerationAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerOrStaff]
 
     def post(self, request, pk: int):
         project = get_object_or_404(Project.objects.select_related("owner", "epp"), pk=pk)
@@ -302,7 +316,7 @@ class ProjectSubmitForModerationAPIView(APIView):
 
 
 class ProjectModerationAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def post(self, request, pk: int):
         payload = ProjectModerationInputSerializer(data=request.data)

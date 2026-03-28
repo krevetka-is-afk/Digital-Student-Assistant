@@ -68,6 +68,32 @@ def test_application_create_rejected_for_non_catalog_project():
     assert "project" in response.json()
 
 
+def test_customer_cannot_create_application():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    customer = _make_user(role=UserRole.CUSTOMER)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+
+    client = Client()
+    client.force_login(customer)
+    response = client.post(
+        reverse("application-list"),
+        data={"project": project.pk},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
+
+
+def test_customer_cannot_list_applications_from_student_endpoint():
+    customer = _make_user(role=UserRole.CUSTOMER)
+    client = Client()
+    client.force_login(customer)
+
+    response = client.get(reverse("application-list"))
+
+    assert response.status_code == 403
+
+
 def test_project_owner_can_accept_application():
     owner = _make_user(role=UserRole.CUSTOMER)
     student = _make_user(role=UserRole.STUDENT)
@@ -117,6 +143,41 @@ def test_application_review_forbidden_for_non_owner():
 
     client = Client()
     client.force_login(outsider)
+    response = client.post(
+        reverse("application-review", kwargs={"pk": application.pk}),
+        data={"decision": "accept"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
+
+
+def test_student_owner_cannot_review_application():
+    owner = _make_user(role=UserRole.STUDENT)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+    application = _make_application(project, student)
+
+    client = Client()
+    client.force_login(owner)
+    response = client.post(
+        reverse("application-review", kwargs={"pk": application.pk}),
+        data={"decision": "accept"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
+
+
+def test_cpprp_cannot_review_application():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    cpprp = _make_user(role=UserRole.CPPRP)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+    application = _make_application(project, student)
+
+    client = Client()
+    client.force_login(cpprp)
     response = client.post(
         reverse("application-review", kwargs={"pk": application.pk}),
         data={"decision": "accept"},
