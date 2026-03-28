@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import DeadlineAudience, DocumentTemplate, PlatformDeadline
-from .permissions import require_roles
+from .permissions import IsCpprpOrStaff, IsCustomerOrStaff, IsStudentOrStaff, get_user_role
 from .serializers import (
     AccountApplicationSerializer,
     AccountOverviewSerializer,
@@ -80,10 +80,10 @@ class AccountMeAPIView(APIView):
 
 
 class StudentOverviewAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStudentOrStaff]
 
     def get(self, request):
-        role = require_roles(request.user, allowed={"student"})
+        role = get_user_role(request.user) or "student"
         profile = _get_profile(request.user)
         applications = (
             Application.objects.select_related("project", "project__epp", "applicant")
@@ -107,10 +107,9 @@ class StudentOverviewAPIView(APIView):
 
 
 class CustomerProjectsAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerOrStaff]
 
     def get(self, request):
-        require_roles(request.user, allowed={"customer"})
         queryset = (
             Project.objects.select_related("epp")
             .filter(owner=request.user)
@@ -126,10 +125,9 @@ class CustomerProjectsAPIView(APIView):
 
 
 class CustomerApplicationsAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerOrStaff]
 
     def get(self, request):
-        require_roles(request.user, allowed={"customer"})
         queryset = (
             Application.objects.select_related("project", "project__epp", "applicant")
             .filter(project__owner=request.user)
@@ -139,10 +137,9 @@ class CustomerApplicationsAPIView(APIView):
 
 
 class CPPRPModerationQueueAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def get(self, request):
-        require_roles(request.user, allowed={"cpprp"})
         queryset = (
             Project.objects.select_related("epp", "owner")
             .filter(status=ProjectStatus.ON_MODERATION)
@@ -158,10 +155,9 @@ class CPPRPModerationQueueAPIView(APIView):
 
 
 class CPPRPApplicationsAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def get(self, request):
-        require_roles(request.user, allowed={"cpprp"})
         queryset = Application.objects.select_related("project", "project__epp", "applicant")
         totals = {
             ApplicationStatus.SUBMITTED: queryset.filter(
@@ -177,13 +173,12 @@ class CPPRPApplicationsAPIView(APIView):
 
 class PlatformDeadlineListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = PlatformDeadlineSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def get_queryset(self):
         return PlatformDeadline.objects.all()
 
     def create(self, request, *args, **kwargs):
-        require_roles(request.user, allowed={"cpprp"})
         response = super().create(request, *args, **kwargs)
         emit_event(
             event_type="deadline.changed",
@@ -197,21 +192,16 @@ class PlatformDeadlineListCreateAPIView(generics.ListCreateAPIView):
 
 class DocumentTemplateListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = DocumentTemplateSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def get_queryset(self):
         return DocumentTemplate.objects.all()
 
-    def create(self, request, *args, **kwargs):
-        require_roles(request.user, allowed={"cpprp"})
-        return super().create(request, *args, **kwargs)
-
 
 class CPPRPProjectsExportAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def get(self, request):
-        require_roles(request.user, allowed={"cpprp"})
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="projects-export.csv"'
         writer = csv.writer(response)
@@ -244,10 +234,9 @@ class CPPRPProjectsExportAPIView(APIView):
 
 
 class CPPRPApplicationsExportAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def get(self, request):
-        require_roles(request.user, allowed={"cpprp"})
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="applications-export.csv"'
         writer = csv.writer(response)

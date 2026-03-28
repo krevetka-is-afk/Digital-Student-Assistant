@@ -21,6 +21,15 @@ def _make_cpprp():
     return user
 
 
+def _make_student():
+    user = get_user_model().objects.create_user(
+        username=f"student-import-{uuid4().hex[:8]}",
+        password="pass123456",
+    )
+    UserProfile.objects.create(user=user, role=UserRole.STUDENT)
+    return user
+
+
 def test_cpprp_can_trigger_import_and_receive_stats(tmp_path):
     path = tmp_path / "EPP.xlsx"
     payload = _sample_mapping()
@@ -35,3 +44,12 @@ def test_cpprp_can_trigger_import_and_receive_stats(tmp_path):
     assert response.json()["status"] == "completed"
     stats = response.json()["stats"]
     assert stats["projects_created"] + stats["projects_updated"] >= 1
+
+
+def test_student_cannot_list_import_runs():
+    client = Client()
+    client.force_login(_make_student())
+
+    response = client.get(reverse("api-v1-import-epp"))
+
+    assert response.status_code == 403

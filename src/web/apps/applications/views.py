@@ -1,6 +1,7 @@
+from apps.account.permissions import IsCustomerOrStaff, IsStudentOrStaff
 from apps.outbox.services import emit_event
 from apps.projects.models import ProjectStatus
-from rest_framework import generics, permissions
+from rest_framework import generics
 from rest_framework import serializers as drf_serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -13,7 +14,9 @@ from .transitions import review_application
 
 class ApplicationListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        return [IsStudentOrStaff()]
 
     def get_queryset(self):
         queryset = Application.objects.select_related("project", "applicant")
@@ -54,7 +57,7 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
 
 class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStudentOrStaff]
     lookup_field = "pk"
 
     def get_queryset(self):
@@ -71,7 +74,7 @@ class ApplicationReviewInputSerializer(drf_serializers.Serializer):
 
 
 class ApplicationReviewAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerOrStaff]
 
     def post(self, request, pk: int):
         payload = ApplicationReviewInputSerializer(data=request.data)

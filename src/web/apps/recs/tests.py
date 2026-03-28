@@ -20,6 +20,15 @@ def _make_student(*, interests=None):
     return user
 
 
+def _make_cpprp():
+    user = get_user_model().objects.create_user(
+        username=f"cpprp-recs-{uuid4().hex[:8]}",
+        password="pass123456",
+    )
+    UserProfile.objects.create(user=user, role=UserRole.CPPRP)
+    return user
+
+
 def test_recommendations_endpoint_returns_local_fallback_results():
     token = f"focus-{uuid4().hex[:8]}"
     Project.objects.create(
@@ -53,3 +62,26 @@ def test_recs_search_endpoint_returns_ranked_projects():
 
     assert response.status_code == 200
     assert response.json()["items"][0]["project"]["title"] == "Graph analytics"
+
+
+def test_only_cpprp_can_request_reindex():
+    client = Client()
+    client.force_login(_make_student())
+
+    denied = client.post(
+        reverse("api-v1-recs-reindex"),
+        data={"reason": "student"},
+        content_type="application/json",
+    )
+
+    assert denied.status_code == 403
+
+    client.force_login(_make_cpprp())
+    allowed = client.post(
+        reverse("api-v1-recs-reindex"),
+        data={"reason": "cpprp"},
+        content_type="application/json",
+    )
+
+    assert allowed.status_code == 200
+    assert allowed.json()["status"] == "accepted"

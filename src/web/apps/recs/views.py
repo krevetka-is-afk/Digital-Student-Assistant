@@ -1,14 +1,11 @@
-from apps.account.permissions import require_roles
+from apps.account.permissions import IsCpprpOrStaff
 from apps.outbox.services import emit_event
 from apps.users.models import UserProfile
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import (
-    RecommendationRequestSerializer,
-    SearchRequestSerializer,
-)
+from .serializers import RecommendationRequestSerializer, SearchRequestSerializer
 from .services import recommend_projects, search_projects
 
 
@@ -53,10 +50,9 @@ class RecommendationListAPIView(APIView):
 
 
 class RecommendationReindexAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
 
     def post(self, request):
-        require_roles(request.user, allowed={"cpprp"})
         emit_event(
             event_type="recs.reindex_requested",
             aggregate_type="recs",

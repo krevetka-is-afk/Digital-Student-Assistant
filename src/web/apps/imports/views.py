@@ -1,11 +1,11 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from apps.account.permissions import require_roles
+from apps.account.permissions import IsCpprpOrStaff
 from apps.outbox.services import emit_event
 from apps.projects.importers import default_epp_xlsx_path, import_epp_xlsx
 from django.utils import timezone
-from rest_framework import generics, permissions
+from rest_framework import generics
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
@@ -15,14 +15,13 @@ from .serializers import ImportRunSerializer
 
 class ImportRunListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ImportRunSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCpprpOrStaff]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         return ImportRun.objects.all()
 
     def create(self, request, *args, **kwargs):
-        require_roles(request.user, allowed={"cpprp"})
         upload = request.FILES.get("file")
         import_run = ImportRun.objects.create(
             source="xlsx",
