@@ -266,6 +266,52 @@ def test_projects_list_orders_by_updated_at_desc():
     assert ordered_ids.index(newer.pk) < ordered_ids.index(older.pk)
 
 
+def test_projects_list_keeps_filters_and_ordering_database_backed():
+    user = _make_user()
+    matching = Project.objects.create(
+        title=_title("Python analytics"),
+        owner=user,
+        status=ProjectStatus.DRAFT,
+        tech_tags=["Python", "SQL"],
+        application_opened_at=timezone.localdate() - timedelta(days=1),
+        application_deadline=timezone.localdate() + timedelta(days=5),
+    )
+    Project.objects.create(
+        title=_title("Closed Python project"),
+        owner=user,
+        status=ProjectStatus.DRAFT,
+        tech_tags=["Python"],
+        application_deadline=timezone.localdate() - timedelta(days=1),
+    )
+    Project.objects.create(
+        title=_title("Open Java project"),
+        owner=user,
+        status=ProjectStatus.DRAFT,
+        tech_tags=["Java"],
+        application_deadline=timezone.localdate() + timedelta(days=5),
+    )
+
+    client = Client()
+    client.force_login(user)
+    with CaptureQueriesContext(connection) as query_context:
+        response = client.get(
+            reverse("api-v1-project-list"),
+            data={
+                "status": ProjectStatus.DRAFT,
+                "tech_tag": "python",
+                "application_state": "open",
+                "ordering": "-updated_at",
+                "page_size": 10,
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["results"][0]["pk"] == matching.pk
+    assert len(query_context.captured_queries) <= 5
+
+
 def test_projects_list_returns_400_for_invalid_status():
     _make_project(title=_title("Any project"))
     client = Client()

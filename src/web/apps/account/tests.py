@@ -5,7 +5,9 @@ from apps.applications.models import Application, ApplicationStatus
 from apps.projects.models import EPP, Project, ProjectSourceType, ProjectStatus
 from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import Client
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 
@@ -88,11 +90,11 @@ def test_account_customer_endpoints_return_only_owned_scope():
     applications_response = client.get(reverse("account-customer-applications"))
 
     assert projects_response.status_code == 200
-    assert len(projects_response.json()) == 1
-    assert projects_response.json()[0]["epp_title"] == "Imported EPP"
+    assert projects_response.json()["count"] == 1
+    assert projects_response.json()["results"][0]["epp_title"] == "Imported EPP"
     assert applications_response.status_code == 200
-    assert len(applications_response.json()) == 1
-    assert applications_response.json()[0]["project"]["pk"] == own_project.pk
+    assert applications_response.json()["count"] == 1
+    assert applications_response.json()["results"][0]["project"]["pk"] == own_project.pk
 
 
 def test_account_cpprp_endpoints_return_moderation_queue_and_application_totals():
@@ -110,11 +112,68 @@ def test_account_cpprp_endpoints_return_moderation_queue_and_application_totals(
 
     assert queue_response.status_code == 200
     queue_payload = queue_response.json()
-    assert any(item["pk"] == project.pk for item in queue_payload)
-    matching = next(item for item in queue_payload if item["pk"] == project.pk)
+    assert any(item["pk"] == project.pk for item in queue_payload["results"])
+    matching = next(item for item in queue_payload["results"] if item["pk"] == project.pk)
     assert matching["source_status_raw"] == "Опубликована"
     assert applications_response.status_code == 200
     assert applications_response.json()["totals"][ApplicationStatus.SUBMITTED] >= 1
+    assert any(
+        item["project"]["pk"] == project.pk
+        for item in applications_response.json()["recent"]["results"]
+    )
+
+
+def test_account_customer_applications_is_query_efficient():
+    customer = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    epp = _make_epp()
+    for _ in range(6):
+        project = _make_project(customer, epp, status=ProjectStatus.PUBLISHED)
+        _make_application(project, student)
+
+    client = Client()
+    client.force_login(customer)
+    with CaptureQueriesContext(connection) as query_context:
+        response = client.get(reverse("account-customer-applications"), data={"page_size": 5})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 6
+    assert len(payload["results"]) == 5
+    assert len(query_context.captured_queries) <= 5
+
+
+def test_account_cpprp_applications_recent_is_paginated_and_query_efficient():
+    cpprp = _make_user(role=UserRole.CPPRP)
+    customer = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    epp = _make_epp()
+    submitted_before = Application.objects.filter(status=ApplicationStatus.SUBMITTED).count()
+    accepted_before = Application.objects.filter(status=ApplicationStatus.ACCEPTED).count()
+    created_application_ids = []
+    for index in range(7):
+        project = _make_project(customer, epp, status=ProjectStatus.ON_MODERATION)
+        application = _make_application(
+            project,
+            student,
+            status=ApplicationStatus.SUBMITTED if index % 2 == 0 else ApplicationStatus.ACCEPTED,
+        )
+        created_application_ids.append(application.pk)
+
+    client = Client()
+    client.force_login(cpprp)
+    with CaptureQueriesContext(connection) as query_context:
+        response = client.get(reverse("account-cpprp-applications"), data={"page_size": 5})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["totals"][ApplicationStatus.SUBMITTED] == submitted_before + 4
+    assert payload["totals"][ApplicationStatus.ACCEPTED] == accepted_before + 3
+    assert payload["recent"]["count"] >= 7
+    assert len(payload["recent"]["results"]) == 5
+    returned_application_ids = {item["id"] for item in payload["recent"]["results"]}
+    assert returned_application_ids.issubset(set(created_application_ids))
+    assert len(query_context.captured_queries) <= 8
 
 
 def test_student_overview_includes_favorites_deadlines_and_templates():

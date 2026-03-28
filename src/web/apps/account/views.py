@@ -3,6 +3,7 @@ import csv
 from apps.applications.models import Application, ApplicationStatus
 from apps.outbox.services import emit_event
 from apps.projects.models import Project, ProjectStatus
+from apps.projects.pagination import ProjectListPagination
 from apps.users.models import UserProfile
 from django.db.models import Count, Q
 from django.http import HttpResponse
@@ -21,6 +22,10 @@ from .serializers import (
     PlatformDeadlineSerializer,
     StudentOverviewSerializer,
 )
+
+
+class CPPRPApplicationsPagination(ProjectListPagination):
+    page_size = 20
 
 
 def _get_profile(user) -> UserProfile:
@@ -106,13 +111,15 @@ class StudentOverviewAPIView(APIView):
         return Response(StudentOverviewSerializer(payload, context={"request": request}).data)
 
 
-class CustomerProjectsAPIView(APIView):
+class CustomerProjectsAPIView(generics.ListAPIView):
     permission_classes = [IsCustomerOrStaff]
+    serializer_class = AccountProjectSerializer
+    pagination_class = ProjectListPagination
 
-    def get(self, request):
-        queryset = (
+    def get_queryset(self):
+        return (
             Project.objects.select_related("epp")
-            .filter(owner=request.user)
+            .filter(owner=self.request.user)
             .annotate(
                 submitted_applications_count=Count(
                     "applications",
@@ -121,26 +128,28 @@ class CustomerProjectsAPIView(APIView):
             )
             .order_by("-updated_at")
         )
-        return Response(AccountProjectSerializer(queryset, many=True).data)
 
 
-class CustomerApplicationsAPIView(APIView):
+class CustomerApplicationsAPIView(generics.ListAPIView):
     permission_classes = [IsCustomerOrStaff]
+    serializer_class = AccountApplicationSerializer
+    pagination_class = ProjectListPagination
 
-    def get(self, request):
-        queryset = (
+    def get_queryset(self):
+        return (
             Application.objects.select_related("project", "project__epp", "applicant")
-            .filter(project__owner=request.user)
+            .filter(project__owner=self.request.user)
             .order_by("-created_at")
         )
-        return Response(AccountApplicationSerializer(queryset, many=True).data)
 
 
-class CPPRPModerationQueueAPIView(APIView):
+class CPPRPModerationQueueAPIView(generics.ListAPIView):
     permission_classes = [IsCpprpOrStaff]
+    serializer_class = AccountProjectSerializer
+    pagination_class = ProjectListPagination
 
-    def get(self, request):
-        queryset = (
+    def get_queryset(self):
+        return (
             Project.objects.select_related("epp", "owner")
             .filter(status=ProjectStatus.ON_MODERATION)
             .annotate(
@@ -151,11 +160,11 @@ class CPPRPModerationQueueAPIView(APIView):
             )
             .order_by("-updated_at")
         )
-        return Response(AccountProjectSerializer(queryset, many=True).data)
 
 
 class CPPRPApplicationsAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
+    pagination_class = CPPRPApplicationsPagination
 
     def get(self, request):
         queryset = Application.objects.select_related("project", "project__epp", "applicant")
@@ -166,7 +175,12 @@ class CPPRPApplicationsAPIView(APIView):
             ApplicationStatus.ACCEPTED: queryset.filter(status=ApplicationStatus.ACCEPTED).count(),
             ApplicationStatus.REJECTED: queryset.filter(status=ApplicationStatus.REJECTED).count(),
         }
-        recent = queryset.order_by("-created_at")[:20]
+        recent_queryset = queryset.order_by("-created_at")
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(recent_queryset, request, view=self)
+        recent = paginator.get_paginated_response(
+            AccountApplicationSerializer(page, many=True).data
+        ).data
         payload = {"totals": totals, "recent": recent}
         return Response(CPPRPApplicationsOverviewSerializer(payload).data)
 
