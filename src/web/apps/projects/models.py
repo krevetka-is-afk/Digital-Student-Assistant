@@ -571,6 +571,10 @@ class Project(models.Model):
         indexes = [
             models.Index(fields=["status", "created_at"], name="projects_status_created_idx"),
             models.Index(fields=["owner", "created_at"], name="projects_owner_created_idx"),
+            models.Index(fields=["status", "updated_at"], name="projects_status_updated_idx"),
+            models.Index(fields=["owner", "updated_at"], name="projects_owner_updated_idx"),
+            models.Index(fields=["application_opened_at"], name="projects_app_opened_idx"),
+            models.Index(fields=["application_deadline"], name="projects_app_deadline_idx"),
             models.Index(fields=["epp", "status"], name="projects_epp_status_idx"),
             models.Index(fields=["owner", "status"], name="projects_owner_status_idx"),
             models.Index(fields=["supervisor_email"], name="projects_supervisor_email_idx"),

@@ -117,6 +117,13 @@ class StudentOverviewSerializer(AccountOverviewSerializer):
     templates = DocumentTemplateSerializer(many=True)
 
 
+class PaginatedAccountApplicationSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.CharField(allow_null=True)
+    previous = serializers.CharField(allow_null=True)
+    results = AccountApplicationSerializer(many=True)
+
+
 class CPPRPApplicationsOverviewSerializer(serializers.Serializer):
     totals = serializers.DictField(child=serializers.IntegerField())
-    recent = AccountApplicationSerializer(many=True)
+    recent = PaginatedAccountApplicationSerializer()

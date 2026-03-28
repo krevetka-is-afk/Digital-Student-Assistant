@@ -1,7 +1,8 @@
 from apps.account.permissions import IsCpprpOrStaff, IsCustomerOrStaff
 from apps.outbox.services import emit_event
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
 from rest_framework import generics, mixins, permissions, serializers
 from rest_framework.decorators import api_view
@@ -82,14 +83,36 @@ def _apply_project_filters(queryset, params):
             Q(title__icontains=q.strip()) | Q(description__icontains=q.strip())
         )
 
-    items = list(queryset)
     if tech_tag:
-        marker = tech_tag.strip().lower()
-        items = [item for item in items if marker in {tag.lower() for tag in item.get_tags_list()}]
+        queryset = queryset.filter(tech_tags__icontains=f'"{tech_tag.strip()}"')
     if staffing_state:
-        items = [item for item in items if item.staffing_state == staffing_state]
+        if staffing_state == "open":
+            queryset = queryset.filter(accepted_participants_count__lt=F("team_size"))
+        elif staffing_state == "full":
+            queryset = queryset.filter(accepted_participants_count__gte=F("team_size"))
+        else:
+            raise ValidationError(
+                {"staffing_state": ["Unsupported staffing_state. Allowed: open, full."]}
+            )
     if application_state:
-        items = [item for item in items if item.application_window_state == application_state]
+        today = timezone.localdate()
+        if application_state == "upcoming":
+            queryset = queryset.filter(application_opened_at__gt=today)
+        elif application_state == "closed":
+            queryset = queryset.filter(application_deadline__lt=today)
+        elif application_state == "open":
+            queryset = queryset.filter(
+                Q(application_opened_at__isnull=True) | Q(application_opened_at__lte=today),
+                Q(application_deadline__isnull=True) | Q(application_deadline__gte=today),
+            )
+        else:
+            raise ValidationError(
+                {
+                    "application_state": [
+                        "Unsupported application_state. Allowed: open, closed, upcoming."
+                    ]
+                }
+            )
 
     if ordering:
         ordering_field = ordering[1:] if ordering.startswith("-") else ordering
@@ -97,9 +120,10 @@ def _apply_project_filters(queryset, params):
             raise ValidationError(
                 {"ordering": ["Unsupported ordering field. Allowed: created_at, updated_at."]}
             )
-        reverse = ordering.startswith("-")
-        items = sorted(items, key=lambda item: getattr(item, ordering_field), reverse=reverse)
-    return items
+        queryset = queryset.order_by(ordering)
+    else:
+        queryset = queryset.order_by("-created_at")
+    return queryset
 
 
 @extend_schema_view(
