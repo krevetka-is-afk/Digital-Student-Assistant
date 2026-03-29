@@ -125,7 +125,7 @@ jobs:
         working-directory: src/web
         run: |
           mkdir -p reports
-          uv run pytest -q apps/base/tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
+          uv run pytest -q apps tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
 
       - name: Upload web test reports
         if: always()
@@ -234,7 +234,7 @@ jobs:
         working-directory: src/web
         run: |
           mkdir -p reports
-          uv run --with pytest-cov pytest -q apps \
+          uv run --with pytest-cov pytest -q apps tests \
             --cov=apps --cov=config \
             --cov-report=xml --cov-report=html --cov-report=term-missing \
             --junitxml=reports/junit-coverage.xml

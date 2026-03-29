@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from apps.projects.tests_import import (
+from apps.projects.tests.helpers import (
     EXPECTED_HEADERS,
     _build_xlsx,
     _row_from_mapping,

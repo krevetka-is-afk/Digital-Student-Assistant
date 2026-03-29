@@ -213,6 +213,7 @@ __marimo__/
 # sqlite3
 .sqlite3
 
+docs/issues/*
 *issue.md
 
 data_source/

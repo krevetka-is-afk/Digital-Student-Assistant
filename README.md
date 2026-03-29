@@ -91,10 +91,13 @@ python manage.py check --deploy --settings=config.settings.prod
 ## Структура проекта
 
 - `src/web/` - Django + DRF сервис
+- `src/web/apps/*/tests/{api,unit}/` - локальные тесты web-доменов
 - `src/ml/` - FastAPI ML сервис
 - `src/graph/` – Neo4J
+- `tests/` - межсервисные contract/integration/e2e сценарии
 - `infra/` - docker compose и инфраструктурные файлы
-- `docs/` - архитектура, спецификации и заметки
+- `infra/compose/test/docker-compose.yml` - тестовое окружение для integration flow
+- `docs/architecture/` - ADR, contracts и архитектурные документы
 - `security/` - security-проверки и конфигурации
 
 ## Contribute

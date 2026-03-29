@@ -1,18 +1,9 @@
 from uuid import uuid4
 
 from apps.projects.models import Project, ProjectStatus
-from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
-
-
-def test_user_profile_defaults():
-    profile = UserProfile()
-
-    assert profile.role == UserRole.STUDENT
-    assert profile.interests == []
-    assert profile.favorite_project_ids == []
 
 
 def test_user_can_manage_favorite_projects():

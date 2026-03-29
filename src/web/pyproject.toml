@@ -28,7 +28,9 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-python_files = ["tests.py", "test_*.py", "*_test.py", "tests_*.py"]
+python_files = ["test_*.py", "*_test.py", "tests_*.py"]
+testpaths = ["apps", "tests"]
+norecursedirs = [".venv", ".pytest_cache", ".ruff_cache", "dist", "build"]
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

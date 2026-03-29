@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 from uuid import uuid4
 
-from apps.projects.models import Project, ProjectSourceType, ProjectStatus
+from apps.projects.models import Project, ProjectStatus
 from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -10,14 +10,6 @@ from django.test import Client
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
-
-
-def test_project_defaults():
-    project = Project(title="Data platform")
-
-    assert project.status == ProjectStatus.DRAFT
-    assert project.source_type == ProjectSourceType.MANUAL
-    assert project.tech_tags == []
 
 
 def _make_user(*, role: str | None = None, is_staff: bool = False):
