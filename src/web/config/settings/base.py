@@ -70,7 +70,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # third party api src
     "debug_toolbar",
-    "algoliasearch_django",
     # third party packages
     "rest_framework",
     "rest_framework.authtoken",
@@ -183,13 +182,6 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Digital Student Assistant API",
     "DESCRIPTION": "Versioned REST API for web and future service integrations.",
     "VERSION": "1.0.0",
-}
-
-ALGOLIA = {
-    "APPLICATION_ID": os.getenv("ALGOLIA_APPLICATION_ID", ""),
-    "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),
-    "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "SERJ"),
-    "AUTO_INDEXING": env_bool("ALGOLIA_AUTO_INDEXING", False),
 }
 
 DEBUG_TOOLBAR_PANELS = [

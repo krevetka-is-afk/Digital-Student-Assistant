@@ -42,16 +42,16 @@ This document defines the MVP product-role authorization matrix for the API-firs
 - Project permissions and transitions:
   - `src/web/apps/projects/views.py`
   - `src/web/apps/projects/transitions.py`
-  - `src/web/apps/projects/tests.py`
-  - `src/web/apps/projects/tests_transitions.py`
+  - `src/web/apps/projects/tests/api/test_projects_api.py`
+  - `src/web/apps/projects/tests/api/test_transitions.py`
 - Application permissions and transitions:
   - `src/web/apps/applications/views.py`
   - `src/web/apps/applications/transitions.py`
-  - `src/web/apps/applications/tests_transitions.py`
+  - `src/web/apps/applications/tests/api/test_transitions.py`
 - Account / operations endpoints:
   - `src/web/apps/account/views.py`
-  - `src/web/apps/account/tests.py`
+  - `src/web/apps/account/tests/api/test_account_api.py`
   - `src/web/apps/imports/views.py`
-  - `src/web/apps/imports/tests.py`
+  - `src/web/apps/imports/tests/api/test_import_api.py`
   - `src/web/apps/recs/views.py`
-  - `src/web/apps/recs/tests.py`
+  - `src/web/apps/recs/tests/api/test_recs_api.py`

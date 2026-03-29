@@ -22,13 +22,13 @@ This note covers the current critical API collection paths:
 ## Covered Query-Budget Tests
 
 - `GET /api/v1/projects/`:
-  `src/web/apps/projects/tests.py::test_projects_list_is_query_efficient`
+  `src/web/apps/projects/tests/api/test_projects_api.py::test_projects_list_is_query_efficient`
 - `GET /api/v1/projects/` with DB-backed filtering/order path:
-  `src/web/apps/projects/tests.py::test_projects_list_keeps_filters_and_ordering_database_backed`
+  `src/web/apps/projects/tests/api/test_projects_api.py::test_projects_list_keeps_filters_and_ordering_database_backed`
 - `GET /api/v1/account/customer/applications/`:
-  `src/web/apps/account/tests.py::test_account_customer_applications_is_query_efficient`
+  `src/web/apps/account/tests/api/test_account_api.py::test_account_customer_applications_is_query_efficient`
 - `GET /api/v1/account/cpprp/applications/`:
-  `src/web/apps/account/tests.py::test_account_cpprp_applications_recent_is_paginated_and_query_efficient`
+  `src/web/apps/account/tests/api/test_account_api.py::test_account_cpprp_applications_recent_is_paginated_and_query_efficient`
 
 ## Current Tradeoffs
 

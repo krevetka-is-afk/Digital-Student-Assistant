@@ -4,7 +4,11 @@ from pathlib import Path
 
 def test_event_contract_declares_required_event_types():
     contract_path = (
-        Path(__file__).resolve().parents[2] / "docs" / "contracts" / "event_contract.json"
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "architecture"
+        / "contracts"
+        / "event_contract.json"
     )
     payload = json.loads(contract_path.read_text(encoding="utf-8"))
 

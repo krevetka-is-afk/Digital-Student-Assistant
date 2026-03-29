@@ -1,6 +1,6 @@
 # Project Structure (Actual State)
 
-Updated: 2026-03-07
+Updated: 2026-03-29
 
 ```txt
 Digital-Student-Assistant/
@@ -12,7 +12,12 @@ Digital-Student-Assistant/
 │  │  └─ ci.yml
 │  └─ ISSUE_TEMPLATE/
 ├─ docs/
-│  ├─ adr/
+│  ├─ architecture/
+│  │  ├─ adr/
+│  │  ├─ contracts/
+│  │  └─ permissions.md
+│  ├─ issues/
+│  ├─ ops/
 │  ├─ technical-specification/
 │  │  └─ technical-specification-3/
 │  ├─ 01 General objectives and context of the project.md
@@ -23,10 +28,16 @@ Digital-Student-Assistant/
 │  ├─ 10 architectural decision.md
 │  └─ structure_of_project.md
 ├─ infra/
+│  ├─ compose/
+│  │  └─ test/
+│  │     └─ docker-compose.yml
 │  ├─ docker-compose.yml
 │  ├─ docker-compose.dev.yml
-│  └─ .dockerignore
+│  ├─ docker-compose.prod.yml
+│  └─ nginx/
 ├─ scripts/
+│  ├─ backup-postgres.sh
+│  ├─ restore-postgres.sh
 │  └─ uv-linters.sh
 ├─ security/
 │  ├─ seccomp/
@@ -38,62 +49,71 @@ Digital-Student-Assistant/
 │  │  ├─ uv.lock
 │  │  ├─ manage.py
 │  │  ├─ config/
-│  │  │  ├─ settings/
-│  │  │  │  ├─ base.py
-│  │  │  │  ├─ dev.py
-│  │  │  │  └─ prod.py
-│  │  │  ├─ urls.py
-│  │  │  ├─ routers.py
-│  │  │  ├─ asgi.py
-│  │  │  └─ wsgi.py
 │  │  ├─ apps/
-│  │  │  ├─ api/
+│  │  │  ├─ account/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ api/
 │  │  │  ├─ applications/
+│  │  │  │  └─ tests/
+│  │  │  │     ├─ api/
+│  │  │  │     └─ unit/
 │  │  │  ├─ base/
+│  │  │  │  └─ tests/
+│  │  │  │     ├─ api/
+│  │  │  │     ├─ integration/
+│  │  │  │     └─ unit/
 │  │  │  ├─ imports/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ api/
 │  │  │  ├─ outbox/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ api/
 │  │  │  ├─ projects/
+│  │  │  │  └─ tests/
+│  │  │  │     ├─ api/
+│  │  │  │     └─ unit/
+│  │  │  ├─ recs/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ api/
 │  │  │  ├─ search/
-│  │  │  └─ tags/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ api/
+│  │  │  ├─ tags/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ api/
+│  │  │  └─ users/
+│  │  │     └─ tests/
+│  │  │        ├─ api/
+│  │  │        └─ unit/
+│  │  ├─ client/
 │  │  ├─ templates/
-│  │  │  └─ home.html
-│  │  ├─ client/                   # local API client scripts
-│  │  └─ tests/                    # scaffolds: unit/api/integration/contract
+│  │  └─ tests/                    # shared web-level suites
+│  │     ├─ api/
+│  │     ├─ contract/
+│  │     ├─ integration/
+│  │     └─ unit/
 │  ├─ ml/                          # FastAPI ML service
 │  │  ├─ Dockerfile
 │  │  ├─ pyproject.toml
 │  │  ├─ uv.lock
 │  │  ├─ app/
-│  │  │  ├─ main.py
-│  │  │  ├─ api/
-│  │  │  ├─ core/
-│  │  │  ├─ repositories/
-│  │  │  ├─ schemas/
-│  │  │  ├─ services/
-│  │  │  └─ workers/
 │  │  └─ tests/
-│  │     ├─ unit/
 │  │     ├─ api/
+│  │     ├─ contract/
 │  │     ├─ integration/
-│  │     └─ contract/
+│  │     └─ unit/
 │  └─ graph/                       # graph projector service
 │     ├─ Dockerfile
 │     ├─ pyproject.toml
 │     ├─ app/
-│     │  ├─ main.py
-│     │  ├─ checkpoints/
-│     │  ├─ consumers/
-│     │  ├─ mappers/
-│     │  └─ neo4j/
 │     └─ tests/
-│        ├─ unit/
-│        └─ integration/
+│        ├─ integration/
+│        └─ unit/
 ├─ tests/                          # repository-level tests
+│  ├─ contract/
 │  ├─ e2e/
-│  ├─ integration/
-│  │  ├─ conftest.py
-│  │  └─ docker-compose.test.yml
-│  └─ contract/
+│  └─ integration/
+│     └─ conftest.py
 ├─ pyproject.toml
 └─ uv.lock
 ```
@@ -102,16 +122,24 @@ Digital-Student-Assistant/
 
 - `base`: authentication, permissions, shared API endpoints, health endpoint.
 - `projects`: main project domain (models, serializers, validators, viewsets).
-- `applications`: application workflow domain (currently scaffold/basic files).
+- `applications`: application workflow domain.
 - `search`: search endpoints/domain.
 - `tags`: tags domain scaffold.
-- `imports`: import pipeline scaffold.
-- `outbox`: outbox domain scaffold.
+- `imports`: import pipeline and tracked import runs.
+- `outbox`: event feed read model.
+- `account`: role-scoped account and CPPRP operations endpoints.
 - `api`: top-level DRF API wiring.
 
-## Notes vs Target Architecture
+## Web Test Layout
 
-- `src/graph/` is already present as a separate service; naming can be aligned later to `src/graph_projector/` if needed.
-- `contracts/` directory is not created yet (OpenAPI/events source-of-truth still pending as a separate step).
-- `docs/architecture`, `docs/data`, `docs/events`, `docs/openapi`, `docs/security` are not yet split into dedicated folders.
-- `infra/docker-compose.test.yml` currently lives in `tests/integration/docker-compose.test.yml`.
+- `src/web/apps/<app>/tests/api/`: endpoint and permission behavior for one Django app.
+- `src/web/apps/<app>/tests/unit/`: model, admin, importer, and other isolated app tests.
+- `src/web/tests/`: shared web-level suites that span several Django apps.
+- `tests/`: repository-level contract, integration, and e2e suites across services.
+
+## Notes
+
+- `src/graph/` and `src/ml/` keep service-local tests, which is consistent for multi-package services.
+- `docs/architecture/contracts/` is the canonical location for API and event contracts.
+- `docs/architecture/adr/` keeps architectural decisions next to the rest of the architecture assets.
+- `infra/compose/test/docker-compose.yml` holds the integration test environment definition.

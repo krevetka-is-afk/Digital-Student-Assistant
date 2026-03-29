@@ -19,9 +19,18 @@ export PYTHONPATH=.
 ```bash
 uv venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
-uv sync --group dev
+uv sync --all-packages --group dev
 export PYTHONPATH=.
 ```
+
+## Canonical test entrypoint
+
+```bash
+uv sync --all-packages --group dev
+./scripts/run-release-gate.sh
+```
+
+Этот сценарий использует единое workspace-окружение для `web`, `ml`, `graph`, затем `run-release-gate.sh` применяет Django migrations для локальной SQLite-базы и запускает общий `pytest` release gate из корня репозитория.
 
 ## Docker
 
@@ -91,10 +100,13 @@ python manage.py check --deploy --settings=config.settings.prod
 ## Структура проекта
 
 - `src/web/` - Django + DRF сервис
+- `src/web/apps/*/tests/{api,unit}/` - локальные тесты web-доменов
 - `src/ml/` - FastAPI ML сервис
 - `src/graph/` – Neo4J
+- `tests/` - межсервисные contract/integration/e2e сценарии
 - `infra/` - docker compose и инфраструктурные файлы
-- `docs/` - архитектура, спецификации и заметки
+- `infra/compose/test/docker-compose.yml` - тестовое окружение для integration flow
+- `docs/architecture/` - ADR, contracts и архитектурные документы
 - `security/` - security-проверки и конфигурации
 
 ## Contribute
