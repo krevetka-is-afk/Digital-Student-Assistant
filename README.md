@@ -19,9 +19,18 @@ export PYTHONPATH=.
 ```bash
 uv venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
-uv sync --group dev
+uv sync --all-packages --group dev
 export PYTHONPATH=.
 ```
+
+## Canonical test entrypoint
+
+```bash
+uv sync --all-packages --group dev
+./scripts/run-release-gate.sh
+```
+
+Этот сценарий использует единое workspace-окружение для `web`, `ml`, `graph`, затем `run-release-gate.sh` применяет Django migrations для локальной SQLite-базы и запускает общий `pytest` release gate из корня репозитория.
 
 ## Docker
 

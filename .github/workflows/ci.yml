@@ -18,6 +18,7 @@ jobs:
     outputs:
       web: ${{ steps.filter.outputs.web }}
       ml: ${{ steps.filter.outputs.ml }}
+      graph: ${{ steps.filter.outputs.graph }}
       root: ${{ steps.filter.outputs.root }}
       docker: ${{ steps.filter.outputs.docker }}
     steps:
@@ -35,6 +36,8 @@ jobs:
               - 'src/web/**'
             ml:
               - 'src/ml/**'
+            graph:
+              - 'src/graph/**'
             docker:
               - 'src/**/Dockerfile'
               - 'infra/docker-compose.yml'
@@ -175,6 +178,37 @@ jobs:
           name: ml-test-reports-py313
           path: src/ml/reports/**
           if-no-files-found: error
+
+  release-gate:
+    name: Unified release gate
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' || needs.changes.outputs.ml == 'true' || needs.changes.outputs.graph == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            src/web/uv.lock
+            src/ml/uv.lock
+            src/graph/uv.lock
+
+      - name: Install unified workspace dependencies
+        run: uv sync --all-packages --group dev --frozen
+
+      - name: Run unified release gate
+        run: ./scripts/run-release-gate.sh
 
   security-check:
     name: Security quick scan

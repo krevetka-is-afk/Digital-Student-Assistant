@@ -1,18 +1,24 @@
-import sys
+import importlib.util
 from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
+MAIN_FILE = SERVICE_ROOT / "app" / "main.py"
 
-for candidate in (SERVICE_ROOT, REPO_ROOT):
-    candidate_str = str(candidate)
-    if candidate_str not in sys.path:
-        sys.path.insert(0, candidate_str)
 
-from app.main import app  # noqa: E402
+def _load_app():
+    spec = importlib.util.spec_from_file_location("ml_test_main", MAIN_FILE)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load ML app from {MAIN_FILE}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.app
+
+
+app = _load_app()
 
 
 @pytest.fixture

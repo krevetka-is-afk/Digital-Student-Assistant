@@ -3,7 +3,13 @@ from pathlib import Path
 
 
 def test_api_contract_declares_release_paths():
-    contract_path = Path(__file__).resolve().parents[2] / "docs" / "contracts" / "api_contract.json"
+    contract_path = (
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "architecture"
+        / "contracts"
+        / "api_contract.json"
+    )
     payload = json.loads(contract_path.read_text(encoding="utf-8"))
 
     assert {

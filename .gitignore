@@ -212,6 +212,8 @@ __marimo__/
 
 # sqlite3
 .sqlite3
+*.sqlite3
+.tmp/
 
 docs/issues/*
 *issue.md
