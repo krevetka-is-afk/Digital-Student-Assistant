@@ -15,7 +15,7 @@ from django.urls import reverse
 def _make_cpprp():
     user = get_user_model().objects.create_user(
         username=f"cpprp-import-{uuid4().hex[:8]}",
-        password="pass123456",
+        password="placeholder",
     )
     UserProfile.objects.create(user=user, role=UserRole.CPPRP)
     return user
@@ -24,7 +24,7 @@ def _make_cpprp():
 def _make_student():
     user = get_user_model().objects.create_user(
         username=f"student-import-{uuid4().hex[:8]}",
-        password="pass123456",
+        password="placeholder",
     )
     UserProfile.objects.create(user=user, role=UserRole.STUDENT)
     return user

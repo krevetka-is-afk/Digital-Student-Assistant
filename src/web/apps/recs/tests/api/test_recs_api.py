@@ -10,7 +10,7 @@ from django.urls import reverse
 def _make_student(*, interests=None):
     user = get_user_model().objects.create_user(
         username=f"student-recs-{uuid4().hex[:8]}",
-        password="pass123456",
+        password="placeholder",
     )
     UserProfile.objects.create(
         user=user,
@@ -23,7 +23,7 @@ def _make_student(*, interests=None):
 def _make_cpprp():
     user = get_user_model().objects.create_user(
         username=f"cpprp-recs-{uuid4().hex[:8]}",
-        password="pass123456",
+        password="placeholder",
     )
     UserProfile.objects.create(user=user, role=UserRole.CPPRP)
     return user

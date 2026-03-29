@@ -12,7 +12,7 @@ def _make_user(*, role: str | None = None, is_staff: bool = False):
     username = f"user-{uuid4().hex[:8]}"
     user = get_user_model().objects.create_user(
         username=username,
-        password="test-pass-123",
+        password="placeholder",
         is_staff=is_staff,
     )
     if role is not None:

@@ -89,7 +89,7 @@ def test_import_epp_xlsx_preserves_local_locked_status():
 def test_project_source_constraint_skips_blank_manual_source_ref():
     user = get_user_model().objects.create_user(
         username=f"manual-owner-{uuid4().hex[:8]}",
-        password="pass-123",
+        password="placeholder",
     )
     first = Project.objects.create(title="Manual one", owner=user)
     second = Project.objects.create(title="Manual two", owner=user)

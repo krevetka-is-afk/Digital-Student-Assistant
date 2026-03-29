@@ -10,7 +10,7 @@ from django.urls import reverse
 def test_outbox_events_endpoint_returns_filtered_events():
     user = get_user_model().objects.create_user(
         username=f"cpprp-outbox-{uuid4().hex[:8]}",
-        password="pass123456",
+        password="placeholder",
     )
     UserProfile.objects.create(user=user, role=UserRole.CPPRP)
     event = OutboxEvent.objects.create(
