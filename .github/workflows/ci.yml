@@ -95,8 +95,6 @@ jobs:
       DATABASE_URL: "sqlite:///ci_test.sqlite3"
       TEST_DB_URL: "sqlite:///ci_test.sqlite3"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
-      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -110,11 +108,11 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "src/web/uv.lock"
+          cache-dependency-glob: "src/web/pyproject.toml"
 
       - name: Install web dependencies
         working-directory: src/web
-        run: uv sync --group dev --frozen
+        run: uv sync --group dev
 
       - name: Django checks
         working-directory: src/web
@@ -200,7 +198,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: |
             uv.lock
-            src/web/uv.lock
             src/ml/uv.lock
             src/graph/uv.lock
 
@@ -239,8 +236,6 @@ jobs:
       DATABASE_URL: "sqlite:///ci_test.sqlite3"
       TEST_DB_URL: "sqlite:///ci_test.sqlite3"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
-      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -254,11 +249,11 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "src/web/uv.lock"
+          cache-dependency-glob: "src/web/pyproject.toml"
 
       - name: Install web dependencies
         working-directory: src/web
-        run: uv sync --group dev --frozen
+        run: uv sync --group dev
 
       - name: Apply migrations
         working-directory: src/web
