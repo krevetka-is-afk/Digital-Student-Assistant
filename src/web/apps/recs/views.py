@@ -1,11 +1,18 @@
 from apps.account.permissions import IsCpprpOrStaff
 from apps.outbox.services import emit_event
 from apps.users.models import UserProfile
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import RecommendationRequestSerializer, SearchRequestSerializer
+from .serializers import (
+    RecommendationReindexRequestSerializer,
+    RecommendationReindexResponseSerializer,
+    RecommendationRequestSerializer,
+    RecommendationResponseSerializer,
+    SearchRequestSerializer,
+)
 from .services import recommend_projects, search_projects
 
 
@@ -25,6 +32,10 @@ def _serialize_items(items, request):
 class SearchProxyAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        parameters=[SearchRequestSerializer],
+        responses=RecommendationResponseSerializer,
+    )
     def get(self, request):
         serializer = SearchRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -39,6 +50,10 @@ class SearchProxyAPIView(APIView):
 class RecommendationListAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        parameters=[RecommendationRequestSerializer],
+        responses=RecommendationResponseSerializer,
+    )
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = RecommendationRequestSerializer(data=request.query_params)
@@ -52,6 +67,10 @@ class RecommendationListAPIView(APIView):
 class RecommendationReindexAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
+    @extend_schema(
+        request=RecommendationReindexRequestSerializer,
+        responses=RecommendationReindexResponseSerializer,
+    )
     def post(self, request):
         emit_event(
             event_type="recs.reindex_requested",

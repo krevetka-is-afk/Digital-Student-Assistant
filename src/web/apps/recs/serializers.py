@@ -26,3 +26,17 @@ class RecommendationResultSerializer(serializers.Serializer):
 class RecommendationResponseSerializer(serializers.Serializer):
     items = RecommendationResultSerializer(many=True)
     mode = serializers.CharField()
+
+
+class RecommendationReindexRequestSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=False, default="manual_reindex")
+    events = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
+
+
+class RecommendationReindexResponseSerializer(serializers.Serializer):
+    status = serializers.CharField()

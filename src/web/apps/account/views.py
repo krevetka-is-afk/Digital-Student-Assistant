@@ -7,6 +7,7 @@ from apps.projects.pagination import ProjectListPagination
 from apps.users.models import UserProfile
 from django.db.models import Count, Q
 from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -75,6 +76,7 @@ def _build_counters(user, profile: UserProfile) -> dict[str, int]:
 class AccountMeAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=AccountOverviewSerializer)
     def get(self, request):
         profile = _get_profile(request.user)
         payload = {
@@ -87,6 +89,7 @@ class AccountMeAPIView(APIView):
 class StudentOverviewAPIView(APIView):
     permission_classes = [IsStudentOrStaff]
 
+    @extend_schema(responses=StudentOverviewSerializer)
     def get(self, request):
         role = get_user_role(request.user) or "student"
         profile = _get_profile(request.user)
@@ -166,6 +169,7 @@ class CPPRPApplicationsAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
     pagination_class = CPPRPApplicationsPagination
 
+    @extend_schema(responses=CPPRPApplicationsOverviewSerializer)
     def get(self, request):
         queryset = Application.objects.select_related("project", "project__epp", "applicant")
         totals = {
@@ -215,6 +219,7 @@ class DocumentTemplateListCreateAPIView(generics.ListCreateAPIView):
 class CPPRPProjectsExportAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
+    @extend_schema(responses={(200, "text/csv"): OpenApiTypes.BINARY})
     def get(self, request):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="projects-export.csv"'
@@ -250,6 +255,7 @@ class CPPRPProjectsExportAPIView(APIView):
 class CPPRPApplicationsExportAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
+    @extend_schema(responses={(200, "text/csv"): OpenApiTypes.BINARY})
     def get(self, request):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="applications-export.csv"'

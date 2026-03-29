@@ -10,6 +10,9 @@ This note covers the current critical API collection paths:
 - `GET /api/v1/account/cpprp/moderation-queue/`
 - `GET /api/v1/account/cpprp/applications/`
 
+It also defines the next performance milestone: full server-side load testing after the first real
+deployment, before deciding whether `web`, `ml`, and `graph` should run on separate machines.
+
 ## Rules
 
 - Keep list endpoints paginated. Do not return large unbounded collections from account or catalog APIs.
@@ -35,6 +38,30 @@ This note covers the current critical API collection paths:
 - `tech_tag` filtering on `/api/v1/projects/` stays database-backed by matching against the JSON payload text. This keeps pagination and ordering in SQL without introducing a normalized tag table in the current release candidate.
 - Computed response fields such as `staffing_state`, `application_window_state`, and `is_favorite` are still assembled in application code for serialization, but list membership and ordering must not depend on Python-side post-processing.
 - If tag filtering becomes a higher-scale bottleneck later, move tags into a normalized relation or add a database-specific index strategy instead of reintroducing Python-side filtering.
+
+## Planned Full Load Test
+
+Run this only after the current stack is deployed on a real server with production-like resources.
+
+Primary questions:
+
+- Can one machine handle the realistic peak season load with acceptable latency and error rate?
+- Does recommendation traffic force `ml` onto separate hardware?
+- Does outbox consumption and graph projection remain near-real-time under concurrent write traffic?
+
+Required endpoint mix:
+
+- read-heavy: `/api/v1/projects/`, `/api/v1/search/`, `/api/v1/recs/search/`
+- cabinet-heavy: `/api/v1/account/student/overview/`, `/api/v1/account/customer/applications/`, `/api/v1/account/cpprp/applications/`
+- write-heavy: project submission/moderation, application creation/review, imports
+- sync-heavy: `/api/v1/outbox/events/` with active downstream consumers
+
+Success criteria to capture:
+
+- p95 for critical read endpoints remains inside the target budget;
+- write flows stay stable without queueing collapse or DB lock amplification;
+- recommendation freshness and outbox lag remain operationally acceptable;
+- infrastructure decision is backed by measured bottlenecks, not assumed future scale.
 
 ## Development Slow SQL Visibility
 

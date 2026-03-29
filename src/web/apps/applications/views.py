@@ -1,6 +1,7 @@
 from apps.account.permissions import IsCustomerOrStaff, IsStudentOrStaff
 from apps.outbox.services import emit_event
 from apps.projects.models import ProjectStatus
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework import serializers as drf_serializers
 from rest_framework.exceptions import ValidationError
@@ -76,6 +77,10 @@ class ApplicationReviewInputSerializer(drf_serializers.Serializer):
 class ApplicationReviewAPIView(APIView):
     permission_classes = [IsCustomerOrStaff]
 
+    @extend_schema(
+        request=ApplicationReviewInputSerializer,
+        responses=ApplicationSerializer,
+    )
     def post(self, request, pk: int):
         payload = ApplicationReviewInputSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

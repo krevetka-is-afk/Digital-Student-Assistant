@@ -1,5 +1,6 @@
 from apps.outbox.services import emit_event
 from apps.projects.models import Project, ProjectStatus
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,10 +16,12 @@ from .serializers import (
 class MyProfileAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=UserProfileSerializer)
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         return Response(UserProfileSerializer(profile).data)
 
+    @extend_schema(request=UserProfileSerializer, responses=UserProfileSerializer)
     def patch(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = UserProfileSerializer(profile, data=request.data, partial=True)
@@ -33,6 +36,7 @@ class MyProfileAPIView(APIView):
         )
         return Response(serializer.data)
 
+    @extend_schema(request=UserProfileSerializer, responses=UserProfileSerializer)
     def put(self, request):
         return self.patch(request)
 
@@ -40,6 +44,7 @@ class MyProfileAPIView(APIView):
 class MyFavoriteProjectsAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=FavoriteProjectsResponseSerializer)
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         projects = list(
@@ -53,6 +58,10 @@ class MyFavoriteProjectsAPIView(APIView):
             FavoriteProjectsResponseSerializer(payload, context={"request": request}).data
         )
 
+    @extend_schema(
+        request=FavoriteProjectsUpdateSerializer,
+        responses=FavoriteProjectsResponseSerializer,
+    )
     def put(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = FavoriteProjectsUpdateSerializer(data=request.data)
@@ -68,6 +77,10 @@ class MyFavoriteProjectsAPIView(APIView):
         )
         return self.get(request)
 
+    @extend_schema(
+        request=FavoriteProjectsUpdateSerializer,
+        responses=FavoriteProjectsResponseSerializer,
+    )
     def post(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = FavoriteProjectsUpdateSerializer(data=request.data)
@@ -89,6 +102,7 @@ class MyFavoriteProjectsAPIView(APIView):
 class MyFavoriteProjectDetailAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses={204: None})
     def delete(self, request, pk: int):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         project_ids = [

@@ -1,4 +1,5 @@
 {
+  "source_of_truth": "emit_event_calls",
   "required_event_types": [
     "project.changed",
     "application.changed",

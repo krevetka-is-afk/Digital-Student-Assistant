@@ -325,6 +325,7 @@ class ProjectModerationInputSerializer(serializers.Serializer):
 class ProjectSubmitForModerationAPIView(APIView):
     permission_classes = [IsCustomerOrStaff]
 
+    @extend_schema(request=None, responses=PrimaryProjectSerializer)
     def post(self, request, pk: int):
         project = get_object_or_404(Project.objects.select_related("owner", "epp"), pk=pk)
         submit_project_for_moderation(project=project, actor=request.user)
@@ -342,6 +343,10 @@ class ProjectSubmitForModerationAPIView(APIView):
 class ProjectModerationAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
+    @extend_schema(
+        request=ProjectModerationInputSerializer,
+        responses=PrimaryProjectSerializer,
+    )
     def post(self, request, pk: int):
         payload = ProjectModerationInputSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

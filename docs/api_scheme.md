@@ -1,6 +1,6 @@
-# API Scheme (MVP)
+# API Scheme (Canonical v1)
 
-Updated: 2026-03-08
+Updated: 2026-03-29
 
 ## API Entry Points
 
@@ -15,7 +15,7 @@ Updated: 2026-03-08
 
 ## Canonical API v1 (`/api/v1/`)
 
-Use these endpoints for manual testing and frontend integration.
+Use these endpoints for manual testing, frontend integration, and release contract review.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
@@ -35,8 +35,31 @@ Use these endpoints for manual testing and frontend integration.
 | GET | `/api/v1/applications/<id>/` | yes | Get application by id |
 | PATCH | `/api/v1/applications/<id>/` | yes | Update application (owner or staff) |
 | DELETE | `/api/v1/applications/<id>/` | yes | Delete application (owner or staff) |
+| GET | `/api/v1/account/me/` | yes | Role-aware cabinet counters and current profile summary |
+| GET | `/api/v1/account/student/overview/` | student/staff | Student cabinet overview with applications, favorites, deadlines, templates |
+| GET | `/api/v1/account/customer/projects/` | customer/staff | Customer cabinet project list with submitted applications counters |
+| GET | `/api/v1/account/customer/applications/` | customer/staff | Customer cabinet incoming applications |
+| GET | `/api/v1/account/cpprp/moderation-queue/` | cpprp/staff | CPPRP moderation queue |
+| GET | `/api/v1/account/cpprp/applications/` | cpprp/staff | CPPRP applications overview and recent feed |
+| GET | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | List platform deadlines |
+| POST | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | Create deadline and emit `deadline.changed` |
+| GET | `/api/v1/account/cpprp/templates/` | cpprp/staff | List document templates |
+| POST | `/api/v1/account/cpprp/templates/` | cpprp/staff | Create document template |
+| GET | `/api/v1/account/cpprp/export/projects/` | cpprp/staff | Export projects as CSV |
+| GET | `/api/v1/account/cpprp/export/applications/` | cpprp/staff | Export applications as CSV |
 | GET | `/api/v1/users/me/` | yes | Get current user's profile |
 | PATCH | `/api/v1/users/me/` | yes | Update current user's profile (`role`, `interests`) |
+| PUT | `/api/v1/users/me/` | yes | Full update alias for current user's profile |
+| GET | `/api/v1/users/me/favorites/` | yes | List bookmarked projects |
+| PUT | `/api/v1/users/me/favorites/` | yes | Replace bookmarked project ids |
+| POST | `/api/v1/users/me/favorites/` | yes | Append bookmarked project ids |
+| DELETE | `/api/v1/users/me/favorites/<id>/` | yes | Remove bookmarked project |
+| GET | `/api/v1/recs/search/?q=<text>` | no | Search proxy for recommendation stack |
+| GET | `/api/v1/recs/recommendations/` | yes | Personalized recommendations by interests/profile |
+| POST | `/api/v1/recs/reindex/` | cpprp/staff | Emit `recs.reindex_requested` event |
+| GET | `/api/v1/imports/epp/` | cpprp/staff | List import runs |
+| POST | `/api/v1/imports/epp/` | cpprp/staff | Run XLSX import and emit `import.completed` on success |
+| GET | `/api/v1/outbox/events/` | yes | Read outbox feed (`event_type`, `since_id`) for graph/ML consumers |
 
 ## Legacy API (compatibility)
 
@@ -55,10 +78,17 @@ These routes remain available, but should be treated as deprecated for new testi
 - Application: `submitted -> accepted/rejected`
 - Direct status transitions via generic `PATCH` are blocked; use action endpoints.
 
+## Release Contract Source of Truth
+
+- Required canonical paths, operations, and OpenAPI schema components live in `docs/architecture/contracts/api_contract.json`.
+- Required domain event types live in `docs/architecture/contracts/event_contract.json`.
+- `tests/contract/test_openapi_sync.py` validates these requirements against generated `/api/schema/`.
+- `tests/contract/test_event_schemas.py` validates the event contract against current `emit_event(...)` calls in the backend.
+
 ## Quick browser test flow
 
 1. Open `/api/` and verify links to `/api/v1/`.
 2. Open `/api/v1/health/` and check `{"status":"ok"}`.
 3. Call `POST /api/v1/auth/token/` in DRF browsable API form.
-4. Use token in header: `Authorization: Bearer <your_token>`.
+4. Use token in header: `Authorization: Token <your_token>`.
 5. Open `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.

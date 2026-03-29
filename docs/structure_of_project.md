@@ -140,6 +140,6 @@ Digital-Student-Assistant/
 ## Notes
 
 - `src/graph/` and `src/ml/` keep service-local tests, which is consistent for multi-package services.
-- `docs/architecture/contracts/` is the canonical location for API and event contracts.
+- `docs/architecture/contracts/` is the canonical location for API and event contracts; they are validated against generated OpenAPI and current `emit_event(...)` calls.
 - `docs/architecture/adr/` keeps architectural decisions next to the rest of the architecture assets.
 - `infra/compose/test/docker-compose.yml` holds the integration test environment definition.
