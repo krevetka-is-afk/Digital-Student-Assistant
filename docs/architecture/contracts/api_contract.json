@@ -4,6 +4,10 @@
   "required_paths": [
     "/api/v1/auth/token/",
     "/api/v1/search/",
+    "/api/v1/initiative-proposals/",
+    "/api/v1/initiative-proposals/{id}/",
+    "/api/v1/initiative-proposals/{id}/actions/submit/",
+    "/api/v1/initiative-proposals/{id}/actions/moderate/",
     "/api/v1/projects/",
     "/api/v1/projects/{id}/",
     "/api/v1/projects/{id}/actions/submit/",
@@ -33,6 +37,10 @@
   "required_operations": {
     "/api/v1/auth/token/": ["post"],
     "/api/v1/search/": ["get"],
+    "/api/v1/initiative-proposals/": ["get", "post"],
+    "/api/v1/initiative-proposals/{id}/": ["get", "patch", "put", "delete"],
+    "/api/v1/initiative-proposals/{id}/actions/submit/": ["post"],
+    "/api/v1/initiative-proposals/{id}/actions/moderate/": ["post"],
     "/api/v1/projects/": ["get", "post"],
     "/api/v1/projects/{id}/": ["get", "patch", "put", "delete"],
     "/api/v1/projects/{id}/actions/submit/": ["post"],
@@ -61,6 +69,9 @@
   },
   "required_schema_components": [
     "AuthToken",
+    "InitiativeProposal",
+    "PaginatedInitiativeProposalList",
+    "InitiativeProposalModerationInput",
     "PrimaryProject",
     "PaginatedPrimaryProjectList",
     "ProjectModerationInput",

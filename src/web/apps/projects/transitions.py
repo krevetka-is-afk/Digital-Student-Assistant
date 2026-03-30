@@ -39,8 +39,8 @@ def submit_project_for_moderation(project: Project, actor) -> Project:
         raise ValidationError(
             {
                 "status": [
-                    "Project can be submitted only from draft, \
-                        revision requested, or supervisor review status."
+                    "Project can be submitted only from draft, revision requested, or "
+                    "supervisor review status."
                 ]
             }
         )

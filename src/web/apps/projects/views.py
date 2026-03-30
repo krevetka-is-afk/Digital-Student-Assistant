@@ -147,7 +147,7 @@ def _apply_project_filters(queryset, params):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description=(
-                    "Ordering by created_at/updated_at. " "Prefix with '-' for descending order."
+                    "Ordering by created_at/updated_at. Prefix with '-' for descending order."
                 ),
             ),
             OpenApiParameter(
@@ -188,7 +188,9 @@ def _apply_project_filters(queryset, params):
                 enum=["open", "closed", "upcoming"],
             ),
             OpenApiParameter(
-                name="is_team_project", type=OpenApiTypes.BOOL, location=OpenApiParameter.QUERY
+                name="is_team_project",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
             ),
             OpenApiParameter(
                 name="uses_ai",

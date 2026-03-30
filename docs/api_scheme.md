@@ -22,6 +22,13 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | GET | `/api/v1/health/` | no | Service liveness |
 | POST | `/api/v1/auth/token/` | no | Obtain DRF token by `username/password` |
 | GET | `/api/v1/search/?q=<text>` | optional | Search published projects (plus own projects for logged-in user) |
+| GET | `/api/v1/initiative-proposals/` | yes | List initiative proposals (owner sees own, CPPRP/staff sees all) |
+| POST | `/api/v1/initiative-proposals/` | student/staff | Create initiative proposal |
+| POST | `/api/v1/initiative-proposals/<id>/actions/submit/` | student/staff | Submit initiative proposal to CPPRP |
+| POST | `/api/v1/initiative-proposals/<id>/actions/moderate/` | cpprp/staff | Moderate initiative proposal (`decision=approve/reject`) |
+| GET | `/api/v1/initiative-proposals/<id>/` | yes | Get initiative proposal by id |
+| PATCH | `/api/v1/initiative-proposals/<id>/` | student/staff | Update initiative proposal in editable states |
+| DELETE | `/api/v1/initiative-proposals/<id>/` | student/staff | Delete initiative proposal in editable states |
 | GET | `/api/v1/projects/` | optional | List projects (`page`, `page_size`, `status`, `q`, `ordering`) |
 | POST | `/api/v1/projects/` | yes | Create project (owner = current user) |
 | POST | `/api/v1/projects/<id>/actions/submit/` | yes | Submit project for moderation (owner/staff) |
@@ -75,6 +82,7 @@ These routes remain available, but should be treated as deprecated for new testi
 ## Lifecycle statuses (I2)
 
 - Project: `draft -> on_moderation -> published/rejected -> staffed` (+ `archived`)
+- Initiative proposal: `draft -> on_moderation -> revision_requested -> on_moderation -> published`
 - Application: `submitted -> accepted/rejected`
 - Direct status transitions via generic `PATCH` are blocked; use action endpoints.
 
