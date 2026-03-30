@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Страница не найдена — Digital Student Assistant{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center text-center" style="min-height:60vh;">
+
+  <p class="text-8xl font-bold text-gray-100 select-none" style="line-height:1;">404</p>
+
+  <div style="margin-top:-1rem;">
+    <h1 class="text-xl font-semibold text-gray-900 mb-2">Страница не найдена</h1>
+    <p class="text-sm text-gray-500 max-w-sm">
+      Возможно, она была удалена, перемещена или никогда не существовала.
+    </p>
+  </div>
+
+  <div class="flex items-center gap-3 mt-8">
+    <a href="javascript:history.back()"
+       class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+      ← Назад
+    </a>
+    <a href="{% url 'frontend:project_list' %}"
+       class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+      На главную
+    </a>
+  </div>
+
+</div>
+{% endblock %}

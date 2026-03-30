@@ -1,0 +1,186 @@
+{% comment %}
+  HTMX partial — renders apply action area on project detail page.
+  Context: project, application, is_owner, ApplicationStatus, ProjectStatus
+  Target id: #apply-action-area
+{% endcomment %}
+{% load frontend_extras %}
+
+{% if user|user_role == 'cpprp' %}
+  <div class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    Просмотр (модератор)
+  </div>
+
+{% elif is_owner %}
+  {# Owner sees their own project — apply section is not shown #}
+  <div class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+    </svg>
+    Это ваш проект
+  </div>
+
+{% elif project.status == ProjectStatus.PUBLISHED %}
+
+  {% if application %}
+    {# Already applied — show status card #}
+    <div class="p-4 rounded-lg border {% if application.status == ApplicationStatus.ACCEPTED %}bg-green-50 border-green-200{% elif application.status == ApplicationStatus.REJECTED %}bg-red-50 border-red-200{% else %}bg-blue-50 border-blue-200{% endif %}">
+      <div class="flex items-start gap-3">
+        <div class="flex-shrink-0 mt-0.5">
+          {% if application.status == ApplicationStatus.ACCEPTED %}
+            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          {% elif application.status == ApplicationStatus.REJECTED %}
+            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+          {% else %}
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          <p class="text-sm font-semibold {% if application.status == ApplicationStatus.ACCEPTED %}text-green-800{% elif application.status == ApplicationStatus.REJECTED %}text-red-800{% else %}text-blue-800{% endif %}">
+            {% if application.status == ApplicationStatus.ACCEPTED %}Заявка принята
+            {% elif application.status == ApplicationStatus.REJECTED %}Заявка отклонена
+            {% else %}Заявка на рассмотрении{% endif %}
+          </p>
+          <p class="text-xs mt-0.5 {% if application.status == ApplicationStatus.ACCEPTED %}text-green-600{% elif application.status == ApplicationStatus.REJECTED %}text-red-600{% else %}text-blue-600{% endif %}">
+            {% if application.status == ApplicationStatus.ACCEPTED %}Вы приняты в команду проекта.
+            {% elif application.status == ApplicationStatus.REJECTED %}К сожалению, ваша заявка была отклонена.
+            {% else %}Ожидайте решения куратора проекта.{% endif %}
+          </p>
+        </div>
+      </div>
+      {% if application.motivation %}
+        <div class="mt-3 pt-3 border-t {% if application.status == ApplicationStatus.ACCEPTED %}border-green-200{% elif application.status == ApplicationStatus.REJECTED %}border-red-200{% else %}border-blue-200{% endif %}">
+          <p class="text-xs {% if application.status == ApplicationStatus.ACCEPTED %}text-green-600{% elif application.status == ApplicationStatus.REJECTED %}text-red-600{% else %}text-blue-600{% endif %} font-medium mb-1">Ваша мотивация:</p>
+          <p class="text-xs {% if application.status == ApplicationStatus.ACCEPTED %}text-green-700{% elif application.status == ApplicationStatus.REJECTED %}text-red-700{% else %}text-blue-700{% endif %} leading-relaxed">{{ application.motivation }}</p>
+        </div>
+      {% endif %}
+    </div>
+
+  {% elif project.accepted_participants_count >= project.team_size %}
+    {# Team is full #}
+    <button disabled
+      class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+      </svg>
+      Команда укомплектована
+    </button>
+
+  {% else %}
+    {# Can apply — show button that opens modal #}
+    <button
+      id="open-apply-modal-btn"
+      type="button"
+      onclick="document.getElementById('apply-modal').style.display='flex'"
+      class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      Откликнуться на проект
+    </button>
+
+    {# ---- Motivation Modal ---- #}
+    <div id="apply-modal"
+         style="display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;padding:1rem;"
+         onclick="if(event.target===this) this.style.display='none'">
+
+      {# Backdrop #}
+      <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
+
+      {# Dialog #}
+      <div style="position:relative;background:#fff;border-radius:0.875rem;width:100%;max-width:28rem;box-shadow:0 20px 60px rgba(0,0,0,0.15);overflow:hidden;">
+
+        {# Dialog header #}
+        <div style="padding:1.25rem 1.5rem 0;">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-base font-semibold text-gray-900">Подать заявку</h3>
+              <p class="text-xs text-gray-500 mt-0.5">{{ project.title }}</p>
+            </div>
+            <button type="button"
+                    onclick="document.getElementById('apply-modal').style.display='none'"
+                    class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors mt-0.5">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {# Form #}
+        <form
+          hx-post="{% url 'frontend:submit_application' project.pk %}"
+          hx-target="#apply-action-area"
+          hx-swap="innerHTML"
+          hx-on::after-request="document.getElementById('apply-modal').style.display='none'"
+          style="padding:1rem 1.5rem 1.5rem;">
+          {% csrf_token %}
+
+          <div style="margin-bottom:1rem;">
+            <label for="motivation-input" class="block text-sm font-medium text-gray-700 mb-1">
+              Мотивация <span class="text-gray-400 font-normal">(необязательно)</span>
+            </label>
+            <textarea
+              id="motivation-input"
+              name="motivation"
+              rows="4"
+              placeholder="Расскажите, почему вас заинтересовал этот проект и что вы можете привнести в команду..."
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors"
+              style="font-family:inherit;line-height:1.5;"></textarea>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button"
+                    onclick="document.getElementById('apply-modal').style.display='none'"
+                    class="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+              Отмена
+            </button>
+            <button type="submit"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+              <span class="htmx-indicator">
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+              </span>
+              <span class="htmx-not-indicator">Отправить заявку</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+    {# ---- End Modal ---- #}
+
+  {% endif %}
+
+{% elif project.status == ProjectStatus.STAFFED %}
+  <button disabled
+    class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+    Команда набрана
+  </button>
+
+{% else %}
+  {# Project is not in a public state and user is not owner #}
+  <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-400 text-center">
+    Отклик недоступен
+  </div>
+{% endif %}

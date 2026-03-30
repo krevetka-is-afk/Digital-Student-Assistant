@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Модерация — Digital Student Assistant{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem;">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Очередь модерации</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      {% if queue_count %}
+        {{ queue_count }} проект{% if queue_count == 1 %}{% elif queue_count < 5 %}а{% else %}ов{% endif %} ожидает проверки
+      {% else %}
+        Очередь пуста — все проекты проверены
+      {% endif %}
+    </p>
+  </div>
+  {% if queue_count %}
+  <span class="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-sm font-semibold flex-shrink-0">
+    {{ queue_count }} в очереди
+  </span>
+  {% endif %}
+</div>
+
+{% if page_obj.object_list %}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+  {% for project in page_obj %}
+  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+       style="box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+
+    <!-- Project header row -->
+    <div class="px-6 py-4 border-b border-gray-100">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
+        <div>
+          <div class="flex items-center gap-3 mb-1 flex-wrap">
+            <a href="{% url 'frontend:project_detail' project.pk %}"
+               class="text-base font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+              {{ project.title }}
+            </a>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+            <span>
+              Владелец:
+              <span class="text-gray-600 font-medium">
+                {{ project.owner.get_full_name|default:project.owner.username }}
+              </span>
+            </span>
+            <span class="text-gray-200">·</span>
+            <span>Команда: <span class="text-gray-600 font-medium">{{ project.team_size }} чел.</span></span>
+            <span class="text-gray-200">·</span>
+            <span>Отправлен: <span class="text-gray-600">{{ project.updated_at|date:"d M Y" }}</span></span>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full flex-shrink-0">
+          На модерации
+        </span>
+      </div>
+    </div>
+
+    <!-- Project body -->
+    <div class="px-6 py-5">
+
+      {% if project.description %}
+      <p class="text-sm text-gray-600 leading-relaxed mb-4">{{ project.description|truncatechars:500 }}</p>
+      {% endif %}
+
+      {% if project.tech_tags %}
+      <div class="flex flex-wrap gap-1.5 mb-5">
+        {% for tag in project.tech_tags %}
+        <span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-md font-medium">
+          {{ tag }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Decision actions -->
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:12px;align-items:start;">
+
+        <!-- Approve (no comment needed) -->
+        <form method="post" action="{% url 'frontend:moderate_project_decide' project.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="decision" value="approve">
+          <button type="submit"
+                  class="w-full py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+            ✓ Одобрить
+          </button>
+        </form>
+
+        <!-- Reject (requires comment ≥ 20 chars) -->
+        <div>
+          <button type="button"
+                  onclick="toggleModReject({{ project.pk }})"
+                  id="mod-reject-btn-{{ project.pk }}"
+                  class="w-full py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors">
+            ✕ Отклонить
+          </button>
+
+          <!-- Reject form (hidden by default) -->
+          <div id="mod-reject-form-{{ project.pk }}" style="display:none;margin-top:8px;">
+            <form method="post" action="{% url 'frontend:moderate_project_decide' project.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="decision" value="reject">
+              <textarea name="comment"
+                        rows="3"
+                        minlength="20"
+                        required
+                        placeholder="Укажите причину отклонения (мин. 20 символов)..."
+                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 resize-none mb-1"
+                        oninput="updateModCounter(this, {{ project.pk }})"></textarea>
+              <div class="flex items-center justify-between mb-2">
+                <span id="mod-counter-{{ project.pk }}" class="text-xs text-gray-400">0 / 20 мин.</span>
+              </div>
+              <div class="flex gap-2">
+                <button type="button"
+                        onclick="toggleModReject({{ project.pk }})"
+                        class="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition-colors">
+                  Отмена
+                </button>
+                <button type="submit"
+                        class="flex-1 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                  Подтвердить отклонение
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="flex items-center justify-center gap-1 mt-8">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}"
+     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">←</a>
+  {% endif %}
+  {% for num in page_obj.paginator.page_range %}
+    {% if page_obj.number == num %}
+    <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
+    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+    <a href="?page={{ num }}"
+       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}"
+     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">→</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<!-- Empty queue state -->
+<div class="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+  <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+    <svg class="w-7 h-7 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+  </div>
+  <p class="text-gray-900 font-semibold mb-1">Очередь пуста</p>
+  <p class="text-gray-400 text-sm">Все проекты проверены. Отличная работа!</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleModReject(pk) {
+    var form = document.getElementById('mod-reject-form-' + pk);
+    form.style.display = form.style.display === 'none' ? '' : 'none';
+  }
+
+  function updateModCounter(textarea, pk) {
+    var counter = document.getElementById('mod-counter-' + pk);
+    var len = textarea.value.length;
+    counter.textContent = len + ' / 20 мин.';
+    counter.style.color = len >= 20 ? '#16a34a' : '#9ca3af';
+  }
+</script>
+{% endblock %}

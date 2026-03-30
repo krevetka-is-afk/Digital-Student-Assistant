@@ -1,0 +1,49 @@
+{% comment %}
+  Context: project, application_status (str or None), ApplicationStatus, ProjectStatus
+  Rendered inside .apply-area[data-project-id="{{ project.pk }}"] wrapper.
+{% endcomment %}
+{% load frontend_extras %}
+
+{% if user|user_role == 'cpprp' %}
+  {# Moderators cannot apply #}
+
+{% elif project.status == ProjectStatus.STAFFED %}
+  <button disabled
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+    Набор закрыт
+  </button>
+
+{% elif application_status == ApplicationStatus.ACCEPTED %}
+  <button disabled
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-200 cursor-not-allowed">
+    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+    Принят
+  </button>
+
+{% elif application_status == ApplicationStatus.SUBMITTED %}
+  <button disabled
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 cursor-not-allowed">
+    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    Отправлено
+  </button>
+
+{% elif application_status == ApplicationStatus.REJECTED %}
+  <button
+    type="button"
+    onclick="window.openApplyModal && window.openApplyModal({{ project.pk }}, '{{ project.title|escapejs }}')"
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer">
+    Откликнуться снова
+  </button>
+
+{% else %}
+  <button
+    type="button"
+    onclick="window.openApplyModal && window.openApplyModal({{ project.pk }}, '{{ project.title|escapejs }}')"
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer">
+    Откликнуться
+  </button>
+{% endif %}
