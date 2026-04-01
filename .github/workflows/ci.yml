@@ -76,8 +76,6 @@ jobs:
       - name: Lint & Format checks
         run: |
           uv run ruff check --output-format=github .
-          uv run black --check .
-          uv run isort --check-only .
 
       - name: Pre-commit (all files)
         env:
