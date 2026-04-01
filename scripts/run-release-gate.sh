@@ -16,7 +16,7 @@ else
     cleanup_db=1
 fi
 
-export PYTHONPATH="$repo_root"
+export PYTHONPATH="$repo_root/src/web:$repo_root"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$repo_root/.tmp/uv-cache}"
 export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-config.settings.dev}"
 export DATABASE_URL="${DATABASE_URL:-sqlite:///$db_path}"

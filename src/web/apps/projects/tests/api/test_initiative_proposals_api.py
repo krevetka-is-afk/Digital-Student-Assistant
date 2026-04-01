@@ -1,10 +1,12 @@
 import json
 from uuid import uuid4
 
-from apps.projects.models import (
+from apps.projects.initiative_models import (
     InitiativeProposal,
     InitiativeProposalStatus,
     InitiativeProposalSubmission,
+)
+from apps.projects.models import (
     Project,
     ProjectSourceType,
     ProjectStatus,

@@ -16,13 +16,9 @@ uv sync --all-packages --group dev --frozen
 python_bin="$repo_root/.venv/bin/python"
 pytest_bin="$repo_root/.venv/bin/pytest"
 ruff_bin="$repo_root/.venv/bin/ruff"
-black_bin="$repo_root/.venv/bin/black"
-isort_bin="$repo_root/.venv/bin/isort"
 pre_commit_bin="$repo_root/.venv/bin/pre-commit"
 
 "$ruff_bin" check --fix .
-"$black_bin" .
-"$isort_bin" .
 
 (
     cd src/web

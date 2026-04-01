@@ -7,13 +7,12 @@ from rest_framework import generics, permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .initiative_models import InitiativeProposal
+from .initiative_models import InitiativeProposal, InitiativeProposalStatus
 from .initiative_serializers import InitiativeProposalSerializer
 from .initiative_transitions import (
     moderate_initiative_proposal,
     submit_initiative_proposal_for_moderation,
 )
-from .models import InitiativeProposalStatus
 from .pagination import ProjectListPagination
 from .serializers import PrimaryProjectSerializer
 
@@ -139,7 +138,7 @@ class InitiativeProposalSubmitForModerationAPIView(APIView):
             InitiativeProposal.objects.select_related("owner", "moderated_by", "published_project"),
             pk=pk,
         )
-        submit_initiative_proposal_for_moderation(proposal=proposal, actor=request.user)
+        proposal = submit_initiative_proposal_for_moderation(proposal=proposal, actor=request.user)
         serializer = InitiativeProposalSerializer(proposal, context={"request": request})
         return Response(serializer.data)
 
@@ -161,7 +160,7 @@ class InitiativeProposalModerationAPIView(APIView):
             ).prefetch_related("submissions"),
             pk=pk,
         )
-        moderate_initiative_proposal(
+        proposal = moderate_initiative_proposal(
             proposal=proposal,
             actor=request.user,
             decision=payload.validated_data["decision"],

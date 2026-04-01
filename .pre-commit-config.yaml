@@ -13,14 +13,6 @@ repos:
           - --branch
           - main
         stages: [pre-commit, pre-push]
-  - repo: https://github.com/pycqa/isort
-    rev: 8.0.0
-    hooks:
-      - id: isort
-  - repo: https://github.com/psf/black
-    rev: 24.8.0
-    hooks:
-      - id: black
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9
     hooks:
@@ -32,9 +24,9 @@ repos:
       - id: gitleaks
         args: ["--config=security/.gitleaks.toml"]
         stages: [pre-commit, pre-push]
-  # - repo: https://github.com/gitguardian/ggshield
-  #   rev: v1.48.0
-  #   hooks:
-  #     - id: ggshield
-  #       language_version: python3
-  #       stages: [pre-commit]
+  - repo: https://github.com/gitguardian/ggshield
+    rev: v1.48.0
+    hooks:
+      - id: ggshield
+        language_version: python3
+        stages: [pre-commit]

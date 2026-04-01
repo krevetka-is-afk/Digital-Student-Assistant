@@ -5,10 +5,12 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from .models import (
+from .initiative_models import (
     InitiativeProposal,
     InitiativeProposalStatus,
     InitiativeProposalSubmission,
+)
+from .models import (
     Project,
     ProjectSourceType,
     ProjectStatus,
