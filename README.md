@@ -91,7 +91,7 @@ Current release surface includes:
 - `account/me`, `account/student/overview`, `account/customer/*`, `account/cpprp/*` for role-based personal cabinets
 - `users/me` and `users/me/favorites*` for profile and student bookmarks
 - `recs/search`, `recs/recommendations`, `recs/reindex` for recommendation/search integration
-- `imports/epp` and `outbox/events` for import and downstream graph/ML synchronization
+- `imports/epp` and outbox delivery endpoints (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`) for safe downstream graph/ML synchronization
 
 Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `docs/deployment_runbook.md`.
 

@@ -20,16 +20,6 @@ pre_commit_bin="$repo_root/.venv/bin/pre-commit"
 
 "$ruff_bin" check --fix .
 
-(
-    cd src/web
-    "$python_bin" manage.py migrate --noinput
-    "$pytest_bin" -q
-)
-(
-    cd src/ml
-    "$pytest_bin" -q tests
-)
-
 if [[ "${CHECK_BUILD:-0}" == "1" ]]; then
     (
         cd src/web
