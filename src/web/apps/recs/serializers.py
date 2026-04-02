@@ -25,7 +25,13 @@ class RecommendationResultSerializer(serializers.Serializer):
 
 class RecommendationResponseSerializer(serializers.Serializer):
     items = RecommendationResultSerializer(many=True)
-    mode = serializers.CharField()
+    mode = serializers.ChoiceField(
+        choices=["semantic", "keyword-fallback"],
+        help_text=(
+            "semantic for successful ML integration, "
+            "keyword-fallback for local keyword mode."
+        ),
+    )
 
 
 class RecommendationReindexRequestSerializer(serializers.Serializer):

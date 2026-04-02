@@ -94,6 +94,11 @@ These routes remain available, but should be treated as deprecated for new testi
 - `tests/contract/test_openapi_sync.py` validates these requirements against generated `/api/schema/`.
 - `tests/contract/test_event_schemas.py` validates the event contract against current `emit_event(...)` calls in the backend.
 
+## Recommendations Gateway Modes
+
+- `semantic`: backend successfully received ranked items from external ML service.
+- `keyword-fallback`: backend used local keyword ranking because ML service is unavailable, timed out, or returned invalid payload.
+
 ## Quick browser test flow
 
 1. Open `/api/` and verify links to `/api/v1/`.

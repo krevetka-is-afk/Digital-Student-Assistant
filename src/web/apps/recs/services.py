@@ -1,13 +1,36 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
-from typing import Iterable
+from dataclasses import dataclass
+from typing import Iterable, TypedDict
 
 import requests
 from apps.projects.models import Project, ProjectStatus
 
 TOKEN_RE = re.compile(r"[A-Za-zА-Яа-я0-9_+#.-]+")
+ML_SEARCH_PATH = "/search"
+ML_RECOMMENDATIONS_PATH = "/recommendations"
+ML_GATEWAY_SEMANTIC_MODE = "semantic"
+ML_GATEWAY_KEYWORD_FALLBACK_MODE = "keyword-fallback"
+ML_DEFAULT_TIMEOUT_SECONDS = 2.5
+ML_DEFAULT_REASON = "semantic match"
+
+logger = logging.getLogger(__name__)
+
+
+class MLRankedItem(TypedDict):
+    project_id: int
+    score: float
+    reason: str
+
+
+@dataclass(frozen=True)
+class _RemoteCallResult:
+    mode: str
+    items: list[MLRankedItem]
+    fallback_reason: str | None = None
 
 
 def _tokenize(value: str) -> set[str]:
@@ -61,10 +84,6 @@ def _published_projects() -> list[Project]:
     )
 
 
-def _remote_ml_enabled() -> bool:
-    return bool(os.getenv("ML_SERVICE_URL"))
-
-
 def _project_payload(project: Project) -> dict[str, object]:
     return {
         "id": project.pk,
@@ -76,55 +95,191 @@ def _project_payload(project: Project) -> dict[str, object]:
     }
 
 
+def _ml_timeout_seconds() -> float:
+    raw_timeout = os.getenv("ML_SERVICE_TIMEOUT", str(ML_DEFAULT_TIMEOUT_SECONDS))
+    try:
+        parsed_timeout = float(raw_timeout)
+    except (TypeError, ValueError):
+        return ML_DEFAULT_TIMEOUT_SECONDS
+    if parsed_timeout <= 0:
+        return ML_DEFAULT_TIMEOUT_SECONDS
+    return parsed_timeout
+
+
+def _normalize_remote_items(items: object) -> list[MLRankedItem] | None:
+    if not isinstance(items, list):
+        return None
+    normalized: list[MLRankedItem] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            project_id = int(item.get("project_id"))
+        except (TypeError, ValueError):
+            continue
+        try:
+            score = float(item.get("score", 0))
+        except (TypeError, ValueError):
+            score = 0.0
+        reason_raw = item.get("reason")
+        reason = str(reason_raw) if reason_raw is not None else ML_DEFAULT_REASON
+        normalized.append({"project_id": project_id, "score": score, "reason": reason})
+    return normalized
+
+
 def _call_remote_ml(
-    path: str, payload: dict[str, object]
-) -> tuple[str, list[dict[str, object]]] | None:
+    path: str, payload: dict[str, object], *, operation: str
+) -> _RemoteCallResult:
     base_url = os.getenv("ML_SERVICE_URL", "").rstrip("/")
     if not base_url:
-        return None
-    timeout = float(os.getenv("ML_SERVICE_TIMEOUT", "2.5"))
+        logger.info(
+            "recs.gateway mode=%s operation=%s reason=ml_service_not_configured",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_service_not_configured",
+        )
+
     try:
-        response = requests.post(f"{base_url}{path}", json=payload, timeout=timeout)
+        response = requests.post(
+            f"{base_url}{path}",
+            json=payload,
+            timeout=_ml_timeout_seconds(),
+        )
         response.raise_for_status()
         body = response.json()
-    except Exception:
-        return None
-    return str(body.get("mode", "remote")), list(body.get("items", []))
+    except requests.Timeout:
+        logger.warning(
+            "recs.gateway mode=%s operation=%s reason=ml_timeout",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_timeout",
+        )
+    except requests.RequestException:
+        logger.warning(
+            "recs.gateway mode=%s operation=%s reason=ml_request_error",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+            exc_info=True,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_request_error",
+        )
+    except ValueError:
+        logger.warning(
+            "recs.gateway mode=%s operation=%s reason=ml_invalid_json",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_invalid_json",
+        )
+
+    if not isinstance(body, dict):
+        logger.warning(
+            "recs.gateway mode=%s operation=%s reason=ml_invalid_body",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_invalid_body",
+        )
+
+    raw_items = body.get("items")
+    items = _normalize_remote_items(raw_items)
+    if items is None:
+        logger.warning(
+            "recs.gateway mode=%s operation=%s reason=ml_invalid_items",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_invalid_items",
+        )
+    if isinstance(raw_items, list) and raw_items and not items:
+        logger.warning(
+            "recs.gateway mode=%s operation=%s reason=ml_invalid_items",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason="ml_invalid_items",
+        )
+
+    logger.info(
+        "recs.gateway mode=%s operation=%s remote_items=%s",
+        ML_GATEWAY_SEMANTIC_MODE,
+        operation,
+        len(items),
+    )
+    return _RemoteCallResult(mode=ML_GATEWAY_SEMANTIC_MODE, items=items)
+
+
+def _hydrate_remote_items(
+    *, projects: list[Project], items: list[MLRankedItem]
+) -> list[dict[str, object]]:
+    project_by_id = {project.pk: project for project in projects}
+    hydrated: list[dict[str, object]] = []
+    for item in items:
+        project = project_by_id.get(item["project_id"])
+        if project is None:
+            continue
+        hydrated.append(
+            {
+                "project": project,
+                "score": item["score"],
+                "reason": item["reason"],
+            }
+        )
+    return hydrated
 
 
 def search_projects(query: str, *, limit: int = 10) -> tuple[str, list[dict[str, object]]]:
     projects = _published_projects()
     remote_result = _call_remote_ml(
-        "/search",
+        ML_SEARCH_PATH,
         {
             "query": query,
             "limit": limit,
             "projects": [_project_payload(project) for project in projects],
         },
+        operation="search",
     )
-    if remote_result is not None:
-        mode, items = remote_result
-        project_by_id = {project.pk: project for project in projects}
-        hydrated: list[dict[str, object]] = []
-        for item in items:
-            project = project_by_id.get(int(item.get("project_id", 0)))
-            if project is None:
-                continue
-            hydrated.append(
-                {
-                    "project": project,
-                    "score": float(item.get("score", 0)),
-                    "reason": str(item.get("reason", "")),
-                }
-            )
-        return mode, hydrated
+    if remote_result.mode == ML_GATEWAY_SEMANTIC_MODE:
+        return remote_result.mode, _hydrate_remote_items(
+            projects=projects,
+            items=remote_result.items,
+        )
+
     ranked = _heuristic_rank(
         projects=projects,
         query_tokens=_tokenize(query),
         limit=limit,
         reason_label="local-search match",
     )
-    return ("local-fallback", ranked)
+    logger.info(
+        "recs.gateway mode=%s operation=search reason=%s",
+        ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+        remote_result.fallback_reason or "keyword_overlap",
+    )
+    return ML_GATEWAY_KEYWORD_FALLBACK_MODE, ranked
 
 
 def recommend_projects(
@@ -132,29 +287,19 @@ def recommend_projects(
 ) -> tuple[str, list[dict[str, object]]]:
     projects = _published_projects()
     remote_result = _call_remote_ml(
-        "/recommendations",
+        ML_RECOMMENDATIONS_PATH,
         {
             "interests": interests,
             "limit": limit,
             "projects": [_project_payload(project) for project in projects],
         },
+        operation="recommendations",
     )
-    if remote_result is not None:
-        mode, items = remote_result
-        project_by_id = {project.pk: project for project in projects}
-        hydrated: list[dict[str, object]] = []
-        for item in items:
-            project = project_by_id.get(int(item.get("project_id", 0)))
-            if project is None:
-                continue
-            hydrated.append(
-                {
-                    "project": project,
-                    "score": float(item.get("score", 0)),
-                    "reason": str(item.get("reason", "")),
-                }
-            )
-        return mode, hydrated
+    if remote_result.mode == ML_GATEWAY_SEMANTIC_MODE:
+        return remote_result.mode, _hydrate_remote_items(
+            projects=projects,
+            items=remote_result.items,
+        )
 
     query_tokens = _tokenize(" ".join(interests))
     ranked = _heuristic_rank(
@@ -163,4 +308,9 @@ def recommend_projects(
         limit=limit,
         reason_label="interest overlap",
     )
-    return ("local-fallback", ranked)
+    logger.info(
+        "recs.gateway mode=%s operation=recommendations reason=%s",
+        ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+        remote_result.fallback_reason or "interest_overlap",
+    )
+    return ML_GATEWAY_KEYWORD_FALLBACK_MODE, ranked
