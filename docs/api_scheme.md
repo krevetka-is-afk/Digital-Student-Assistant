@@ -27,6 +27,7 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | POST | `/api/v1/initiative-proposals/<id>/actions/submit/` | student/staff | Submit initiative proposal to CPPRP |
 | POST | `/api/v1/initiative-proposals/<id>/actions/moderate/` | cpprp/staff | Moderate initiative proposal (`decision=approve/reject`) |
 | GET | `/api/v1/initiative-proposals/<id>/` | yes | Get initiative proposal by id |
+| PUT | `/api/v1/initiative-proposals/<id>/` | student/staff | Full update of initiative proposal in editable states |
 | PATCH | `/api/v1/initiative-proposals/<id>/` | student/staff | Update initiative proposal in editable states |
 | DELETE | `/api/v1/initiative-proposals/<id>/` | student/staff | Delete initiative proposal in editable states |
 | GET | `/api/v1/projects/` | optional | List projects (`page`, `page_size`, `status`, `q`, `ordering`) |
