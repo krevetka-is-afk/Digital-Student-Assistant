@@ -1,162 +1,200 @@
-import json
-import os
+from __future__ import annotations
+
+import asyncio
+import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException, Request
 
-DATA_DIR = Path(os.getenv("GRAPH_DATA_DIR", Path(__file__).resolve().parents[1] / "data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-CHECKPOINT_FILE = DATA_DIR / "checkpoint.json"
+from .graph_store import GraphStore, Neo4jGraphStore
+from .models import ProjectRequest, ReplayRequest, SyncRequest
+from .outbox_client import HttpOutboxClient, OutboxClient
+from .projector import GraphProjector
+from .settings import GraphSettings, load_settings
 
-
-class GraphEvent(BaseModel):
-    event_type: str
-    aggregate_type: str
-    aggregate_id: str
-    payload: dict[str, Any] = Field(default_factory=dict)
+logger = logging.getLogger(__name__)
 
 
-class ReplayRequest(BaseModel):
-    events: list[GraphEvent] = Field(default_factory=list)
+async def _poll_forever(app: FastAPI) -> None:
+    stop_event: asyncio.Event = app.state.poller_stop_event
+    settings: GraphSettings = app.state.settings
+    projector: GraphProjector = app.state.projector
+
+    while not stop_event.is_set():
+        try:
+            await projector.sync_from_outbox(mode="poll", batch_size=settings.default_batch_size)
+        except Exception:
+            logger.exception("Background poll cycle failed.")
+
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=settings.poll_interval_sec)
+        except TimeoutError:
+            continue
 
 
-STATE: dict[str, Any] = {
-    "last_event_id": 0,
-    "nodes": {
-        "project": set(),
-        "student": set(),
-        "supervisor": set(),
-        "tag": set(),
-        "application": set(),
-    },
-    "edges": [],
-}
+def _resolve_projector(request: Request) -> GraphProjector:
+    projector = getattr(request.app.state, "projector", None)
+    if projector is None:
+        raise HTTPException(status_code=503, detail="Graph projector is not initialized.")
+    return projector
 
 
-def _load_checkpoint() -> None:
-    if not CHECKPOINT_FILE.exists():
-        return
-    payload = json.loads(CHECKPOINT_FILE.read_text(encoding="utf-8"))
-    STATE["last_event_id"] = int(payload.get("last_event_id", 0))
-    STATE["nodes"] = {key: set(values) for key, values in payload.get("nodes", {}).items()}
-    STATE["edges"] = list(payload.get("edges", []))
+
+def create_app(
+    *,
+    settings: GraphSettings | None = None,
+    graph_store: GraphStore | None = None,
+    outbox_client: OutboxClient | None = None,
+) -> FastAPI:
+    resolved_settings = settings or load_settings()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        resolved_graph_store = graph_store or Neo4jGraphStore(
+            uri=resolved_settings.neo4j_uri,
+            user=resolved_settings.neo4j_user,
+            password=resolved_settings.neo4j_password,
+        )
+        resolved_outbox_client = outbox_client or HttpOutboxClient(
+            base_url=resolved_settings.outbox_base_url,
+            consumer=resolved_settings.outbox_consumer,
+            timeout_sec=resolved_settings.outbox_timeout_sec,
+            auth_header=resolved_settings.outbox_auth_header,
+        )
+
+        resolved_graph_store.setup_schema()
+
+        app.state.settings = resolved_settings
+        app.state.graph_store = resolved_graph_store
+        app.state.projector = GraphProjector(
+            graph_store=resolved_graph_store,
+            outbox_client=resolved_outbox_client,
+            consumer=resolved_settings.outbox_consumer,
+        )
+        app.state.poller_stop_event = asyncio.Event()
+        app.state.poller_task = None
+
+        if resolved_settings.enable_background_poller:
+            app.state.poller_task = asyncio.create_task(_poll_forever(app))
+
+        try:
+            yield
+        finally:
+            stop_event: asyncio.Event = app.state.poller_stop_event
+            stop_event.set()
+            poller_task: asyncio.Task[Any] | None = app.state.poller_task
+            if poller_task is not None:
+                await poller_task
+            resolved_graph_store.close()
+
+    app = FastAPI(title="Digital Student Assistant Graph Projector", lifespan=lifespan)
+
+    @app.get("/health")
+    async def health() -> dict[str, str]:
+        return {"status": "ok", "service": "graph"}
+
+    @app.get("/ready")
+    async def ready(request: Request) -> dict[str, Any]:
+        projector = _resolve_projector(request)
+        graph_store: GraphStore = request.app.state.graph_store
+
+        neo4j_status = "ok"
+        outbox_status = "ok"
+        checkpoint: dict[str, Any] | None = None
+
+        try:
+            graph_store.ping()
+        except Exception as exc:
+            neo4j_status = f"error:{exc.__class__.__name__}"
+
+        try:
+            checkpoint = await projector.read_checkpoint()
+        except Exception as exc:
+            outbox_status = f"error:{exc.__class__.__name__}"
+
+        status = "ok" if neo4j_status == "ok" and outbox_status == "ok" else "degraded"
+
+        return {
+            "status": status,
+            "service": "graph",
+            "neo4j": neo4j_status,
+            "outbox": outbox_status,
+            "consumer": request.app.state.settings.outbox_consumer,
+            "checkpoint": checkpoint,
+        }
+
+    @app.get("/state")
+    async def state(request: Request) -> dict[str, Any]:
+        projector = _resolve_projector(request)
+        summary = projector.state_summary()
+
+        checkpoint: dict[str, Any] | None = None
+        try:
+            checkpoint = await projector.read_checkpoint()
+        except Exception:
+            checkpoint = None
+
+        return {
+            **summary,
+            "checkpoint": checkpoint,
+        }
+
+    @app.post("/project")
+    async def project_events(payload: ProjectRequest, request: Request) -> dict[str, Any]:
+        projector = _resolve_projector(request)
+        projection = projector.project_events(payload.events)
+        return {
+            "status": "accepted",
+            "processed": projection["processed"],
+            "last_event_id": projection["last_event_id"],
+            "source": "direct",
+        }
+
+    @app.post("/sync")
+    async def sync(payload: SyncRequest, request: Request) -> dict[str, Any]:
+        projector = _resolve_projector(request)
+        batch_size = payload.batch_size or request.app.state.settings.default_batch_size
+        result = await projector.sync_from_outbox(mode="poll", batch_size=batch_size)
+        return {
+            "status": "accepted",
+            **result,
+        }
+
+    @app.post("/replay")
+    async def replay(payload: ReplayRequest, request: Request) -> dict[str, Any]:
+        projector = _resolve_projector(request)
+        batch_size = payload.batch_size or request.app.state.settings.default_batch_size
+
+        if payload.events:
+            projection = projector.project_events(payload.events)
+            return {
+                "status": "accepted",
+                "replayed": projection["processed"],
+                "last_event_id": projection["last_event_id"],
+                "source": "direct",
+            }
+
+        if payload.replay_from_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="replay_from_id is required when events are not provided.",
+            )
+
+        result = await projector.sync_from_outbox(
+            mode="replay",
+            batch_size=batch_size,
+            replay_from_id=payload.replay_from_id,
+        )
+        return {
+            "status": "accepted",
+            "replayed": result["processed"],
+            "last_event_id": result["last_event_id"],
+            "ack": result["ack"],
+            "source": "outbox",
+        }
+
+    return app
 
 
-def _persist_checkpoint() -> None:
-    CHECKPOINT_FILE.write_text(
-        json.dumps(
-            {
-                "last_event_id": STATE["last_event_id"],
-                "nodes": {key: sorted(values) for key, values in STATE["nodes"].items()},
-                "edges": STATE["edges"],
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-
-def _append_edge(edge_type: str, source: str, target: str) -> None:
-    edge = {"type": edge_type, "source": source, "target": target}
-    if edge not in STATE["edges"]:
-        STATE["edges"].append(edge)
-
-
-def _project_event(event: GraphEvent) -> None:
-    payload = event.payload
-    if event.aggregate_type == "project":
-        project_id = str(payload.get("pk") or event.aggregate_id)
-        STATE["nodes"]["project"].add(project_id)
-        supervisor = payload.get("supervisor_email") or payload.get("supervisor_name")
-        if supervisor:
-            supervisor_id = str(supervisor)
-            STATE["nodes"]["supervisor"].add(supervisor_id)
-            _append_edge("SUPERVISED_BY", project_id, supervisor_id)
-        for tag in payload.get("tech_tags", []):
-            tag_id = str(tag)
-            STATE["nodes"]["tag"].add(tag_id)
-            _append_edge("TAGGED_WITH", project_id, tag_id)
-    elif event.aggregate_type == "user_profile":
-        student_id = str(payload.get("id") or event.aggregate_id)
-        STATE["nodes"]["student"].add(student_id)
-        for interest in payload.get("interests", []):
-            tag_id = str(interest)
-            STATE["nodes"]["tag"].add(tag_id)
-            _append_edge("INTERESTED_IN", student_id, tag_id)
-    elif event.aggregate_type == "application":
-        application_id = str(payload.get("id") or event.aggregate_id)
-        STATE["nodes"]["application"].add(application_id)
-        applicant = payload.get("applicant_snapshot", {}) or {}
-        applicant_id = applicant.get("id")
-        if applicant_id is not None:
-            student_id = str(applicant_id)
-            STATE["nodes"]["student"].add(student_id)
-            _append_edge("SUBMITTED", student_id, application_id)
-        project = payload.get("project_snapshot", {}) or {}
-        project_id = project.get("pk")
-        if project_id is not None:
-            STATE["nodes"]["project"].add(str(project_id))
-            _append_edge("TARGETS", application_id, str(project_id))
-
-    STATE["last_event_id"] += 1
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    _load_checkpoint()
-    yield
-
-
-app = FastAPI(title="Digital Student Assistant Graph Projector", lifespan=lifespan)
-
-
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "graph"}
-
-
-@app.get("/ready")
-async def ready() -> dict[str, Any]:
-    return {
-        "status": "ok",
-        "service": "graph",
-        "checkpoint_file": str(CHECKPOINT_FILE),
-        "last_event_id": STATE["last_event_id"],
-    }
-
-
-@app.get("/state")
-async def state() -> dict[str, Any]:
-    return {
-        "last_event_id": STATE["last_event_id"],
-        "nodes": {key: len(values) for key, values in STATE["nodes"].items()},
-        "edges": len(STATE["edges"]),
-    }
-
-
-@app.post("/project")
-async def project_events(payload: ReplayRequest) -> dict[str, Any]:
-    for event in payload.events:
-        _project_event(event)
-    _persist_checkpoint()
-    return {
-        "status": "accepted",
-        "processed": len(payload.events),
-        "last_event_id": STATE["last_event_id"],
-    }
-
-
-@app.post("/replay")
-async def replay(payload: ReplayRequest) -> dict[str, Any]:
-    for event in payload.events:
-        _project_event(event)
-    _persist_checkpoint()
-    return {
-        "status": "accepted",
-        "replayed": len(payload.events),
-        "last_event_id": STATE["last_event_id"],
-    }
+app = create_app()
