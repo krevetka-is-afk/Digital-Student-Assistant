@@ -1,6 +1,9 @@
 # from django.http import JsonResponse
 from apps.projects.serializers import PrimaryProjectSerializer
+from django.db import connections
+from django.db.utils import Error as DatabaseError
 from django.shortcuts import render
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -31,6 +34,21 @@ def api_home(request, *args, **kwargs):
 @api_view(["GET"])
 def health_custom(request, *args, **kwargs):
     return Response({"status": "ok"})
+
+
+@api_view(["GET"])
+def readiness(request, *args, **kwargs):
+    try:
+        with connections["default"].cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        return Response(
+            {"status": "degraded", "checks": {"database": "down"}},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    return Response({"status": "ok", "checks": {"database": "up"}})
 
 
 def home_page(request, *args, **kwargs):

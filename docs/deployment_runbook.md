@@ -4,43 +4,125 @@
 
 - `postgres`: operational data store
 - `web`: Django + DRF backend
-- `ml`: recommendation/search stub gateway
-- `graph`: graph projector stub with checkpoint persistence
-- `nginx`: reverse proxy
+- `ml`: recommendation/search gateway
+- `graph`: graph projector
+- `nginx`: reverse proxy and public entrypoint
 
-## First Deploy
+## Prerequisites (clean machine)
 
-```bash
-cp src/web/.env.example src/web/.env
-cp src/ml/.env.example src/ml/.env
-cp src/graph/.env.example src/graph/.env
-docker compose -f infra/docker-compose.prod.yml up --build -d
-```
+- Docker Engine 24+ with Compose plugin
+- `curl`
+- `openssl`
 
-## Smoke Checks
+## Production env bootstrap
 
 ```bash
-curl http://127.0.0.1/api/v1/health/
-curl http://127.0.0.1/api/v1/recs/search/?q=graph
-curl http://127.0.0.1:8001/ready
-curl http://127.0.0.1:8002/state
+cp infra/.env.prod.example infra/.env.prod
+chmod 600 infra/.env.prod
 ```
 
-## Backup And Restore
+Generate a strong Django secret before the first deploy:
+
+```bash
+python - <<'PY'
+import secrets
+print(secrets.token_urlsafe(64))
+PY
+```
+
+Put the generated value into `DJANGO_SECRET_KEY` in `infra/.env.prod`.
+If your platform provides mounted secrets, use `DJANGO_SECRET_KEY_FILE` and `DATABASE_URL_FILE`
+instead of inline secret values.
+
+## First deploy
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod pull
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
+```
+
+After startup, verify service health:
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod ps
+```
+
+## Smoke suite
+
+Run the scripted smoke checks:
+
+```bash
+scripts/smoke-prod.sh
+```
+
+Optional explicit invocation:
+
+```bash
+ENV_FILE=infra/.env.prod COMPOSE_FILE=infra/docker-compose.prod.yml scripts/smoke-prod.sh
+```
+
+Tuning retries for slower cold starts:
+
+```bash
+SMOKE_RETRY_COUNT=30 SMOKE_RETRY_DELAY_SEC=4 scripts/smoke-prod.sh
+```
+
+The suite validates:
+
+- external health/readiness via nginx (`/api/v1/health/`, `/api/v1/ready/`)
+- API baseline response (`/api/v1/projects/`)
+- internal readiness for `ml` and `graph`
+
+## Observability quick checks
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod ps
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod logs --since=10m web nginx ml graph
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod top
+```
+
+Operator signals to watch during rollout:
+
+- `web` readiness stays `healthy` and serves `/api/v1/ready/` without spikes of `503`.
+- `nginx` error log has no repeated upstream connection/reset errors.
+- `graph` readiness reports `status=ok` and checkpoint movement after event activity.
+
+## Backup and restore
 
 ```bash
 scripts/backup-postgres.sh ./backups
 scripts/restore-postgres.sh ./backups/postgres-YYYYMMDD-HHMMSS.sql
 ```
 
-## Release Rehearsal
+## Release rehearsal checklist
 
-1. Run migrations through `docker compose -f infra/docker-compose.prod.yml up`.
-2. Import EPP through `/api/v1/imports/epp/`.
-3. Publish project, submit application, review application.
-4. Verify `outbox/events`, `recs/search`, `recs/recommendations`, `graph/state`.
+1. Create a DB backup: `scripts/backup-postgres.sh ./backups`.
+2. Start candidate release: `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build`.
+3. Confirm all services are healthy: `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod ps`.
+4. Run smoke suite: `scripts/smoke-prod.sh`.
+5. Execute critical user flow: import EPP, publish project, submit application, moderation path.
+6. Verify integration endpoints: `/api/v1/outbox/events/`, `/api/v1/recs/search/`, `/api/v1/recs/recommendations/`, graph `/state`.
+7. Record release result with timestamp and git SHA.
 
-## Post-Deploy Load Test Plan
+## Rollback notes
+
+If smoke checks or critical flows fail:
+
+1. Stop rollout traffic (keep nginx up, stop app services if needed).
+2. Revert image/tag or branch to previous known-good release.
+3. Restart stack: `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d`.
+4. If schema/data changes are incompatible, restore DB backup:
+   `scripts/restore-postgres.sh ./backups/<last-good-backup>.sql`.
+5. Re-run `scripts/smoke-prod.sh` to confirm recovered baseline.
+
+Note on HTTPS redirect:
+
+- `DJANGO_SECURE_SSL_REDIRECT=false` is the safe default for this plain HTTP compose topology.
+- Set it to `true` only when TLS is terminated at ingress/LB and `X-Forwarded-Proto: https` is
+  preserved end-to-end.
+
+## Post-deploy load test plan
 
 After the first stable server deployment, run a dedicated load-test stage before deciding whether
 `web`, `ml`, and `graph` must be split across different machines.

@@ -20,6 +20,7 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | `/api/v1/health/` | no | Service liveness |
+| GET | `/api/v1/ready/` | no | Service readiness (DB connectivity) |
 | POST | `/api/v1/auth/token/` | no | Obtain DRF token by `username/password` |
 | GET | `/api/v1/search/?q=<text>` | optional | Search published projects (plus own projects for logged-in user) |
 | GET | `/api/v1/initiative-proposals/` | yes | List initiative proposals (owner sees own, CPPRP/staff sees all) |
@@ -114,6 +115,7 @@ These routes remain available, but should be treated as deprecated for new testi
 
 1. Open `/api/` and verify links to `/api/v1/`.
 2. Open `/api/v1/health/` and check `{"status":"ok"}`.
-3. Call `POST /api/v1/auth/token/` in DRF browsable API form.
-4. Use token in header: `Authorization: Token <your_token>`.
-5. Open `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.
+3. Open `/api/v1/ready/` and check `{"status":"ok"}`.
+4. Call `POST /api/v1/auth/token/` in DRF browsable API form.
+5. Use token in header: `Authorization: Token <your_token>`.
+6. Open `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.

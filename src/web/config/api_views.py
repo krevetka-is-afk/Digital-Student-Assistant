@@ -35,6 +35,7 @@ class ApiV1RootView(APIView):
             {
                 "version": "v1",
                 "health": reverse("api-v1-health", request=request),
+                "ready": reverse("api-v1-ready", request=request),
                 "auth_token": reverse("api-v1-auth-token", request=request),
                 "search": reverse("api-v1-search", request=request),
                 "recs_search": reverse("api-v1-recs-search", request=request),
