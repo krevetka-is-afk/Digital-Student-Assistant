@@ -121,4 +121,4 @@ services:
       - -ec
       - pip install --no-cache-dir uv==0.9.22 &&
         uv sync --all-packages --group dev --frozen &&
-        uv run pytest -q tests/integration tests/e2e tests/contract/test_outbox_delivery_contract.py
+        uv run pytest -q tests/integration tests/e2e tests/contract

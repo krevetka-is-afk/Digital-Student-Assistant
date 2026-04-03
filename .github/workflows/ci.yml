@@ -42,12 +42,14 @@ jobs:
               - 'src/**/Dockerfile'
               - 'infra/docker-compose.yml'
               - 'infra/docker-compose.dev.yml'
+              - 'infra/compose/test/docker-compose.yml'
             root:
               - '.github/workflows/**'
               - '.pre-commit-config.yaml'
               - 'pyproject.toml'
               - 'uv.lock'
               - 'scripts/**'
+              - 'tests/**'
 
   repo-lint:
     name: Repo lint + pre-commit
@@ -180,30 +182,17 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' || needs.changes.outputs.ml == 'true' || needs.changes.outputs.graph == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
+      - name: Run unified release gate (dockerized acceptance)
+        run: docker compose -f infra/compose/test/docker-compose.yml up --build --abort-on-container-exit --exit-code-from acceptance
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-          cache-dependency-glob: |
-            uv.lock
-            src/ml/uv.lock
-            src/graph/uv.lock
-
-      - name: Install unified workspace dependencies
-        run: uv sync --all-packages --group dev --frozen
-
-      - name: Run unified release gate
-        run: ./scripts/run-release-gate.sh
+      - name: Cleanup docker stack
+        if: always()
+        run: docker compose -f infra/compose/test/docker-compose.yml down -v --remove-orphans
 
   security-check:
     name: Security quick scan
