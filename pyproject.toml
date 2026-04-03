@@ -22,6 +22,12 @@ filterwarnings = [
 ]
 testpaths = ["src", "tests"]
 norecursedirs = [".venv", ".pytest_cache", ".ruff_cache", ".tmp", "build", "dist"]
+markers = [
+    "e2e: end-to-end acceptance scenarios",
+    "integration: cross-service integration scenarios",
+    "release_gate(gate_id): links a test to a release gate identifier",
+    "bpmn(*element_ids): links a test to BPMN element identifiers",
+]
 
 [build-system]
 requires = ["setuptools>=61.0"]
