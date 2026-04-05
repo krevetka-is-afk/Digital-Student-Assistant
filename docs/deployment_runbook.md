@@ -14,6 +14,25 @@
 - `curl`
 - `openssl`
 
+## GitHub Actions CD (production)
+
+Workflow file: `.github/workflows/deploy-prod.yml` (manual trigger via `workflow_dispatch`).
+
+Required GitHub Environment (`production`) secrets:
+
+- `PROD_SSH_HOST`
+- `PROD_SSH_PORT`
+- `PROD_SSH_USER`
+- `PROD_SSH_KEY`
+- `PROD_APP_DIR`
+
+How to run:
+
+1. Open GitHub Actions -> `Deploy Production`.
+2. Click `Run workflow`.
+3. Set `ref` (for example `main` or release tag).
+4. Wait for deploy + smoke suite completion.
+
 ## Production env bootstrap
 
 ```bash

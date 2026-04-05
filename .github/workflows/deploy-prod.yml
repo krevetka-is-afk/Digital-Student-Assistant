@@ -1,0 +1,59 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or SHA to deploy"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy over SSH
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+
+    steps:
+      - name: Deploy and smoke-check on server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT }}
+          script_stop: true
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
+
+            APP_DIR="${{ secrets.PROD_APP_DIR }}"
+            TARGET_REF="${{ github.event.inputs.ref }}"
+
+            cd "$APP_DIR"
+
+            git fetch --all --prune --tags
+            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
+              git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
+              git pull --ff-only origin "$TARGET_REF"
+            else
+              git checkout --detach "$TARGET_REF"
+            fi
+
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
+
+            ENV_FILE=infra/.env.prod \
+            COMPOSE_FILE=infra/docker-compose.prod.yml \
+            PUBLIC_BASE_URL=http://127.0.0.1 \
+            scripts/smoke-prod.sh
