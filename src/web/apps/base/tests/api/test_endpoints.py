@@ -48,6 +48,7 @@ def test_api_v1_root_ok():
     payload = r.json()
     assert payload["version"] == "v1"
     assert payload["projects"].endswith("/api/v1/projects/")
+    assert payload["initiative_proposals"].endswith("/api/v1/initiative-proposals/")
     assert payload["recs_search"].endswith("/api/v1/recs/search/")
     assert payload["imports_epp"].endswith("/api/v1/imports/epp/")
 
@@ -76,6 +77,17 @@ def test_api_schema_exposes_projects_query_params():
         "is_team_project",
         "uses_ai",
     }.issubset(param_names)
+
+
+def test_api_schema_exposes_initiative_proposal_paths():
+    c = Client()
+    r = c.get(reverse("api-schema"), HTTP_ACCEPT="application/vnd.oai.openapi+json")
+    assert r.status_code == 200
+
+    payload = r.json()
+    assert "/api/v1/initiative-proposals/" in payload["paths"]
+    assert "/api/v1/initiative-proposals/{id}/actions/submit/" in payload["paths"]
+    assert "/api/v1/initiative-proposals/{id}/actions/moderate/" in payload["paths"]
 
 
 def test_api_docs_page_ok():

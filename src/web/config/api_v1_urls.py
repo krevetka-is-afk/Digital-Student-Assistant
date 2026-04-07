@@ -1,6 +1,12 @@
 from apps.base.views import health_custom
 from apps.imports.views import ImportRunListCreateAPIView
 from apps.outbox.views import OutboxEventListAPIView
+from apps.projects.initiative_views import (
+    InitiativeProposalModerationAPIView,
+    InitiativeProposalSubmitForModerationAPIView,
+    initiative_proposal_list_create_view,
+    initiative_proposal_rud_view,
+)
 from apps.projects.views import (
     ProjectModerationAPIView,
     ProjectSubmitForModerationAPIView,
@@ -33,6 +39,26 @@ urlpatterns = [
     path("account/", include("apps.account.urls")),
     path("imports/epp/", ImportRunListCreateAPIView.as_view(), name="api-v1-import-epp"),
     path("outbox/events/", OutboxEventListAPIView.as_view(), name="api-v1-outbox-events"),
+    path(
+        "initiative-proposals/",
+        initiative_proposal_list_create_view,
+        name="api-v1-initiative-proposal-list",
+    ),
+    path(
+        "initiative-proposals/<int:pk>/actions/submit/",
+        InitiativeProposalSubmitForModerationAPIView.as_view(),
+        name="api-v1-initiative-proposal-submit",
+    ),
+    path(
+        "initiative-proposals/<int:pk>/actions/moderate/",
+        InitiativeProposalModerationAPIView.as_view(),
+        name="api-v1-initiative-proposal-moderate",
+    ),
+    path(
+        "initiative-proposals/<int:pk>/",
+        initiative_proposal_rud_view,
+        name="api-v1-initiative-proposal-detail",
+    ),
     path("projects/", project_list_create_view, name="api-v1-project-list"),
     path(
         "projects/<int:pk>/actions/submit/",

@@ -43,6 +43,7 @@ class ApiV1RootView(APIView):
                 "imports_epp": reverse("api-v1-import-epp", request=request),
                 "outbox_events": reverse("api-v1-outbox-events", request=request),
                 "projects": reverse("api-v1-project-list", request=request),
+                "initiative_proposals": reverse("api-v1-initiative-proposal-list", request=request),
                 "applications": reverse("application-list", request=request),
                 "users_me": reverse("user-profile-me", request=request),
             }
