@@ -67,7 +67,9 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | POST | `/api/v1/recs/reindex/` | cpprp/staff | Emit `recs.reindex_requested` event |
 | GET | `/api/v1/imports/epp/` | cpprp/staff | List import runs |
 | POST | `/api/v1/imports/epp/` | cpprp/staff | Run XLSX import and emit `import.completed` on success |
-| GET | `/api/v1/outbox/events/` | yes | Read outbox feed (`event_type`, `since_id`) for graph/ML consumers |
+| GET | `/api/v1/outbox/events/` | cpprp/staff | Read outbox feed with `consumer` checkpoint semantics (`mode=poll|replay`, `since_id`, `replay_from_id`) |
+| POST | `/api/v1/outbox/events/ack/` | cpprp/staff | Monotonic ack for consumer checkpoint (`consumer`, `event_id`) |
+| GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
 
 ## Legacy API (compatibility)
 
@@ -98,6 +100,15 @@ These routes remain available, but should be treated as deprecated for new testi
 
 - `semantic`: backend successfully received ranked items from external ML service.
 - `keyword-fallback`: backend used local keyword ranking because ML service is unavailable, timed out, or returned invalid payload.
+
+## Outbox Delivery Semantics
+
+- Canonical offset is outbox event `id`.
+- `poll` mode: `GET /api/v1/outbox/events/?consumer=<name>` returns events with `id > last_acked_event_id`.
+- `ack`: after successful processing, consumer confirms highest processed offset via `POST /api/v1/outbox/events/ack/`.
+- Ack is idempotent: repeating the same `event_id` keeps checkpoint unchanged (`ack_status=already_acked`).
+- `replay` mode: `GET /api/v1/outbox/events/?consumer=<name>&mode=replay&replay_from_id=<id>` re-reads history from the requested offset and marks each event as `acked|pending` relative to current checkpoint.
+- Resume after restart: consumer reads `GET /api/v1/outbox/consumers/<consumer>/checkpoint/` and continues polling from the stored checkpoint.
 
 ## Quick browser test flow
 
