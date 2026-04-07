@@ -134,6 +134,34 @@ def test_application_reject_requires_comment():
     assert "comment" in response.json()
 
 
+def test_application_reject_comment_minimum_length_matches_bpmn():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+    application = _make_application(project, student)
+
+    client = Client()
+    client.force_login(owner)
+
+    too_short_comment = "x" * 49
+    short_response = client.post(
+        reverse("application-review", kwargs={"pk": application.pk}),
+        data={"decision": "reject", "comment": too_short_comment},
+        content_type="application/json",
+    )
+    assert short_response.status_code == 400
+    assert "comment" in short_response.json()
+
+    bpmn_min_comment = "x" * 50
+    ok_response = client.post(
+        reverse("application-review", kwargs={"pk": application.pk}),
+        data={"decision": "reject", "comment": bpmn_min_comment},
+        content_type="application/json",
+    )
+    assert ok_response.status_code == 200
+    assert ok_response.json()["status"] == ApplicationStatus.REJECTED
+
+
 def test_application_review_forbidden_for_non_owner():
     owner = _make_user(role=UserRole.CUSTOMER)
     outsider = _make_user(role=UserRole.STUDENT)

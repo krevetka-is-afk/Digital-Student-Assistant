@@ -120,8 +120,6 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
     def get_applications_count(self, obj) -> int:
         if hasattr(obj, "applications_count"):
             return int(getattr(obj, "applications_count") or 0)
-        if obj.applications_count_source is not None:
-            return int(obj.applications_count_source)
         return obj.applications.count()
 
     def get_is_favorite(self, obj) -> bool:

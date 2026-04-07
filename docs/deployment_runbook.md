@@ -53,6 +53,38 @@ Put the generated value into `DJANGO_SECRET_KEY` in `infra/.env.prod`.
 If your platform provides mounted secrets, use `DJANGO_SECRET_KEY_FILE` and `DATABASE_URL_FILE`
 instead of inline secret values.
 
+## Optional bootstrap import from hidden XLSX
+
+When the database is empty, `web` can import initial EPP data from an XLSX file on startup.
+
+1. Create a hidden directory in project root on the server:
+   `mkdir -p /opt/dsa/.bootstrap-data`
+2. Put your file there with the expected name:
+   `/opt/dsa/.bootstrap-data/EPP.xlsx`
+3. Ensure `.env.prod` contains:
+   - `DSA_BOOTSTRAP_IMPORT_IF_EMPTY=true`
+   - `DSA_BOOTSTRAP_XLSX_PATH=/app/bootstrap-data/EPP.xlsx`
+   - `DSA_BOOTSTRAP_ALLOW_MISSING_XLSX=true`
+   - `DSA_BOOTSTRAP_FAIL_ON_IMPORT_ERRORS=true`
+   - `DSA_BOOTSTRAP_STATE_FILE=/var/lib/dsa/bootstrap/state.json`
+   - `BOOTSTRAP_DATA_HOST_DIR=../.bootstrap-data`
+
+Behavior:
+
+- If DB has at least one `Project`/`EPP`, bootstrap import is skipped.
+- If the file is missing and `DSA_BOOTSTRAP_ALLOW_MISSING_XLSX=true`, startup continues without import.
+- If import has row-level errors and `DSA_BOOTSTRAP_FAIL_ON_IMPORT_ERRORS=true`, startup fails fast.
+- To enforce strict behavior, set `DSA_BOOTSTRAP_ALLOW_MISSING_XLSX=false`.
+- Failed bootstrap state is persisted in `DSA_BOOTSTRAP_STATE_FILE`; `web` keeps failing until a manual retry.
+
+Manual recovery after fixing the XLSX:
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod run --rm web \
+  python manage.py bootstrap_epp_if_empty --force
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
+```
+
 ## First deploy
 
 ```bash

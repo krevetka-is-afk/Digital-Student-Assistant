@@ -1,6 +1,6 @@
 # API Scheme (Canonical v1)
 
-Updated: 2026-03-29
+Updated: 2026-04-06
 
 ## API Entry Points
 
@@ -31,7 +31,7 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | PUT | `/api/v1/initiative-proposals/<id>/` | student/staff | Full update of initiative proposal in editable states |
 | PATCH | `/api/v1/initiative-proposals/<id>/` | student/staff | Update initiative proposal in editable states |
 | DELETE | `/api/v1/initiative-proposals/<id>/` | student/staff | Delete initiative proposal in editable states |
-| GET | `/api/v1/projects/` | optional | List projects (`page`, `page_size`, `status`, `q`, `ordering`) |
+| GET | `/api/v1/projects/` | optional | List projects (`page`, `page_size`, `status`, `q`, `ordering`, `staffing_state`, `application_state`, `application_window_state`) |
 | POST | `/api/v1/projects/` | yes | Create project (owner = current user) |
 | POST | `/api/v1/projects/<id>/actions/submit/` | yes | Submit project for moderation (owner/staff) |
 | POST | `/api/v1/projects/<id>/actions/moderate/` | yes | Moderate project (`decision=approve/reject`, CPPRP/staff) |
@@ -46,14 +46,15 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | DELETE | `/api/v1/applications/<id>/` | yes | Delete application (owner or staff) |
 | GET | `/api/v1/account/me/` | yes | Role-aware cabinet counters and current profile summary |
 | GET | `/api/v1/account/student/overview/` | student/staff | Student cabinet overview with applications, favorites, deadlines, templates |
-| GET | `/api/v1/account/customer/projects/` | customer/staff | Customer cabinet project list with submitted applications counters |
-| GET | `/api/v1/account/customer/applications/` | customer/staff | Customer cabinet incoming applications |
+| GET | `/api/v1/account/customer/projects/` | customer/staff | Customer cabinet project list with `applications_count` and `submitted_applications_count` |
+| GET | `/api/v1/account/customer/applications/` | customer/staff | Customer cabinet incoming applications (`status` filter supported) |
 | GET | `/api/v1/account/cpprp/moderation-queue/` | cpprp/staff | CPPRP moderation queue |
-| GET | `/api/v1/account/cpprp/applications/` | cpprp/staff | CPPRP applications overview and recent feed |
+| GET | `/api/v1/account/cpprp/applications/` | cpprp/staff | CPPRP applications overview and recent feed (`status` filter for recent feed) |
 | GET | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | List platform deadlines |
 | POST | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | Create deadline and emit `deadline.changed` |
 | GET | `/api/v1/account/cpprp/templates/` | cpprp/staff | List document templates |
 | POST | `/api/v1/account/cpprp/templates/` | cpprp/staff | Create document template |
+| GET | `/api/v1/account/templates/<id>/download/` | yes | Unified template download endpoint (role/audience aware) |
 | GET | `/api/v1/account/cpprp/export/projects/` | cpprp/staff | Export projects as CSV |
 | GET | `/api/v1/account/cpprp/export/applications/` | cpprp/staff | Export applications as CSV |
 | GET | `/api/v1/users/me/` | yes | Get current user's profile |

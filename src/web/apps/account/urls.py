@@ -8,6 +8,7 @@ from .views import (
     CPPRPProjectsExportAPIView,
     CustomerApplicationsAPIView,
     CustomerProjectsAPIView,
+    DocumentTemplateDownloadAPIView,
     DocumentTemplateListCreateAPIView,
     PlatformDeadlineListCreateAPIView,
     StudentOverviewAPIView,
@@ -41,6 +42,11 @@ urlpatterns = [
         "cpprp/templates/",
         DocumentTemplateListCreateAPIView.as_view(),
         name="account-cpprp-templates",
+    ),
+    path(
+        "templates/<int:pk>/download/",
+        DocumentTemplateDownloadAPIView.as_view(),
+        name="account-template-download",
     ),
     path(
         "cpprp/export/projects/",

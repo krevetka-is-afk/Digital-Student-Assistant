@@ -48,6 +48,7 @@ def _apply_project_filters(queryset, params):
     work_format = params.get("work_format")
     staffing_state = params.get("staffing_state")
     application_state = params.get("application_state")
+    application_window_state = params.get("application_window_state")
     is_team_project = params.get("is_team_project")
     uses_ai = params.get("uses_ai")
     study_course = params.get("study_course")
@@ -94,6 +95,21 @@ def _apply_project_filters(queryset, params):
             raise ValidationError(
                 {"staffing_state": ["Unsupported staffing_state. Allowed: open, full."]}
             )
+    if (
+        application_window_state
+        and application_state
+        and application_window_state != application_state
+    ):
+        raise ValidationError(
+            {
+                "application_window_state": [
+                    "application_window_state and application_state must match when both are set."
+                ]
+            }
+        )
+    if application_window_state and not application_state:
+        application_state = application_window_state
+
     if application_state:
         today = timezone.localdate()
         if application_state == "upcoming":
@@ -186,6 +202,20 @@ def _apply_project_filters(queryset, params):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 enum=["open", "closed", "upcoming"],
+                description=(
+                    "Legacy alias of application_window_state. "
+                    "Prefer application_window_state in new integrations."
+                ),
+            ),
+            OpenApiParameter(
+                name="application_window_state",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                enum=["open", "closed", "upcoming"],
+                description=(
+                    "Canonical application window filter; "
+                    "preferred over legacy application_state."
+                ),
             ),
             OpenApiParameter(
                 name="is_team_project",

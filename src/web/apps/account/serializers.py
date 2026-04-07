@@ -3,6 +3,7 @@ from apps.projects.models import Project
 from apps.projects.serializers import EPPSummarySerializer, PrimaryProjectSerializer
 from apps.users.serializers import UserProfileSerializer
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from .models import DocumentTemplate, PlatformDeadline
 
@@ -25,6 +26,8 @@ class PlatformDeadlineSerializer(serializers.ModelSerializer):
 
 
 class DocumentTemplateSerializer(serializers.ModelSerializer):
+    download_url = serializers.SerializerMethodField()
+
     class Meta:
         model = DocumentTemplate
         fields = [
@@ -33,12 +36,19 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
             "title",
             "audience",
             "url",
+            "download_url",
             "description",
             "is_active",
             "metadata",
             "created_at",
             "updated_at",
         ]
+
+    def get_download_url(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return None
+        return reverse("account-template-download", kwargs={"pk": obj.pk}, request=request)
 
 
 class AccountProjectSerializer(serializers.ModelSerializer):
@@ -51,6 +61,7 @@ class AccountProjectSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     source_status_raw = serializers.CharField(source="status_raw", read_only=True)
+    applications_count = serializers.SerializerMethodField()
     submitted_applications_count = serializers.SerializerMethodField()
     staffing_state = serializers.CharField(read_only=True)
     application_window_state = serializers.CharField(read_only=True)
@@ -67,6 +78,7 @@ class AccountProjectSerializer(serializers.ModelSerializer):
             "study_course",
             "education_program",
             "accepted_participants_count",
+            "applications_count",
             "submitted_applications_count",
             "staffing_state",
             "application_window_state",
@@ -81,7 +93,16 @@ class AccountProjectSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_applications_count(self, obj) -> int:
+        if isinstance(obj, dict):
+            return int(obj.get("applications_count") or 0)
+        if hasattr(obj, "applications_count"):
+            return int(getattr(obj, "applications_count") or 0)
+        return obj.applications.count()
+
     def get_submitted_applications_count(self, obj) -> int:
+        if isinstance(obj, dict):
+            return int(obj.get("submitted_applications_count") or 0)
         return int(getattr(obj, "submitted_applications_count", 0) or 0)
 
 
