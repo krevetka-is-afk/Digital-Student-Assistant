@@ -1,27 +1,35 @@
-import importlib.util
+import sys
 from pathlib import Path
 
 import pytest
-from starlette.testclient import TestClient
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
-MAIN_FILE = SERVICE_ROOT / "app" / "main.py"
+if str(SERVICE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SERVICE_ROOT))
 
-
-def _load_app():
-    spec = importlib.util.spec_from_file_location("graph_test_main", MAIN_FILE)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load graph app from {MAIN_FILE}")
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.app
-
-
-app = _load_app()
+from app.main import create_app  # noqa: E402
+from app.settings import GraphSettings  # noqa: E402
 
 
 @pytest.fixture
-def client():
-    with TestClient(app) as c:
-        yield c
+def app_factory():
+    def _factory(*, graph_store, outbox_client):
+        settings = GraphSettings(
+            neo4j_uri="bolt://localhost:7687",
+            neo4j_user="neo4j",
+            neo4j_password="test",
+            outbox_base_url="http://localhost:8000",
+            outbox_consumer="graph",
+            outbox_auth_header="",
+            outbox_timeout_sec=1.0,
+            default_batch_size=50,
+            poll_interval_sec=0.5,
+            enable_background_poller=False,
+        )
+        return create_app(
+            settings=settings,
+            graph_store=graph_store,
+            outbox_client=outbox_client,
+        )
+
+    return _factory

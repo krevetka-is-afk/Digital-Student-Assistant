@@ -8,7 +8,9 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     fastapi==0.127.1 \
     uvicorn==0.38.0 \
-    pydantic
+    pydantic \
+    "neo4j>=5.28.2" \
+    "httpx>=0.28.1"
 
 COPY . .
 

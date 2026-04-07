@@ -4,13 +4,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: dsa
+      POSTGRES_DB: dsa_test
       POSTGRES_USER: dsa
       POSTGRES_PASSWORD: dsa
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dsa -d dsa"]
+      test: ["CMD-SHELL", "pg_isready -U dsa -d dsa_test"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -18,68 +18,107 @@ services:
   neo4j:
     image: neo4j:5-community
     environment:
-      NEO4J_AUTH: "neo4j/test"
+      NEO4J_AUTH: "neo4j/testtest"
     ports:
       - "7474:7474"
       - "7687:7687"
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u neo4j -p test 'RETURN 1' >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u neo4j -p testtest 'RETURN 1' >/dev/null 2>&1"]
       interval: 5s
       timeout: 5s
       retries: 30
 
   web:
     build:
-      context: ../src/web
+      context: ../../../src/web
     environment:
-      DJANGO_SETTINGS_MODULE: config.settings.test
-      DATABASE_HOST: postgres
-      DATABASE_PORT: "5432"
-      DATABASE_NAME: dsa
-      DATABASE_USER: dsa
-      DATABASE_PASSWORD: dsa
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: postgresql://dsa:dsa@postgres:5432/dsa_test
     depends_on:
       postgres:
         condition: service_healthy
-    command: >
-      bash -lc "python manage.py migrate --noinput && pytest -q -m 'not e2e'"
+    command:
+      - sh
+      - -ec
+      - /opt/venv/bin/python manage.py migrate --noinput && /opt/venv/bin/python manage.py runserver 0.0.0.0:8000
 
   ml:
     build:
-      context: ../src/ml
+      context: ../../../src/ml
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_DB: dsa
+      POSTGRES_DB: dsa_test
       POSTGRES_USER: dsa
       POSTGRES_PASSWORD: dsa
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: test
+      NEO4J_PASSWORD: testtest
     depends_on:
       postgres:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-    command: >
-      bash -lc "pytest -q -m 'not e2e'"
+    command:
+      - /opt/venv/bin/uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
 
   graph:
     build:
-      context: ../src/graph
+      context: ../../../src/graph
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_DB: dsa
+      POSTGRES_DB: dsa_test
       POSTGRES_USER: dsa
       POSTGRES_PASSWORD: dsa
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: test
+      NEO4J_PASSWORD: testtest
     depends_on:
       postgres:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-    command: >
-      bash -lc "python -m app.main"
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request as u; u.urlopen('http://127.0.0.1:8002/health').read(); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+
+  acceptance:
+    image: python:3.13-slim
+    working_dir: /workspace
+    volumes:
+      - ../../..:/workspace
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: postgresql://dsa:dsa@postgres:5432/dsa_test
+      TEST_DB_URL: postgresql://dsa:dsa@postgres:5432/dsa_test
+      PYTHONPATH: /workspace/src/web:/workspace/src/web/apps:/workspace/src/graph
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: testtest
+      ALLOW_NEO4J_RESET: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    command:
+      - sh
+      - -ec
+      - pip install --no-cache-dir uv==0.9.22 &&
+        uv sync --all-packages --group dev --frozen &&
+        uv run pytest -q tests/integration tests/e2e tests/contract

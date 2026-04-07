@@ -48,14 +48,13 @@ def _ensure_safe_database_url() -> None:
         return
 
     raise RuntimeError(
-        "Unsafe DATABASE_URL for destructive integration fixtures. "
+        "Unsafe DATABASE_URL for destructive e2e fixtures. "
         "Set TEST_DB_URL to an isolated test database."
     )
 
 
 _ensure_safe_database_url()
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
-os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 if not django_apps.ready:
     django.setup()
 

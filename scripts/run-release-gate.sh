@@ -12,7 +12,7 @@ if [[ -n "${RELEASE_GATE_DB_PATH:-}" ]]; then
     db_path="$RELEASE_GATE_DB_PATH"
     mkdir -p "$(dirname "$db_path")"
 else
-    db_path="$(mktemp "$tmp_dir/release-gate.XXXXXX.sqlite3")"
+    db_path="$(mktemp "$tmp_dir/release-gate-test.XXXXXX.sqlite3")"
     cleanup_db=1
 fi
 

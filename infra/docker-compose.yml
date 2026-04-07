@@ -105,18 +105,47 @@ services:
       retries: 3
     user: "1000:1000"
 
+  neo4j:
+    container_name: graph_db
+    image: neo4j:5-community
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH:-neo4j/test}
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    profiles: ["dev"]
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "AUTH=\"$NEO4J_AUTH\"; USER=${AUTH%%/*}; PASS=${AUTH#*/}; cypher-shell -a bolt://localhost:7687 -u \"$USER\" -p \"$PASS\" 'RETURN 1' >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
   graph:
     container_name: graph_service
     build:
       context: ../src/graph
+    depends_on:
+      neo4j:
+        condition: service_healthy
     ports:
       - "8002:8002"
     environment:
       - PYTHONUNBUFFERED=1
-      - GRAPH_DATA_DIR=/app/data
+      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-test}
+      - OUTBOX_BASE_URL=${OUTBOX_BASE_URL:-http://web:8000}
+      - OUTBOX_CONSUMER=graph
+      - OUTBOX_AUTH_HEADER=${OUTBOX_AUTH_HEADER:-}
+      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-100}
+      - OUTBOX_POLL_INTERVAL_SEC=${OUTBOX_POLL_INTERVAL_SEC:-5}
+      - GRAPH_ENABLE_BACKGROUND_POLLER=${GRAPH_ENABLE_BACKGROUND_POLLER:-false}
     profiles: ["dev"]
     volumes:
-      - graph-data:/app/data
+      - graph-data:/app/var
     tmpfs:
       - /tmp:rw,size=64m
     read_only: true
@@ -137,6 +166,8 @@ volumes:
   app-data:
     driver: local
   graph-data:
+    driver: local
+  neo4j-data:
     driver: local
   pg-data:
     driver: local
