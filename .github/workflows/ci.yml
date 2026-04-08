@@ -390,7 +390,7 @@ jobs:
       - package-and-artifacts-web
       - package-and-artifacts-ml
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/deploy-staging'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
     environment:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
