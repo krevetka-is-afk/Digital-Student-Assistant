@@ -1,6 +1,11 @@
+import logging
+
 from apps.users.models import UserRole
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_role(user) -> str | None:
@@ -14,9 +19,16 @@ def get_user_role(user) -> str | None:
         return None
 
 
+def has_any_role(user, *, allowed: set[str], allow_staff: bool = True) -> bool:
+    role = get_user_role(user)
+    if allow_staff and role == "staff":
+        return True
+    return role in allowed
+
+
 def require_roles(user, *, allowed: set[str]) -> str:
     role = get_user_role(user)
-    if role == "staff" or role in allowed:
+    if has_any_role(user, allowed=allowed):
         return role or "staff"
     raise PermissionDenied("You do not have access to this account endpoint.")
 
@@ -31,3 +43,43 @@ def is_customer(user) -> bool:
 
 def is_cpprp(user) -> bool:
     return get_user_role(user) == UserRole.CPPRP
+
+
+def _log_denied_access(request, view) -> None:
+    user = getattr(request, "user", None)
+    logger.warning(
+        "Denied API access: method=%s path=%s view=%s user_id=%s role=%s",
+        request.method,
+        request.path,
+        view.__class__.__name__,
+        getattr(user, "id", None),
+        get_user_role(user),
+    )
+
+
+class RolePermission(permissions.BasePermission):
+    allowed_roles: set[str] = set()
+    message = "You do not have permission to perform this action."
+    log_denied = False
+
+    def has_permission(self, request, view) -> bool:
+        allowed = has_any_role(request.user, allowed=self.allowed_roles)
+        if not allowed and self.log_denied:
+            _log_denied_access(request, view)
+        return allowed
+
+
+class IsStudentOrStaff(RolePermission):
+    allowed_roles = {UserRole.STUDENT}
+    message = "Only students or staff can access this endpoint."
+
+
+class IsCustomerOrStaff(RolePermission):
+    allowed_roles = {UserRole.CUSTOMER}
+    message = "Only customers or staff can access this endpoint."
+
+
+class IsCpprpOrStaff(RolePermission):
+    allowed_roles = {UserRole.CPPRP}
+    message = "Only CPPRP or staff can access this endpoint."
+    log_denied = True

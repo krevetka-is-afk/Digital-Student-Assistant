@@ -1,5 +1,8 @@
+from apps.account.permissions import IsCustomerOrStaff, IsStudentOrStaff
+from apps.outbox.services import emit_event
 from apps.projects.models import ProjectStatus
-from rest_framework import generics, permissions
+from drf_spectacular.utils import extend_schema
+from rest_framework import generics
 from rest_framework import serializers as drf_serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -12,7 +15,9 @@ from .transitions import review_application
 
 class ApplicationListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        return [IsStudentOrStaff()]
 
     def get_queryset(self):
         queryset = Application.objects.select_related("project", "applicant")
@@ -27,12 +32,33 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
             raise ValidationError(
                 {"project": ["Applications are allowed only for projects visible in catalog."]}
             )
-        serializer.save(applicant=self.request.user, status=ApplicationStatus.SUBMITTED)
+        if project.application_window_state != "open":
+            raise ValidationError(
+                {
+                    "project": [
+                        (
+                            "Applications are allowed only while the project "
+                            "application window is open."
+                        )
+                    ]
+                }
+            )
+        application = serializer.save(
+            applicant=self.request.user,
+            status=ApplicationStatus.SUBMITTED,
+        )
+        emit_event(
+            event_type="application.changed",
+            aggregate_type="application",
+            aggregate_id=application.pk,
+            payload=ApplicationSerializer(application, context={"request": self.request}).data,
+            idempotency_key=f"application.changed:{application.pk}:{application.updated_at.isoformat()}:create",
+        )
 
 
 class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStudentOrStaff]
     lookup_field = "pk"
 
     def get_queryset(self):
@@ -49,8 +75,12 @@ class ApplicationReviewInputSerializer(drf_serializers.Serializer):
 
 
 class ApplicationReviewAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerOrStaff]
 
+    @extend_schema(
+        request=ApplicationReviewInputSerializer,
+        responses=ApplicationSerializer,
+    )
     def post(self, request, pk: int):
         payload = ApplicationReviewInputSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
@@ -65,5 +95,12 @@ class ApplicationReviewAPIView(APIView):
             decision=payload.validated_data["decision"],
             comment=payload.validated_data["comment"],
         )
-        serializer = ApplicationSerializer(application)
+        emit_event(
+            event_type="application.changed",
+            aggregate_type="application",
+            aggregate_id=application.pk,
+            payload=ApplicationSerializer(application, context={"request": request}).data,
+            idempotency_key=f"application.changed:{application.pk}:{application.updated_at.isoformat()}:review",
+        )
+        serializer = ApplicationSerializer(application, context={"request": request})
         return Response(serializer.data)

@@ -3,7 +3,9 @@ import sys
 from pathlib import Path
 
 import django
+import pytest
 from django.conf import settings
+from django.core.management import call_command
 
 WEB_DIR = Path(__file__).resolve().parents[1]
 APPS_DIR = WEB_DIR / "apps"
@@ -18,3 +20,8 @@ django.setup()
 
 if "testserver" not in settings.ALLOWED_HOSTS:
     settings.ALLOWED_HOSTS.append("testserver")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _migrate_test_database():
+    call_command("migrate", interactive=False, run_syncdb=True, verbosity=0)

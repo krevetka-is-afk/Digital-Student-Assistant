@@ -1,9 +1,10 @@
+from apps.account.permissions import has_any_role
 from apps.users.models import UserRole
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from .models import Project, ProjectStatus
+from .models import Project, ProjectSourceType, ProjectStatus
 
 
 def _is_project_owner(actor, project: Project) -> bool:
@@ -23,8 +24,12 @@ def _is_cpprp_or_staff(actor) -> bool:
 
 
 def submit_project_for_moderation(project: Project, actor) -> Project:
-    if not (_is_project_owner(actor, project) or getattr(actor, "is_staff", False)):
-        raise PermissionDenied("Only the project owner or staff can submit this project.")
+    if getattr(actor, "is_staff", False):
+        pass
+    elif not _is_project_owner(actor, project) or not has_any_role(
+        actor, allowed={UserRole.CUSTOMER}, allow_staff=False
+    ):
+        raise PermissionDenied("Only the customer project owner or staff can submit this project.")
 
     if project.status not in {
         ProjectStatus.DRAFT,
@@ -34,8 +39,8 @@ def submit_project_for_moderation(project: Project, actor) -> Project:
         raise ValidationError(
             {
                 "status": [
-                    "Project can be submitted only from draft, \
-                        revision requested, or supervisor review status."
+                    "Project can be submitted only from draft, revision requested, or "
+                    "supervisor review status."
                 ]
             }
         )
@@ -62,13 +67,19 @@ def moderate_project(project: Project, actor, decision: str, comment: str = "") 
     if normalized_decision not in {"approve", "reject"}:
         raise ValidationError({"decision": ["Unsupported decision. Use 'approve' or 'reject'."]})
 
-    if normalized_decision == "reject" and len(normalized_comment) < 20:
+    if normalized_decision == "reject" and len(normalized_comment) < 100:
         raise ValidationError(
-            {"comment": ["Comment is required and must be at least 20 characters for rejection."]}
+            {"comment": ["Comment is required and must be at least 100 characters for rejection."]}
         )
 
     project.status = (
-        ProjectStatus.PUBLISHED if normalized_decision == "approve" else ProjectStatus.REJECTED
+        ProjectStatus.PUBLISHED
+        if normalized_decision == "approve"
+        else (
+            ProjectStatus.REVISION_REQUESTED
+            if project.source_type == ProjectSourceType.INITIATIVE
+            else ProjectStatus.REJECTED
+        )
     )
     project.moderated_by = actor
     project.moderated_at = timezone.now()

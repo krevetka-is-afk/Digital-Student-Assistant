@@ -1,0 +1,40 @@
+{
+  "version": "v1",
+  "offset_field": "id",
+  "delivery_guarantee": "at_least_once",
+  "poll_endpoint": "/api/v1/outbox/events/",
+  "ack_endpoint": "/api/v1/outbox/events/ack/",
+  "checkpoint_endpoint_template": "/api/v1/outbox/consumers/{consumer}/checkpoint/",
+  "poll_query": {
+    "consumer": "required for checkpoint-aware mode",
+    "mode": "poll|replay",
+    "since_id": "optional legacy lower bound, exclusive",
+    "replay_from_id": "required for replay mode, inclusive lower bound"
+  },
+  "ack_payload": {
+    "consumer": "string",
+    "event_id": "integer (highest successfully processed outbox id)"
+  },
+  "event_envelope_fields": [
+    "id",
+    "event_type",
+    "aggregate_type",
+    "aggregate_id",
+    "source",
+    "idempotency_key",
+    "payload",
+    "created_at"
+  ],
+  "consumers": {
+    "ml": {
+      "resume": "read checkpoint endpoint, then poll with consumer=ml",
+      "replay": "poll with mode=replay and replay_from_id; do not move checkpoint until ack",
+      "idempotency_rule": "deduplicate by idempotency_key and/or max acked offset"
+    },
+    "graph": {
+      "resume": "read checkpoint endpoint, then poll with consumer=graph",
+      "replay": "poll with mode=replay and replay_from_id; projector applies events idempotently",
+      "idempotency_rule": "deduplicate by idempotency_key and graph upsert keys"
+    }
+  }
+}

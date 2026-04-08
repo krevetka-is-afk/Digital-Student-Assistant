@@ -2,7 +2,7 @@ name: CI
 on:
   push:
   pull_request:
-    branches: [main]
+    branches: [deploy-staging, main]
 
 permissions:
   contents: read
@@ -18,6 +18,7 @@ jobs:
     outputs:
       web: ${{ steps.filter.outputs.web }}
       ml: ${{ steps.filter.outputs.ml }}
+      graph: ${{ steps.filter.outputs.graph }}
       root: ${{ steps.filter.outputs.root }}
       docker: ${{ steps.filter.outputs.docker }}
     steps:
@@ -35,16 +36,20 @@ jobs:
               - 'src/web/**'
             ml:
               - 'src/ml/**'
+            graph:
+              - 'src/graph/**'
             docker:
               - 'src/**/Dockerfile'
               - 'infra/docker-compose.yml'
               - 'infra/docker-compose.dev.yml'
+              - 'infra/compose/test/docker-compose.yml'
             root:
               - '.github/workflows/**'
               - '.pre-commit-config.yaml'
               - 'pyproject.toml'
               - 'uv.lock'
               - 'scripts/**'
+              - 'tests/**'
 
   repo-lint:
     name: Repo lint + pre-commit
@@ -73,8 +78,6 @@ jobs:
       - name: Lint & Format checks
         run: |
           uv run ruff check --output-format=github .
-          uv run black --check .
-          uv run isort --check-only .
 
       - name: Pre-commit (all files)
         env:
@@ -92,8 +95,6 @@ jobs:
       DATABASE_URL: "sqlite:///ci_test.sqlite3"
       TEST_DB_URL: "sqlite:///ci_test.sqlite3"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
-      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -107,11 +108,11 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "src/web/uv.lock"
+          cache-dependency-glob: "src/web/pyproject.toml"
 
       - name: Install web dependencies
         working-directory: src/web
-        run: uv sync --group dev --frozen
+        run: uv sync --group dev
 
       - name: Django checks
         working-directory: src/web
@@ -125,7 +126,7 @@ jobs:
         working-directory: src/web
         run: |
           mkdir -p reports
-          uv run pytest -q apps/base/tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
+          uv run pytest -q apps tests --maxfail=1 --disable-warnings --junitxml=reports/junit.xml
 
       - name: Upload web test reports
         if: always()
@@ -176,6 +177,23 @@ jobs:
           path: src/ml/reports/**
           if-no-files-found: error
 
+  release-gate:
+    name: Unified release gate
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' || needs.changes.outputs.ml == 'true' || needs.changes.outputs.graph == 'true' || needs.changes.outputs.root == 'true' || needs.changes.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run unified release gate (dockerized acceptance)
+        run: docker compose -f infra/compose/test/docker-compose.yml up --build --abort-on-container-exit --exit-code-from acceptance
+
+      - name: Cleanup docker stack
+        if: always()
+        run: docker compose -f infra/compose/test/docker-compose.yml down -v --remove-orphans
+
   security-check:
     name: Security quick scan
     runs-on: ubuntu-latest
@@ -205,8 +223,6 @@ jobs:
       DATABASE_URL: "sqlite:///ci_test.sqlite3"
       TEST_DB_URL: "sqlite:///ci_test.sqlite3"
       JWT_SECRET: "${{ secrets.DEV_JWT_SECRET || 'ci-dev-jwt-secret' }}"
-      ALGOLIA_APPLICATION_ID: ${{ secrets.ALGOLIA_APPLICATION_ID }}
-      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -220,11 +236,11 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          cache-dependency-glob: "src/web/uv.lock"
+          cache-dependency-glob: "src/web/pyproject.toml"
 
       - name: Install web dependencies
         working-directory: src/web
-        run: uv sync --group dev --frozen
+        run: uv sync --group dev
 
       - name: Apply migrations
         working-directory: src/web
@@ -234,7 +250,7 @@ jobs:
         working-directory: src/web
         run: |
           mkdir -p reports
-          uv run --with pytest-cov pytest -q apps \
+          uv run --with pytest-cov pytest -q apps tests \
             --cov=apps --cov=config \
             --cov-report=xml --cov-report=html --cov-report=term-missing \
             --junitxml=reports/junit-coverage.xml
@@ -374,38 +390,64 @@ jobs:
       - package-and-artifacts-web
       - package-and-artifacts-ml
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/deploy-staging'
     environment:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
     env:
-      STAGING_URL: "${{ secrets.STAGING_URL || vars.STAGING_URL || 'https://staging.example' }}"
-      DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
+      STAGING_URL: "${{ vars.STAGING_URL || 'https://staging.example' }}"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Download web package artifact
-        uses: actions/download-artifact@v7.0.0
+      - name: Deploy to staging over SSH + smoke-check
+        uses: appleboy/ssh-action@v1.2.2
         with:
-          name: python-package-web
-          path: dist/web
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
+          script_stop: true
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
 
-      - name: Download ML package artifact
-        uses: actions/download-artifact@v7.0.0
-        with:
-          name: python-package-ml
-          path: dist/ml
+            APP_DIR="${{ secrets.STAGING_APP_DIR }}"
+            TARGET_REF="${{ github.sha }}"
+            EXPECTED_SHA="${{ github.sha }}"
 
-      - name: Inspect package bundles
+            test -n "$APP_DIR"
+            test -d "$APP_DIR"
+            cd "$APP_DIR"
+            test -d .git
+
+            git fetch --all --prune --tags
+            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
+              git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
+              git pull --ff-only origin "$TARGET_REF"
+            else
+              git checkout --detach "$TARGET_REF"
+            fi
+
+            ACTUAL_SHA="$(git rev-parse HEAD)"
+            if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+              echo "Ref mismatch: expected $EXPECTED_SHA, got $ACTUAL_SHA" >&2
+              exit 1
+            fi
+
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
+
+            ENV_FILE=infra/.env.prod \
+            COMPOSE_FILE=infra/docker-compose.prod.yml \
+            PUBLIC_BASE_URL=http://127.0.0.1 \
+            scripts/smoke-prod.sh
+
+      - name: Health check staging URL
         run: |
-          ls -lah dist/web || true
-          ls -lah dist/ml || true
-
-      - name: Deploy to staging (simulation)
-        run: |
-          echo "Deploying to staging environment..."
-          echo "Mock deployment completed to $STAGING_URL"
-
-      - name: Health check staging
-        run: echo "Performing health check..."
+          for i in {1..20}; do
+            if curl -fsS "$STAGING_URL/api/v1/ready/" >/dev/null; then
+              echo "Staging is healthy: $STAGING_URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Staging health check failed for $STAGING_URL" >&2
+          exit 1

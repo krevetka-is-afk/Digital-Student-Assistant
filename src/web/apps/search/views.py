@@ -1,5 +1,6 @@
 from apps.projects.models import Project, ProjectStatus
 from apps.projects.serializers import PrimaryProjectSerializer
+from apps.recs.services import search_projects
 from rest_framework import generics
 
 
@@ -8,12 +9,8 @@ class SearchListView(generics.ListAPIView):
     serializer_class = PrimaryProjectSerializer
 
     def get_queryset(self, *args, **kwargs):
-        qs = super().get_queryset(*args, **kwargs)
         q = self.request.GET.get("q")
-        results = Project.objects.none()
-        if q is not None:
-            user = None
-            if self.request.user.is_authenticated:
-                user = self.request.user
-            results = qs.search(q, user=user)
-        return results
+        if not q:
+            return Project.objects.none()
+        _, items = search_projects(q, limit=25)
+        return [item["project"] for item in items]

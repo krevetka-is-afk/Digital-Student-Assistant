@@ -2,12 +2,14 @@ import os
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-from debug_toolbar.settings import PANELS_DEFAULTS
 from dotenv import load_dotenv
 
 # `base.py` lives in `web/config/settings/`, so BASE_DIR is four levels up.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-load_dotenv(BASE_DIR / ".env")
+if os.getenv("DJANGO_LOAD_DOTENV", "").strip().lower() in {"1", "true", "yes", "on"}:
+    load_dotenv(BASE_DIR / ".env")
+elif not os.getenv("DJANGO_SETTINGS_MODULE", "").endswith(".prod"):
+    load_dotenv(BASE_DIR / ".env")
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -24,8 +26,25 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def env_secret(name: str) -> str | None:
+    """Load secret from NAME or from a mounted file via NAME_FILE."""
+    file_var = f"{name}_FILE"
+    file_path = os.getenv(file_var)
+    if file_path:
+        try:
+            value = Path(file_path).read_text(encoding="utf-8").strip()
+            return value or None
+        except OSError as exc:
+            raise RuntimeError(f"Unable to read secret file configured in {file_var}.") from exc
+    value = os.getenv(name)
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
 def database_from_env(default_sqlite_name: str = "db.sqlite3") -> dict[str, dict[str, object]]:
-    raw_url = os.getenv("DATABASE_URL")
+    raw_url = env_secret("DATABASE_URL")
     if not raw_url:
         return {
             "default": {
@@ -68,9 +87,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # third party api src
-    "debug_toolbar",
-    "algoliasearch_django",
     # third party packages
     "rest_framework",
     "rest_framework.authtoken",
@@ -82,6 +98,9 @@ INSTALLED_APPS = [
     "apps.projects",
     "apps.applications",
     "apps.search",
+    "apps.imports",
+    "apps.outbox",
+    "apps.recs",
     # healthchecks
     "health_check",  # core
     # "health_check.urls",
@@ -99,11 +118,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
-]
-
-INTERNAL_IPS = [
-    "127.0.0.1",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -181,14 +195,3 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Versioned REST API for web and future service integrations.",
     "VERSION": "1.0.0",
 }
-
-ALGOLIA = {
-    "APPLICATION_ID": os.getenv("ALGOLIA_APPLICATION_ID", ""),
-    "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),
-    "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "SERJ"),
-    "AUTO_INDEXING": env_bool("ALGOLIA_AUTO_INDEXING", False),
-}
-
-DEBUG_TOOLBAR_PANELS = [
-    p for p in PANELS_DEFAULTS if p != "debug_toolbar.panels.redirects.RedirectsPanel"
-]
