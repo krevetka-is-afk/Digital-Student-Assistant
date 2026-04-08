@@ -2,7 +2,7 @@ name: CI
 on:
   push:
   pull_request:
-    branches: [main]
+    branches: [deploy-staging, main]
 
 permissions:
   contents: read
@@ -390,7 +390,7 @@ jobs:
       - package-and-artifacts-web
       - package-and-artifacts-ml
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/deploy-staging'
     environment:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
