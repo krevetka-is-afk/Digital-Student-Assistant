@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from apps.base.views import health_custom, home_page
+from apps.base.views import health_custom, home_page, readiness
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
@@ -23,6 +23,7 @@ from django.urls import include, path
 urlpatterns = [
     path("", home_page, name="home"),
     path("health/", health_custom, name="health-root"),
+    path("ready/", readiness, name="ready-root"),
     path("admin/", admin.site.urls),
     path("api/", include("config.api_root_urls")),
     path("base/search", include("apps.search.urls")),
@@ -31,7 +32,7 @@ urlpatterns = [
     path("base/v2/", include("config.routers")),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     urlpatterns += [
         path("__debug__/", include("debug_toolbar.urls")),
     ]

@@ -17,11 +17,25 @@ def test_health_root_ok():
     assert r.json() == {"status": "ok"}
 
 
+def test_ready_root_ok():
+    c = Client()
+    r = c.get(reverse("ready-root"))
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok", "checks": {"database": "up"}}
+
+
 def test_api_v1_health_ok():
     c = Client()
     r = c.get(reverse("api-v1-health"))
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
+
+
+def test_api_v1_ready_ok():
+    c = Client()
+    r = c.get(reverse("api-v1-ready"))
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok", "checks": {"database": "up"}}
 
 
 def test_api_v1_projects_list_ok():
