@@ -396,32 +396,58 @@ jobs:
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
     env:
       STAGING_URL: "${{ secrets.STAGING_URL || vars.STAGING_URL || 'https://staging.example' }}"
-      DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Download web package artifact
-        uses: actions/download-artifact@v7.0.0
+      - name: Deploy to staging over SSH + smoke-check
+        uses: appleboy/ssh-action@v1.2.2
         with:
-          name: python-package-web
-          path: dist/web
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
+          script_stop: true
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
 
-      - name: Download ML package artifact
-        uses: actions/download-artifact@v7.0.0
-        with:
-          name: python-package-ml
-          path: dist/ml
+            APP_DIR="${{ secrets.STAGING_APP_DIR }}"
+            TARGET_REF="${{ github.sha }}"
+            EXPECTED_SHA="${{ github.sha }}"
 
-      - name: Inspect package bundles
+            test -n "$APP_DIR"
+            test -d "$APP_DIR"
+            cd "$APP_DIR"
+            test -d .git
+
+            git fetch --all --prune --tags
+            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
+              git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
+              git pull --ff-only origin "$TARGET_REF"
+            else
+              git checkout --detach "$TARGET_REF"
+            fi
+
+            ACTUAL_SHA="$(git rev-parse HEAD)"
+            if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+              echo "Ref mismatch: expected $EXPECTED_SHA, got $ACTUAL_SHA" >&2
+              exit 1
+            fi
+
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
+
+            ENV_FILE=infra/.env.prod \
+            COMPOSE_FILE=infra/docker-compose.prod.yml \
+            PUBLIC_BASE_URL=http://127.0.0.1 \
+            scripts/smoke-prod.sh
+
+      - name: Health check staging URL
         run: |
-          ls -lah dist/web || true
-          ls -lah dist/ml || true
-
-      - name: Deploy to staging (simulation)
-        run: |
-          echo "Deploying to staging environment..."
-          echo "Mock deployment completed to $STAGING_URL"
-
-      - name: Health check staging
-        run: echo "Performing health check..."
+          for i in {1..20}; do
+            if curl -fsS "$STAGING_URL/api/v1/ready/" >/dev/null; then
+              echo "Staging is healthy: $STAGING_URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Staging health check failed for $STAGING_URL" >&2
+          exit 1
