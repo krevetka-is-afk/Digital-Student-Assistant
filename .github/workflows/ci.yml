@@ -395,7 +395,7 @@ jobs:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
     env:
-      STAGING_URL: "${{ secrets.STAGING_URL || vars.STAGING_URL || 'https://staging.example' }}"
+      STAGING_URL: "${{ vars.STAGING_URL || 'https://staging.example' }}"
     steps:
       - name: Deploy to staging over SSH + smoke-check
         uses: appleboy/ssh-action@v1.2.2
