@@ -26,11 +26,11 @@ check_public() {
   local url="$1"
   local expected="$2"
   local body
-  body="$(curl -fsSL "$url")"
+  body="$(curl -fsSL --max-time 5 "$url")"
   if [[ "$body" != *"$expected"* ]]; then
     echo "[FAIL] $url does not contain expected token: $expected" >&2
     echo "Response: $body" >&2
-    exit 1
+    return 1
   fi
   echo "[OK] $url"
 }
