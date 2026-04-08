@@ -404,7 +404,6 @@ jobs:
           username: ${{ secrets.STAGING_SSH_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_SSH_PORT }}
-          script_stop: true
           command_timeout: 40m
           script: |
             set -euo pipefail
