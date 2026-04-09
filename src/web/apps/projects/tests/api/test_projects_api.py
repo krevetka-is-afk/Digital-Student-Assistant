@@ -304,6 +304,35 @@ def test_projects_list_keeps_filters_and_ordering_database_backed():
     assert len(query_context.captured_queries) <= 5
 
 
+def test_projects_list_supports_application_window_state_filter_alias():
+    user = _make_user()
+    open_project = Project.objects.create(
+        title=_title("Open application window"),
+        owner=user,
+        status=ProjectStatus.DRAFT,
+        application_opened_at=timezone.localdate() - timedelta(days=1),
+        application_deadline=timezone.localdate() + timedelta(days=5),
+    )
+    Project.objects.create(
+        title=_title("Closed application window"),
+        owner=user,
+        status=ProjectStatus.DRAFT,
+        application_deadline=timezone.localdate() - timedelta(days=1),
+    )
+
+    client = Client()
+    client.force_login(user)
+    response = client.get(
+        reverse("api-v1-project-list"),
+        data={"status": ProjectStatus.DRAFT, "application_window_state": "open"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["results"][0]["pk"] == open_project.pk
+
+
 def test_projects_list_returns_400_for_invalid_status():
     _make_project(title=_title("Any project"))
     client = Client()

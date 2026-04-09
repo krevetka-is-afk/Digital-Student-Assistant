@@ -88,6 +88,7 @@ def test_api_schema_exposes_projects_query_params():
         "work_format",
         "staffing_state",
         "application_state",
+        "application_window_state",
         "is_team_project",
         "uses_ai",
     }.issubset(param_names)

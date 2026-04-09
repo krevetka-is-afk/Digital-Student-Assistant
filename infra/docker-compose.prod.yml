@@ -31,16 +31,25 @@ services:
       DJANGO_BEHIND_PROXY: "true"
       DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-false}
       DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
+      DSA_BOOTSTRAP_IMPORT_IF_EMPTY: ${DSA_BOOTSTRAP_IMPORT_IF_EMPTY:-false}
+      DSA_BOOTSTRAP_XLSX_PATH: ${DSA_BOOTSTRAP_XLSX_PATH:-/app/bootstrap-data/EPP.xlsx}
+      DSA_BOOTSTRAP_ALLOW_MISSING_XLSX: ${DSA_BOOTSTRAP_ALLOW_MISSING_XLSX:-true}
+      DSA_BOOTSTRAP_FAIL_ON_IMPORT_ERRORS: ${DSA_BOOTSTRAP_FAIL_ON_IMPORT_ERRORS:-true}
+      DSA_BOOTSTRAP_STATE_FILE: ${DSA_BOOTSTRAP_STATE_FILE:-/var/lib/dsa/bootstrap/state.json}
     depends_on:
       postgres:
         condition: service_healthy
       ml:
         condition: service_healthy
+    volumes:
+      - ${BOOTSTRAP_DATA_HOST_DIR:-../.bootstrap-data}:/app/bootstrap-data:ro
+      - bootstrap-state:/var/lib/dsa/bootstrap
     command:
       - sh
       - -ec
       - >
         python manage.py migrate --noinput &&
+        python manage.py bootstrap_epp_if_empty &&
         gunicorn config.wsgi:application
         --bind 0.0.0.0:8000
         --workers ${WEB_CONCURRENCY:-3}
@@ -167,3 +176,4 @@ volumes:
   postgres-prod:
   graph-prod:
   neo4j-prod:
+  bootstrap-state:

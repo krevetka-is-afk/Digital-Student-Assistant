@@ -5,10 +5,12 @@ from apps.outbox.services import emit_event
 from apps.projects.models import Project, ProjectStatus
 from apps.projects.pagination import ProjectListPagination
 from apps.users.models import UserProfile
-from django.db.models import Count, Q
-from django.http import HttpResponse
+from django.db.models import Count, Prefetch, Q
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework import generics, permissions
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,6 +29,16 @@ from .serializers import (
 
 class CPPRPApplicationsPagination(ProjectListPagination):
     page_size = 20
+
+
+def _project_queryset_with_dashboard_counts():
+    return Project.objects.select_related("epp").annotate(
+        applications_count=Count("applications"),
+        submitted_applications_count=Count(
+            "applications",
+            filter=Q(applications__status=ApplicationStatus.SUBMITTED),
+        ),
+    )
 
 
 def _get_profile(user) -> UserProfile:
@@ -73,6 +85,20 @@ def _build_counters(user, profile: UserProfile) -> dict[str, int]:
     }
 
 
+def _parse_application_status_filter(status_raw: str | None) -> str | None:
+    if not status_raw:
+        return None
+    if status_raw not in ApplicationStatus.values:
+        raise ValidationError(
+            {
+                "status": [
+                    "Unsupported status. Allowed: submitted, accepted, rejected.",
+                ]
+            }
+        )
+    return status_raw
+
+
 class AccountMeAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -93,14 +119,17 @@ class StudentOverviewAPIView(APIView):
     def get(self, request):
         role = get_user_role(request.user) or "student"
         profile = _get_profile(request.user)
+        project_queryset = _project_queryset_with_dashboard_counts()
         applications = (
-            Application.objects.select_related("project", "project__epp", "applicant")
+            Application.objects.select_related("applicant")
+            .prefetch_related(Prefetch("project", queryset=project_queryset))
             .filter(applicant=request.user)
             .order_by("-created_at")
         )
         favorites = list(
-            Project.objects.filter(pk__in=profile.favorite_project_ids or [])
-            .select_related("owner", "epp")
+            _project_queryset_with_dashboard_counts()
+            .select_related("owner")
+            .filter(pk__in=profile.favorite_project_ids or [])
             .order_by("-updated_at")
         )
         payload = {
@@ -121,14 +150,8 @@ class CustomerProjectsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return (
-            Project.objects.select_related("epp")
+            _project_queryset_with_dashboard_counts()
             .filter(owner=self.request.user)
-            .annotate(
-                submitted_applications_count=Count(
-                    "applications",
-                    filter=Q(applications__status=ApplicationStatus.SUBMITTED),
-                )
-            )
             .order_by("-updated_at")
         )
 
@@ -139,10 +162,18 @@ class CustomerApplicationsAPIView(generics.ListAPIView):
     pagination_class = ProjectListPagination
 
     def get_queryset(self):
-        return (
-            Application.objects.select_related("project", "project__epp", "applicant")
+        status_filter = _parse_application_status_filter(self.request.query_params.get("status"))
+        queryset = (
+            Application.objects.select_related("applicant")
+            .prefetch_related(
+                Prefetch("project", queryset=_project_queryset_with_dashboard_counts())
+            )
             .filter(project__owner=self.request.user)
-            .order_by("-created_at")
+        )
+        if status_filter is not None:
+            queryset = queryset.filter(status=status_filter)
+        return (
+            queryset.order_by("-created_at")
         )
 
 
@@ -153,14 +184,9 @@ class CPPRPModerationQueueAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return (
-            Project.objects.select_related("epp", "owner")
+            _project_queryset_with_dashboard_counts()
+            .select_related("owner")
             .filter(status=ProjectStatus.ON_MODERATION)
-            .annotate(
-                submitted_applications_count=Count(
-                    "applications",
-                    filter=Q(applications__status=ApplicationStatus.SUBMITTED),
-                )
-            )
             .order_by("-updated_at")
         )
 
@@ -171,7 +197,10 @@ class CPPRPApplicationsAPIView(APIView):
 
     @extend_schema(responses=CPPRPApplicationsOverviewSerializer)
     def get(self, request):
-        queryset = Application.objects.select_related("project", "project__epp", "applicant")
+        status_filter = _parse_application_status_filter(request.query_params.get("status"))
+        queryset = Application.objects.select_related("applicant").prefetch_related(
+            Prefetch("project", queryset=_project_queryset_with_dashboard_counts())
+        )
         totals = {
             ApplicationStatus.SUBMITTED: queryset.filter(
                 status=ApplicationStatus.SUBMITTED
@@ -179,14 +208,17 @@ class CPPRPApplicationsAPIView(APIView):
             ApplicationStatus.ACCEPTED: queryset.filter(status=ApplicationStatus.ACCEPTED).count(),
             ApplicationStatus.REJECTED: queryset.filter(status=ApplicationStatus.REJECTED).count(),
         }
-        recent_queryset = queryset.order_by("-created_at")
+        recent_queryset = queryset
+        if status_filter is not None:
+            recent_queryset = recent_queryset.filter(status=status_filter)
+        recent_queryset = recent_queryset.order_by("-created_at")
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(recent_queryset, request, view=self)
         recent = paginator.get_paginated_response(
-            AccountApplicationSerializer(page, many=True).data
+            AccountApplicationSerializer(page, many=True, context={"request": request}).data
         ).data
         payload = {"totals": totals, "recent": recent}
-        return Response(CPPRPApplicationsOverviewSerializer(payload).data)
+        return Response(payload)
 
 
 class PlatformDeadlineListCreateAPIView(generics.ListCreateAPIView):
@@ -214,6 +246,26 @@ class DocumentTemplateListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return DocumentTemplate.objects.all()
+
+
+class DocumentTemplateDownloadAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses={(302, "text/html"): OpenApiTypes.STR})
+    def get(self, request, pk: int):
+        queryset = DocumentTemplate.objects.filter(is_active=True)
+        if not request.user.is_staff:
+            role = get_user_role(request.user)
+            if role not in {
+                DeadlineAudience.STUDENT,
+                DeadlineAudience.CUSTOMER,
+                DeadlineAudience.CPPRP,
+            }:
+                raise PermissionDenied("You do not have access to template downloads.")
+            queryset = queryset.filter(audience__in=[DeadlineAudience.GLOBAL, role])
+
+        template = get_object_or_404(queryset, pk=pk)
+        return HttpResponseRedirect(template.url)
 
 
 class CPPRPProjectsExportAPIView(APIView):

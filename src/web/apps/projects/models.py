@@ -1,8 +1,7 @@
-from datetime import date
-
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 User = settings.AUTH_USER_MODEL
 
@@ -652,7 +651,7 @@ class Project(models.Model):
 
     @property
     def application_window_state(self) -> str:
-        today = date.today()
+        today = timezone.localdate()
         if self.application_opened_at and today < self.application_opened_at:
             return "upcoming"
         if self.application_deadline and today > self.application_deadline:

@@ -31,9 +31,9 @@ def review_application(
     if normalized_decision not in {"accept", "reject"}:
         raise ValidationError({"decision": ["Unsupported decision. Use 'accept' or 'reject'."]})
 
-    if normalized_decision == "reject" and len(normalized_comment) < 20:
+    if normalized_decision == "reject" and len(normalized_comment) < 50:
         raise ValidationError(
-            {"comment": ["Comment is required and must be at least 20 characters for rejection."]}
+            {"comment": ["Comment is required and must be at least 50 characters for rejection."]}
         )
 
     application.status = (
