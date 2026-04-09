@@ -25,6 +25,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "username", "email", "created_at", "updated_at"]
 
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        if request is None or not getattr(request.user, "is_staff", False):
+            fields["role"].read_only = True
+        return fields
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if (
+            "role" in getattr(self, "initial_data", {})
+            and (request is None or not getattr(request.user, "is_staff", False))
+        ):
+            raise serializers.ValidationError(
+                {"role": ["You cannot change role via this endpoint."]}
+            )
+        return super().validate(attrs)
+
     def get_favorite_projects_count(self, obj) -> int:
         return len(obj.favorite_project_ids or [])
 
