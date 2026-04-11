@@ -94,6 +94,7 @@ Current release surface includes:
 - `imports/epp` and outbox delivery endpoints (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`) for safe downstream graph/ML synchronization
 
 Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `docs/deployment_runbook.md`.
+Admin login and CSRF topology runbook: `docs/ops/admin-login-http-https.md`.
 
 ## Django settings profiles
 
