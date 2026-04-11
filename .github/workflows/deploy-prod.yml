@@ -55,7 +55,12 @@ jobs:
             docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
             docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
 
+            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' infra/.env.prod | cut -d= -f2 | cut -d, -f1)"
+            if [ -z "$PUBLIC_BASE_URL" ]; then
+              PUBLIC_BASE_URL="https://dsa.s3rg.ru"
+            fi
+
             ENV_FILE=infra/.env.prod \
             COMPOSE_FILE=infra/docker-compose.prod.yml \
-            PUBLIC_BASE_URL=http://127.0.0.1 \
+            PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
             scripts/smoke-prod.sh
