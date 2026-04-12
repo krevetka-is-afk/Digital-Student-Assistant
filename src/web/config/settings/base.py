@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     "apps.imports",
     "apps.outbox",
     "apps.recs",
+    "apps.frontend",
     # healthchecks
     "health_check",  # core
     # "health_check.urls",

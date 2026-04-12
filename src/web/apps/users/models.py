@@ -26,6 +26,12 @@ class UserProfile(models.Model):
         verbose_name="Role",
         help_text="Temporary MVP role for access and filtering.",
     )
+    bio = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Bio",
+        help_text="Short description about the user.",
+    )
     interests = models.JSONField(
         default=list,
         blank=True,

@@ -1,0 +1,131 @@
+{% comment %}
+  Context: page_obj, user_applications, ApplicationStatus, ProjectStatus, query, is_filtered
+{% endcomment %}
+{% load frontend_extras %}
+
+{% if page_obj.object_list %}
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for project in page_obj.object_list %}
+      <article class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all" style="transition-duration:150ms;">
+
+        <!-- Title + status -->
+        <div class="flex items-start justify-between gap-2">
+          <a href="/projects/{{ project.pk }}/"
+             class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2">
+            {{ project.title }}
+          </a>
+          {% if project.status == ProjectStatus.STAFFED %}
+            <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-gray-100 text-gray-500" style="padding-top:3px;padding-bottom:3px;">
+              <span class="w-1 h-1 rounded-full bg-gray-400 inline-block"></span>Укомплектован
+            </span>
+          {% else %}
+            <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-green-50 text-green-700" style="padding-top:3px;padding-bottom:3px;">
+              <span class="w-1 h-1 rounded-full bg-green-500 inline-block"></span>Открыт
+            </span>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <p class="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">
+          {{ project.description|default:"Описание не указано." }}
+        </p>
+
+        <!-- Tech tags -->
+        {% if project.tech_tags %}
+          <div class="flex flex-wrap gap-1">
+            {% for tag in project.tech_tags|slice:":5" %}
+              <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+            {% endfor %}
+            {% if project.tech_tags|length > 5 %}
+              <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-400" style="padding-top:2px;padding-bottom:2px;">+{{ project.tech_tags|length|add:"-5" }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+          <div class="flex items-center gap-1 text-xs text-gray-500">
+            <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>{{ project.accepted_participants_count }}&thinsp;/&thinsp;{{ project.team_size }}</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <a href="/projects/{{ project.pk }}/"
+               class="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+              Подробнее
+            </a>
+            <div class="apply-area" data-project-id="{{ project.pk }}">
+              {% include "frontend/partials/apply_button.html" with application_status=user_applications|get_item:project.pk %}
+            </div>
+          </div>
+        </div>
+
+      </article>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <nav class="flex items-center justify-center gap-1 mt-8">
+
+      {% if page_obj.has_previous %}
+        <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.previous_page_number }}"
+           class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Назад
+        </a>
+      {% endif %}
+
+      <div class="flex items-center gap-1">
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold bg-blue-600 text-white">{{ num }}</span>
+          {% elif num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+            <a href="?{% if query %}q={{ query }}&{% endif %}page={{ num }}"
+               class="w-9 h-9 flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">{{ num }}</a>
+          {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+            <span class="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if page_obj.has_next %}
+        <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.next_page_number }}"
+           class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+          Вперёд
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      {% endif %}
+
+    </nav>
+  {% endif %}
+
+{% else %}
+
+  <!-- Empty state -->
+  <div class="flex flex-col items-center justify-center py-20 text-center">
+    <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+      <svg class="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <p class="text-sm font-medium text-gray-900 mb-1">Проекты не найдены</p>
+    <p class="text-sm text-gray-500 mb-4">
+      {% if is_filtered %}Попробуйте изменить параметры поиска или фильтры.
+      {% else %}Пока нет опубликованных проектов.{% endif %}
+    </p>
+    {% if is_filtered %}
+      <a href="/projects/" class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+        Сбросить фильтры
+      </a>
+    {% endif %}
+  </div>
+
+{% endif %}

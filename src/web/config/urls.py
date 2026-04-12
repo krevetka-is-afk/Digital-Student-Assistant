@@ -16,12 +16,17 @@ Including another URLconf
 """
 
 from apps.base.views import health_custom, home_page, readiness
+from apps.frontend import views as frontend_views
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
+handler404 = frontend_views.error_404
+handler500 = frontend_views.error_500
+
 urlpatterns = [
     path("", home_page, name="home"),
+    path("", include("apps.frontend.urls", namespace="frontend")),
     path("health/", health_custom, name="health-root"),
     path("ready/", readiness, name="ready-root"),
     path("admin/", admin.site.urls),

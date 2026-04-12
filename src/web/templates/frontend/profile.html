@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% load frontend_extras %}
+
+{% block title %}Профиль — Digital Student Assistant{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;">
+
+  <!-- ══ VIEW MODE ══ -->
+  <div id="view-mode">
+
+    <!-- Profile card -->
+    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4"
+         style="box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+
+      <!-- Avatar + name header -->
+      <div class="px-8 pt-7 pb-6 border-b border-gray-100">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-5">
+            <div class="flex items-center justify-center font-bold text-white bg-blue-600 flex-shrink-0"
+                 style="width:64px;height:64px;border-radius:50%;font-size:1.5rem;box-shadow:0 4px 14px rgba(37,99,235,0.25);">
+              {{ profile_user.get_full_name|default:profile_user.username|first|upper }}
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900">
+                {{ profile_user.get_full_name|default:profile_user.username }}
+              </h1>
+              <p class="text-sm text-gray-400 mt-0.5">{{ profile_user.email }}</p>
+              {% if role %}
+              <span style="display:inline-block;margin-top:6px;padding:2px 10px;border-radius:9999px;font-size:0.7rem;font-weight:600;
+                {% if role == 'customer' %}background:#eff6ff;color:#1d4ed8;
+                {% elif role == 'cpprp' %}background:#faf5ff;color:#7c3aed;
+                {% else %}background:#f0fdf4;color:#16a34a;{% endif %}">
+                {{ role|role_label }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+          <!-- Edit button -->
+          <button onclick="enterEditMode()"
+                  class="flex-shrink-0 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  style="margin-top:4px;">
+            Редактировать
+          </button>
+        </div>
+      </div>
+
+      <!-- Info grid -->
+      <div class="px-8 py-5">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+
+          <div>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Логин</p>
+            <p class="text-sm text-gray-900">{{ profile_user.username }}</p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Email</p>
+            <p class="text-sm text-gray-900">{{ profile_user.email }}</p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Роль</p>
+            <p class="text-sm text-gray-900">{{ role|role_label|default:"—" }}</p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">На платформе с</p>
+            <p class="text-sm text-gray-900">{{ profile_user.date_joined|date:"d M Y" }}</p>
+          </div>
+
+        </div>
+
+        <!-- Bio -->
+        {% if profile and profile.bio %}
+        <div class="mt-5 pt-5 border-t border-gray-100">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">О себе</p>
+          <p class="text-sm text-gray-700" style="line-height:1.65;">{{ profile.bio }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Interests (students) -->
+        {% if role == 'student' and profile and profile.interests %}
+        <div class="mt-4 {% if not profile.bio %}pt-5 border-t border-gray-100{% endif %}">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Интересы</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            {% for tag in profile.interests %}
+            <span style="padding:3px 10px;border-radius:9999px;background:#eff6ff;color:#1d4ed8;font-size:0.75rem;font-weight:500;">
+              {{ tag }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+
+      {% if role == 'customer' %}
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ own_projects_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if own_projects_count == 1 %}Проект создан
+          {% elif own_projects_count >= 2 and own_projects_count <= 4 %}Проекта создано
+          {% else %}Проектов создано{% endif %}
+        </p>
+        <a href="{% url 'frontend:project_list' %}"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Мои проекты →
+        </a>
+      </div>
+      {% endif %}
+
+      {% if role == 'student' %}
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ applications_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if applications_count == 1 %}Заявка подана
+          {% elif applications_count >= 2 and applications_count <= 4 %}Заявки подано
+          {% else %}Заявок подано{% endif %}
+        </p>
+        {% if applications_count > 0 %}
+        <a href="{% url 'frontend:application_list' %}"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Мои заявки →
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if role == 'cpprp' %}
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ moderation_queue_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if moderation_queue_count == 1 %}Проект ожидает
+          {% elif moderation_queue_count >= 2 and moderation_queue_count <= 4 %}Проекта ожидает
+          {% else %}Проектов ожидает{% endif %}
+        </p>
+        <a href="{% url 'frontend:moderation_list' %}"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Перейти →
+        </a>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Quick actions -->
+    <div class="bg-white border border-gray-200 rounded-xl px-6 py-4">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Быстрые действия</p>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+
+        {% if role == 'customer' %}
+        <a href="{% url 'frontend:project_create' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Создать новый проект
+        </a>
+        <a href="{% url 'frontend:project_list' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/>
+          </svg>
+          Мои проекты
+        </a>
+        {% endif %}
+
+        {% if role == 'student' %}
+        <a href="{% url 'frontend:application_list' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Мои заявки
+        </a>
+        <a href="{% url 'frontend:project_list' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/>
+          </svg>
+          Каталог проектов
+        </a>
+        {% endif %}
+
+        {% if role == 'cpprp' %}
+        <a href="{% url 'frontend:moderation_list' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          Очередь модерации
+        </a>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+  <!-- /view-mode -->
+
+
+  <!-- ══ EDIT MODE ══ -->
+  <div id="edit-mode" style="display:none;">
+
+    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4"
+         style="box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+
+      <!-- Header -->
+      <div class="px-8 pt-6 pb-5 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="text-base font-semibold text-gray-900">Редактировать профиль</h2>
+        <button type="button" onclick="exitEditMode()"
+                class="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+          Отмена
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form method="post" id="profile-edit-form" class="px-8 py-6" novalidate>
+        {% csrf_token %}
+
+        <!-- Full name -->
+        <div class="mb-5">
+          <label for="id_full_name"
+                 class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            Имя
+          </label>
+          <input type="text" name="full_name" id="id_full_name"
+                 value="{{ profile_user.get_full_name }}"
+                 placeholder="Иван Иванов"
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
+                 style="background:#fafafa;">
+          <p class="text-xs text-gray-400 mt-1">Отображается в профиле и в шапке</p>
+        </div>
+
+        <!-- Bio -->
+        <div class="mb-5">
+          <label for="id_bio"
+                 class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            О себе
+          </label>
+          <textarea name="bio" id="id_bio" rows="4"
+                    placeholder="Расскажите кратко о себе, своём опыте и целях..."
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition resize-none"
+                    style="background:#fafafa;">{{ profile.bio|default:"" }}</textarea>
+        </div>
+
+        <!-- Interests (students only) -->
+        {% if role == 'student' %}
+        <div class="mb-6">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            Интересы
+          </label>
+          <input type="hidden" name="interests_raw" id="interests_raw_input"
+                 value="{{ interests_initial }}">
+          <div id="interests-chip-container"
+               class="border border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition cursor-text"
+               style="background:#fafafa;min-height:42px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"
+               onclick="document.getElementById('interests-input').focus()">
+            <div id="interests-chips" style="display:contents;"></div>
+            <input id="interests-input" type="text"
+                   placeholder="Введите тег и нажмите Enter"
+                   class="border-none outline-none bg-transparent text-sm flex-1"
+                   style="min-width:140px;"
+                   onkeydown="handleInterestKey(event)"
+                   onblur="addInterestTag()">
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Enter или запятая — добавить тег, Backspace — удалить последний</p>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="flex items-center gap-3">
+          <button type="submit" id="profile-save-btn"
+                  class="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <span id="profile-save-text">Сохранить</span>
+            <svg id="profile-save-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+          </button>
+          <button type="button" onclick="exitEditMode()"
+                  class="px-5 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+            Отмена
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+  <!-- /edit-mode -->
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// ── View / edit toggle ─────────────────────────────────────────────────────
+function enterEditMode() {
+  document.getElementById('view-mode').style.display = 'none';
+  document.getElementById('edit-mode').style.display = 'block';
+  initInterestChips();
+}
+function exitEditMode() {
+  document.getElementById('edit-mode').style.display = 'none';
+  document.getElementById('view-mode').style.display = 'block';
+}
+
+// ── Save spinner ───────────────────────────────────────────────────────────
+document.getElementById('profile-edit-form').addEventListener('submit', function() {
+  document.getElementById('profile-save-text').textContent = 'Сохранение...';
+  document.getElementById('profile-save-spinner').classList.remove('hidden');
+  document.getElementById('profile-save-btn').disabled = true;
+});
+
+// ── Interest chip input ────────────────────────────────────────────────────
+var _interests = [];
+
+function initInterestChips() {
+  var raw = document.getElementById('interests_raw_input').value;
+  _interests = raw ? raw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  renderInterestChips();
+}
+
+function renderInterestChips() {
+  var container = document.getElementById('interests-chips');
+  if (!container) return;
+  container.innerHTML = '';
+  _interests.forEach(function(tag, idx) {
+    var chip = document.createElement('span');
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 10px;background:#eff6ff;color:#1d4ed8;border-radius:9999px;font-size:0.75rem;font-weight:500;white-space:nowrap;';
+    chip.innerHTML = tag + '<button type="button" onclick="removeInterestTag(' + idx + ')" style="color:#93c5fd;font-size:0.9rem;line-height:1;background:none;border:none;cursor:pointer;padding:0;">×</button>';
+    container.appendChild(chip);
+  });
+  syncInterests();
+}
+
+function syncInterests() {
+  var input = document.getElementById('interests_raw_input');
+  if (input) input.value = _interests.join(',');
+}
+
+function addInterestTag() {
+  var input = document.getElementById('interests-input');
+  if (!input) return;
+  var val = input.value.trim().replace(/,+$/, '');
+  if (val && !_interests.includes(val)) {
+    _interests.push(val);
+    renderInterestChips();
+  }
+  input.value = '';
+}
+
+function removeInterestTag(idx) {
+  _interests.splice(idx, 1);
+  renderInterestChips();
+}
+
+function handleInterestKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addInterestTag();
+  } else if (e.key === 'Backspace' && document.getElementById('interests-input').value === '' && _interests.length) {
+    _interests.pop();
+    renderInterestChips();
+  }
+}
+</script>
+{% endblock %}
