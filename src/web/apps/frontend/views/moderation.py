@@ -1,3 +1,5 @@
+from apps.projects.models import Project, ProjectStatus
+from apps.users.utils import user_is_moderator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -5,11 +7,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.projects.models import Project, ProjectStatus
-from apps.users.utils import user_is_moderator
-
 from .projects import PAGE_SIZE
-
 
 # ---------------------------------------------------------------------------
 # Moderation Queue (CPPRP/staff: review projects awaiting moderation)
@@ -46,7 +44,8 @@ def moderation_list(request):
 def moderate_project_decide(request, pk):
     """CPPRP/staff approves or rejects a project in moderation."""
     from apps.projects.transitions import moderate_project
-    from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
+    from rest_framework.exceptions import PermissionDenied
+    from rest_framework.exceptions import ValidationError as DRFValidationError
 
     project  = get_object_or_404(Project, pk=pk)
     decision = request.POST.get("decision", "").strip()

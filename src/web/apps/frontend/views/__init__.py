@@ -1,24 +1,24 @@
 # Re-export all views so that urls.py (which does `from . import views`)
 # continues to work without any changes.
 
-from .auth import auth_view, logout_view, error_404, error_500
-from .projects import (
-    project_list,
-    project_detail,
-    project_create,
-    project_edit,
-    project_submit_moderation,
-    project_delete,
-)
 from .applications import (
-    apply_to_project,
-    submit_application,
     application_list,
+    apply_to_project,
     project_applications,
     review_application_view,
+    submit_application,
 )
-from .moderation import moderation_list, moderate_project_decide
+from .auth import auth_view, error_404, error_500, logout_view
+from .moderation import moderate_project_decide, moderation_list
 from .profile import profile_view
+from .projects import (
+    project_create,
+    project_delete,
+    project_detail,
+    project_edit,
+    project_list,
+    project_submit_moderation,
+)
 
 __all__ = [
     # auth

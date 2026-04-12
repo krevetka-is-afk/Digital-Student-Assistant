@@ -1,10 +1,9 @@
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
-
 from apps.applications.models import Application
 from apps.projects.models import Project, ProjectStatus
 from apps.users.models import UserRole
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 
 
 @login_required(login_url="/auth/")
