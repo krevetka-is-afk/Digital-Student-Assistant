@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_create %}Новый проект{% else %}Редактировать: {{ project.title }}{% endif %} — DSA{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="mb-6">
+  {% if is_create %}
+    <a href="{% url 'frontend:project_list' %}"
+       class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Все проекты
+    </a>
+  {% else %}
+    <a href="{% url 'frontend:project_detail' project.pk %}"
+       class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      {{ project.title }}
+    </a>
+  {% endif %}
+</div>
+
+<!-- Form card -->
+<div style="max-width:640px;margin:0 auto;">
+  <div class="bg-white border border-gray-200 rounded-xl p-6 sm:p-8">
+
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-xl font-semibold text-gray-900">
+        {% if is_create %}Новый проект{% else %}Редактировать проект{% endif %}
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">
+        {% if is_create %}Заполните основную информацию. После создания проект будет сохранён как черновик.
+        {% else %}Вы редактируете черновик. Изменения сохранятся немедленно.{% endif %}
+      </p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- ── Title ─────────────────────────────────────────────── -->
+      <div class="mb-5">
+        <label for="id_title" class="block text-sm font-medium text-gray-700 mb-1">
+          Название <span class="text-red-400">*</span>
+        </label>
+        <input
+          id="id_title"
+          type="text"
+          name="title"
+          value="{{ form.title.value|default:'' }}"
+          maxlength="255"
+          placeholder="Например: Разработка мобильного приложения"
+          autofocus
+          class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if form.title.errors %}border-red-400{% else %}border-gray-200{% endif %}"
+        >
+        {% if form.title.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.title.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- ── Description ───────────────────────────────────────── -->
+      <div class="mb-5">
+        <label for="id_description" class="block text-sm font-medium text-gray-700 mb-1">
+          Описание
+        </label>
+        <textarea
+          id="id_description"
+          name="description"
+          rows="5"
+          placeholder="Кратко опишите суть проекта, задачи и ожидаемый результат..."
+          class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-colors {% if form.description.errors %}border-red-400{% else %}border-gray-200{% endif %}"
+          style="font-family:inherit;line-height:1.6;"
+        >{{ form.description.value|default:'' }}</textarea>
+        {% if form.description.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.description.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- ── Tech tags (chip input) ─────────────────────────────── -->
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Технологии
+        </label>
+
+        <!-- Chips display -->
+        <div id="tags-chips"
+             class="flex flex-wrap gap-1 mb-2"
+             style="min-height:0;"></div>
+
+        <!-- Text input for typing tags -->
+        <input
+          id="tags-text-input"
+          type="text"
+          placeholder="Введите тег и нажмите Enter или ,"
+          autocomplete="off"
+          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+        >
+
+        <!-- Hidden field — comma-separated list sent to server -->
+        <input type="hidden" name="tech_tags_raw" id="tags-hidden" value="{{ tags_initial }}">
+
+        <p class="mt-1 text-xs text-gray-400">
+          Enter или , — добавить тег &nbsp;·&nbsp; × — удалить
+        </p>
+        {% if form.tech_tags_raw.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.tech_tags_raw.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- ── Team size ─────────────────────────────────────────── -->
+      <div class="mb-8">
+        <label for="id_team_size" class="block text-sm font-medium text-gray-700 mb-1">
+          Размер команды <span class="text-red-400">*</span>
+        </label>
+        <div class="flex items-center gap-3">
+          <input
+            id="id_team_size"
+            type="number"
+            name="team_size"
+            value="{{ form.team_size.value|default:'1' }}"
+            min="1"
+            max="100"
+            style="width:100px;"
+            class="px-3 py-2 text-sm border rounded-lg bg-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if form.team_size.errors %}border-red-400{% else %}border-gray-200{% endif %}"
+          >
+          <span class="text-sm text-gray-500">участников</span>
+        </div>
+        {% if form.team_size.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.team_size.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- ── Actions ───────────────────────────────────────────── -->
+      <div class="flex items-center gap-3 pt-4 border-t border-gray-100">
+        <button
+          type="submit"
+          id="submit-btn"
+          class="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+          <svg id="submit-spinner" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" style="display:none;">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span id="submit-text">
+            {% if is_create %}Создать проект{% else %}Сохранить изменения{% endif %}
+          </span>
+        </button>
+
+        {% if is_create %}
+          <a href="{% url 'frontend:project_list' %}"
+             class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+            Отмена
+          </a>
+        {% else %}
+          <a href="{% url 'frontend:project_detail' project.pk %}"
+             class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+            Отмена
+          </a>
+        {% endif %}
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Status note for edit -->
+  {% if not is_create %}
+  <p class="text-xs text-gray-400 text-center mt-4">
+    Статус проекта: <strong>{{ project.get_status_display }}</strong>.
+    {% if project.status == "draft" %}После редактирования отправьте проект на модерацию.{% endif %}
+  </p>
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var chipsEl  = document.getElementById('tags-chips');
+  var textEl   = document.getElementById('tags-text-input');
+  var hiddenEl = document.getElementById('tags-hidden');
+
+  /* Parse initial tags from hidden input */
+  var tags = hiddenEl.value
+    ? hiddenEl.value.split(',').map(function(t){ return t.trim(); }).filter(Boolean)
+    : [];
+
+  function sync() {
+    hiddenEl.value = tags.join(', ');
+  }
+
+  function render() {
+    chipsEl.innerHTML = '';
+    tags.forEach(function(tag, i) {
+      var chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:500;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;';
+      chip.innerHTML =
+        tag +
+        '<button type="button" data-i="' + i + '" ' +
+        'style="background:none;border:none;cursor:pointer;color:#60a5fa;font-size:14px;line-height:1;padding:0 0 0 2px;" ' +
+        'title="Удалить">×</button>';
+      chip.querySelector('button').addEventListener('click', function() {
+        tags.splice(parseInt(this.dataset.i), 1);
+        render(); sync();
+      });
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function addTag(raw) {
+    var tag = raw.trim().toLowerCase().replace(/,/g, '');
+    if (tag && tags.indexOf(tag) === -1) {
+      tags.push(tag);
+      render(); sync();
+    }
+    textEl.value = '';
+  }
+
+  textEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(textEl.value);
+    }
+    if (e.key === 'Backspace' && textEl.value === '' && tags.length) {
+      tags.pop();
+      render(); sync();
+    }
+  });
+
+  textEl.addEventListener('blur', function() {
+    if (textEl.value.trim()) addTag(textEl.value);
+  });
+
+  /* Submit: show spinner */
+  document.querySelector('form').addEventListener('submit', function() {
+    if (textEl.value.trim()) addTag(textEl.value);
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-spinner').style.display = 'inline-block';
+    document.getElementById('submit-text').style.display    = 'none';
+  });
+
+  render();
+})();
+</script>
+{% endblock %}

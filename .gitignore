@@ -221,3 +221,5 @@ docs/issues/*
 data_source/
 .xlsx
 .omx/
+
+scripts/

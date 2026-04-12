@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% load frontend_extras %}
+
+{% block title %}Проекты — Digital Student Assistant{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* HTMX helpers */
+  .htmx-indicator { display: none; }
+  .htmx-request .htmx-indicator { display: inline-flex; }
+  .htmx-request .htmx-not-indicator { display: none; }
+
+  /* Line clamp */
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Horizontal scroll without snap (v2 compat) */
+  .scroll-x { overflow-x: auto; padding-bottom: 8px; }
+  .scroll-x::-webkit-scrollbar { height: 4px; }
+  .scroll-x::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
+  .scroll-x::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="mb-6">
+  <h1 class="text-xl font-semibold text-gray-900">Проекты</h1>
+  <p class="mt-1 text-sm text-gray-500">Найдите проект и присоединитесь к команде</p>
+</div>
+
+<!-- Search + Filters row -->
+<div class="flex flex-col sm:flex-row gap-3 mb-8">
+
+  <!-- Search input -->
+  <div class="relative flex-1" style="max-width: 32rem;">
+    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+      <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 5.5 5.5a7.5 7.5 0 0 0 10.65 10.65z" />
+      </svg>
+    </div>
+    <input
+      id="search-input"
+      type="search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Поиск проектов..."
+      autocomplete="off"
+      hx-get="/projects/"
+      hx-target="#projects-section"
+      hx-trigger="input delay:350ms, search"
+      hx-include="#filter-form"
+      hx-push-url="true"
+      class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+    />
+    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 htmx-indicator" id="search-spinner">
+      <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form id="filter-form"
+        hx-get="/projects/"
+        hx-target="#projects-section"
+        hx-trigger="change"
+        hx-include="#search-input"
+        hx-push-url="true"
+        class="flex items-center gap-2 flex-wrap">
+
+    <!-- Tech tags dropdown -->
+    <div class="relative">
+      <button type="button"
+              onclick="this.parentElement.querySelector('.tag-dropdown').classList.toggle('hidden')"
+              class="inline-flex items-center gap-1 px-3 py-2 text-sm border rounded-lg bg-white transition-colors {% if tech_tags_filter %}border-blue-500 text-blue-600 bg-blue-50{% else %}border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900{% endif %}">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+        </svg>
+        Технологии
+        {% if tech_tags_filter %}
+          <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-xs font-bold">{{ tech_tags_filter|length }}</span>
+        {% endif %}
+        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <div class="tag-dropdown hidden absolute left-0 top-full mt-1 z-20 w-56 bg-white border border-gray-200 rounded-xl shadow-lg p-2">
+        {% if all_tags %}
+          {% for tag in all_tags %}
+            <label class="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700">
+              <input type="checkbox" name="tech_tags" value="{{ tag }}"
+                     {% if tag in tech_tags_filter %}checked{% endif %}
+                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                     onchange="this.closest('form').dispatchEvent(new Event('change'))">
+              {{ tag }}
+            </label>
+          {% endfor %}
+        {% else %}
+          <p class="px-2 py-1 text-xs text-gray-400">Нет доступных тегов</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Team size -->
+    <select name="team_size"
+            class="px-3 py-2 text-sm border rounded-lg bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {% if team_size_filter %}border-blue-500 text-blue-600{% else %}border-gray-200 text-gray-600 hover:border-gray-300{% endif %}">
+      <option value="">Размер команды</option>
+      {% for n in "12345"|make_list %}
+        <option value="{{ n }}" {% if team_size_filter == n %}selected{% endif %}>{{ n }} чел.</option>
+      {% endfor %}
+      <option value="6" {% if team_size_filter == "6" %}selected{% endif %}>6+ чел.</option>
+    </select>
+
+    {% if is_filtered %}
+      <a href="/projects/" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+        Сбросить
+      </a>
+    {% endif %}
+
+  </form>
+</div>
+
+<!-- Recommended section -->
+{% if recommended and not is_filtered %}
+<section class="mb-10">
+  <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Рекомендуемые</h2>
+
+  <div class="scroll-x flex gap-4" style="margin: 0 -4px; padding: 4px;">
+    {% for project in recommended %}
+      <article class="flex-shrink-0 w-72 bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-2 hover:border-gray-300 hover:shadow-sm transition-all" style="transition-duration: 150ms;">
+
+        <div class="flex items-start justify-between gap-2">
+          <a href="/projects/{{ project.pk }}/"
+             class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2">
+            {{ project.title }}
+          </a>
+          {% if project.status == ProjectStatus.STAFFED %}
+            <span class="flex-shrink-0 text-xs text-gray-400 bg-gray-100 px-2 py-0 rounded-full" style="padding-top:2px;padding-bottom:2px;">Закрыт</span>
+          {% else %}
+            <span class="flex-shrink-0 text-xs text-green-700 bg-green-50 px-2 rounded-full" style="padding-top:2px;padding-bottom:2px;">Открыт</span>
+          {% endif %}
+        </div>
+
+        <p class="text-xs text-gray-500 leading-relaxed line-clamp-2 flex-1">
+          {{ project.description|default:"—" }}
+        </p>
+
+        {% if project.tech_tags %}
+          <div class="flex flex-wrap gap-1">
+            {% for tag in project.tech_tags|slice:":3" %}
+              <span class="px-2 rounded text-xs bg-gray-100 text-gray-600" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+          <span class="text-xs text-gray-400">
+            {{ project.accepted_participants_count }}&thinsp;/&thinsp;{{ project.team_size }} участников
+          </span>
+          <div class="apply-area" data-project-id="{{ project.pk }}">
+            {% include "frontend/partials/apply_button.html" with application_status=user_applications|get_item:project.pk %}
+          </div>
+        </div>
+
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- All projects -->
+<section>
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      {% if is_filtered %}Результаты поиска{% else %}Все проекты{% endif %}
+    </h2>
+    {% if page_obj.paginator.count %}
+      <span class="text-xs text-gray-400">{{ page_obj.paginator.count }} проект{{ page_obj.paginator.count|pluralize:",,ов" }}</span>
+    {% endif %}
+  </div>
+
+  <div id="projects-section" hx-indicator="#search-spinner">
+    {% include "frontend/partials/projects_grid.html" %}
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<!-- Shared Apply Modal -->
+<div id="shared-apply-modal"
+     style="display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;padding:1rem;"
+     onclick="if(event.target===this) closeApplyModal()">
+
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
+
+  <div style="position:relative;background:#fff;border-radius:0.875rem;width:100%;max-width:28rem;box-shadow:0 20px 60px rgba(0,0,0,0.15);overflow:hidden;">
+
+    <div style="padding:1.25rem 1.5rem 0;">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900">Подать заявку</h3>
+          <p id="modal-project-title" class="text-xs text-gray-500 mt-0.5"></p>
+        </div>
+        <button type="button" onclick="closeApplyModal()"
+                class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors" style="margin-top:2px;">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <form id="shared-apply-form" style="padding:1rem 1.5rem 1.5rem;">
+      <div style="margin-bottom:1rem;">
+        <label for="modal-motivation" class="block text-sm font-medium text-gray-700 mb-1">
+          Мотивация <span class="text-gray-400 font-normal">(необязательно)</span>
+        </label>
+        <textarea id="modal-motivation" name="motivation" rows="4"
+          placeholder="Расскажите, почему вас заинтересовал этот проект..."
+          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors"
+          style="font-family:inherit;line-height:1.5;"></textarea>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="closeApplyModal()"
+                class="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+          Отмена
+        </button>
+        <button id="modal-submit-btn" type="submit"
+                class="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+          <svg id="modal-spinner" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"
+               style="display:none;">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span id="modal-submit-text">Отправить заявку</span>
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+<script>
+  /* ── Tag dropdown close on outside click ─────────────────────── */
+  document.addEventListener('click', function(e) {
+    document.querySelectorAll('.tag-dropdown').forEach(function(el) {
+      if (!el.parentElement.contains(e.target)) el.classList.add('hidden');
+    });
+  });
+
+  /* ── Shared Apply Modal ───────────────────────────────────────── */
+  var _applyPk = null;
+
+  window.openApplyModal = function(pk, title) {
+    _applyPk = pk;
+    document.getElementById('modal-project-title').textContent = title;
+    document.getElementById('modal-motivation').value = '';
+    document.getElementById('modal-submit-btn').disabled = false;
+    document.getElementById('modal-spinner').style.display = 'none';
+    document.getElementById('modal-submit-text').style.display = '';
+    document.getElementById('shared-apply-modal').style.display = 'flex';
+    setTimeout(function() {
+      document.getElementById('modal-motivation').focus();
+    }, 50);
+  };
+
+  function closeApplyModal() {
+    document.getElementById('shared-apply-modal').style.display = 'none';
+    _applyPk = null;
+  }
+
+  document.getElementById('shared-apply-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!_applyPk) return;
+
+    var pk         = _applyPk;
+    var motivation = document.getElementById('modal-motivation').value;
+    var submitBtn  = document.getElementById('modal-submit-btn');
+    var spinner    = document.getElementById('modal-spinner');
+    var submitText = document.getElementById('modal-submit-text');
+
+    /* Loading state */
+    submitBtn.disabled = true;
+    spinner.style.display    = 'inline-block';
+    submitText.style.display = 'none';
+
+    /* CSRF token from cookie */
+    var csrf = '';
+    document.cookie.split(';').forEach(function(c) {
+      var p = c.trim();
+      if (p.startsWith('csrftoken=')) csrf = p.slice('csrftoken='.length);
+    });
+
+    var body = new FormData();
+    body.append('motivation', motivation);
+    body.append('source', 'card');
+    body.append('csrfmiddlewaretoken', csrf);
+
+    fetch('/projects/' + pk + '/submit-application/', {
+      method: 'POST',
+      body: body,
+    })
+    .then(function(res) {
+      /* Handle HX-Trigger toast */
+      var trigger = res.headers.get('HX-Trigger');
+      if (trigger) {
+        try {
+          var t = JSON.parse(trigger);
+          if (t.showToast && window.showToast) {
+            window.showToast(t.showToast.message, t.showToast.type);
+          }
+        } catch (_) {}
+      }
+      return res.text();
+    })
+    .then(function(html) {
+      /* Update ALL cards for this project (recommended + grid) */
+      document.querySelectorAll('.apply-area[data-project-id="' + pk + '"]')
+        .forEach(function(el) { el.innerHTML = html; });
+      closeApplyModal();
+    })
+    .catch(function() {
+      if (window.showToast) window.showToast('Ошибка при отправке заявки', 'error');
+      submitBtn.disabled = false;
+      spinner.style.display    = 'none';
+      submitText.style.display = '';
+    });
+  });
+</script>
+{% endblock %}
