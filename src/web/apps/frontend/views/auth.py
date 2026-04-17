@@ -66,7 +66,14 @@ def auth_view(request):
 
                 if user is not None:
                     auth_login(request, user)
-                    return redirect(_safe_redirect_target(request, next_url))
+                    safe_next = _safe_redirect_target(request, next_url)
+                    if url_has_allowed_host_and_scheme(
+                        url=safe_next,
+                        allowed_hosts={request.get_host()},
+                        require_https=request.is_secure(),
+                    ):
+                        return redirect(safe_next)
+                    return redirect("frontend:project_list")
                 else:
                     login_errors["general"] = "Неверный email или пароль."
 
