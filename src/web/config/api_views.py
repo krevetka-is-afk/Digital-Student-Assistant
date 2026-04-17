@@ -17,11 +17,6 @@ class ApiRootView(APIView):
                 },
                 "schema": reverse("api-schema", request=request),
                 "docs": reverse("api-docs", request=request),
-                "legacy": {
-                    "deprecated": True,
-                    "root": reverse("legacy-api-root", request=request),
-                    "add": reverse("legacy-api-add", request=request),
-                },
             }
         )
 
