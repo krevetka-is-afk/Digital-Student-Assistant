@@ -95,6 +95,8 @@ Current release surface includes:
 
 Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `docs/deployment_runbook.md`.
 Admin login and CSRF topology runbook: `docs/ops/admin-login-http-https.md`.
+VM sizing load-test
+Executable `k6` scenarios for that runbook live in `perf/k6/`.
 
 ## Django settings profiles
 
