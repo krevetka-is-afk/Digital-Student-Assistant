@@ -32,7 +32,9 @@ class ImportRunListCreateAPIView(generics.ListCreateAPIView):
         path: Path | None = None
         try:
             if upload is not None:
-                suffix = Path(upload.name).suffix or ".xlsx"
+                raw_suffix = Path(getattr(upload, "name", "")).suffix.lower()
+                allowed_suffixes = {".xlsx", ".xlsm"}
+                suffix = raw_suffix if raw_suffix in allowed_suffixes else ".xlsx"
                 with NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
                     for chunk in upload.chunks():
                         tmp_file.write(chunk)
