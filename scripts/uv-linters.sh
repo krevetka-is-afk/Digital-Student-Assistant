@@ -10,15 +10,20 @@ export UV_CACHE_DIR="${UV_CACHE_DIR:-$repo_root/.tmp/uv-cache}"
 mkdir -p "$repo_root/.tmp"
 
 # Keep a single workspace environment. Per-package `uv sync` calls mutate the same
-# `.venv` and can evict shared dev tools such as ruff/black/isort/pre-commit.
+# `.venv` and can evict shared dev tools such as ruff/ty/black/isort/pre-commit.
 uv sync --all-packages --group dev --frozen
 
 python_bin="$repo_root/.venv/bin/python"
 pytest_bin="$repo_root/.venv/bin/pytest"
 ruff_bin="$repo_root/.venv/bin/ruff"
+ty_bin="$repo_root/.venv/bin/ty"
 pre_commit_bin="$repo_root/.venv/bin/pre-commit"
 
 "$ruff_bin" check --fix .
+
+if [[ "${CHECK_TYPES:-0}" == "1" ]]; then
+    "$ty_bin" check "${TY_PATHS:-src/web}"
+fi
 
 if [[ "${CHECK_BUILD:-0}" == "1" ]]; then
     (
