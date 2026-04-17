@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit
+
 from apps.users.models import UserProfile, UserRole
 from django.contrib import messages
 from django.contrib.auth import (
@@ -12,18 +14,25 @@ from django.contrib.auth import (
 )
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 
 def _safe_redirect_target(request, raw_next_url: str) -> str:
-    candidate = raw_next_url.strip()
-    if candidate and url_has_allowed_host_and_scheme(
-        url=candidate,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        return candidate
+    candidate = (raw_next_url or "").strip()
+    if not candidate:
+        return reverse("frontend:project_list")
+
+    # Resolve user-provided "next" only to server allowlisted internal routes.
+    path = urlsplit(candidate).path
+    allowed_paths_to_names = {
+        reverse("frontend:project_list"): "frontend:project_list",
+        reverse("frontend:auth"): "frontend:auth",
+    }
+
+    route_name = allowed_paths_to_names.get(path)
+    if route_name:
+        return reverse(route_name)
+
     return reverse("frontend:project_list")
 
 
@@ -67,13 +76,7 @@ def auth_view(request):
                 if user is not None:
                     auth_login(request, user)
                     safe_next = _safe_redirect_target(request, next_url)
-                    if url_has_allowed_host_and_scheme(
-                        url=safe_next,
-                        allowed_hosts={request.get_host()},
-                        require_https=request.is_secure(),
-                    ):
-                        return redirect(safe_next)
-                    return redirect("frontend:project_list")
+                    return redirect(safe_next)
                 else:
                     login_errors["general"] = "Неверный email или пароль."
 
