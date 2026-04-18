@@ -23,19 +23,18 @@ class ImportRunListCreateAPIView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         upload = request.FILES.get("file")
+        source_name = Path(getattr(upload, "name", "")).name or default_epp_xlsx_path().name
         import_run = ImportRun.objects.create(
             source="xlsx",
-            source_name=getattr(upload, "name", default_epp_xlsx_path().name),
+            source_name=source_name,
             imported_by_id=request.user.id,
             status="running",
         )
         path: Path | None = None
         try:
             if upload is not None:
-                raw_suffix = Path(getattr(upload, "name", "")).suffix.lower()
-                allowed_suffixes = {".xlsx", ".xlsm"}
-                suffix = raw_suffix if raw_suffix in allowed_suffixes else ".xlsx"
-                with NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+                # The importer reads the archive directly, so the temp suffix stays fixed.
+                with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
                     for chunk in upload.chunks():
                         tmp_file.write(chunk)
                     path = Path(tmp_file.name)
