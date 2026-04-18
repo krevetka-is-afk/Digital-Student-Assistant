@@ -2,7 +2,7 @@
 
 Цифровой Ассистент Студента - это платформа подбора и сопровождения студенческих проектов. Текущий runtime состоит из Django + DRF backend с role-based личными кабинетами (`student`, `customer`, `cpprp`), отдельного ML-сервиса для поиска/рекомендаций и graph сервиса, который строит связи между студентами, научными руководителями, тегами и заявками из outbox-событий. Этот backend выступает как эволюционный дубликат существующего контура.
 
-![CI](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/ci.yml/badge.svg) [![Deploy Production](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml/badge.svg)](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml)
 
 ## Быстрый старт
 
