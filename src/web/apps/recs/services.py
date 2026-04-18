@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from typing import Iterable, TypedDict
+from typing import Iterable, TypedDict, cast
 
 import requests
 from apps.projects.models import Project, ProjectStatus
@@ -38,17 +38,16 @@ def _tokenize(value: str) -> set[str]:
 
 
 def _project_text(project: Project) -> str:
-    return " ".join(
-        [
-            project.title or "",
-            project.description or "",
-            project.vacancy_title or "",
-            project.thesis_title or "",
-            project.implementation_features or "",
-            project.selection_criteria or "",
-            " ".join(project.get_tags_list()),
-        ]
-    )
+    parts: list[str] = [
+        project.title or "",
+        project.description or "",
+        project.vacancy_title or "",
+        project.thesis_title or "",
+        project.implementation_features or "",
+        project.selection_criteria or "",
+        " ".join(project.get_tags_list()),
+    ]
+    return " ".join(parts)
 
 
 def _heuristic_rank(
@@ -113,15 +112,18 @@ def _normalize_remote_items(items: object) -> list[MLRankedItem] | None:
     for item in items:
         if not isinstance(item, dict):
             continue
+        item_dict = cast(dict[str, object], item)
+        project_id_raw = item_dict.get("project_id")
         try:
-            project_id = int(item.get("project_id"))
+            project_id = int(cast(int | str, project_id_raw))
         except (TypeError, ValueError):
             continue
+        score_raw = item_dict.get("score", 0)
         try:
-            score = float(item.get("score", 0))
+            score = float(cast(int | float | str, score_raw))
         except (TypeError, ValueError):
             score = 0.0
-        reason_raw = item.get("reason")
+        reason_raw = item_dict.get("reason")
         reason = str(reason_raw) if reason_raw is not None else ML_DEFAULT_REASON
         normalized.append({"project_id": project_id, "score": score, "reason": reason})
     return normalized

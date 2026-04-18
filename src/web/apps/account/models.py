@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db import models
 
 
@@ -27,7 +29,7 @@ class PlatformDeadline(models.Model):
         ordering = ["ends_at", "title"]
 
     def __str__(self) -> str:
-        return self.title
+        return cast(str, self.title)
 
 
 class DocumentTemplate(models.Model):
@@ -49,4 +51,4 @@ class DocumentTemplate(models.Model):
         ordering = ["title"]
 
     def __str__(self) -> str:
-        return self.title
+        return cast(str, self.title)

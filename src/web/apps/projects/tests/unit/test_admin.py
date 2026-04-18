@@ -60,7 +60,8 @@ def test_project_admin_actions_registered():
 
 def test_project_admin_publish_action_updates_status():
     project_admin = _project_admin()
-    project_admin.message_user = MagicMock()
+    message_user = MagicMock()
+    setattr(project_admin, "message_user", message_user)
     request = MagicMock()
     queryset = MagicMock()
     queryset.exclude.return_value.update.return_value = 2
@@ -69,12 +70,13 @@ def test_project_admin_publish_action_updates_status():
 
     queryset.exclude.assert_called_once_with(status=ProjectStatus.PUBLISHED)
     queryset.exclude.return_value.update.assert_called_once_with(status=ProjectStatus.PUBLISHED)
-    project_admin.message_user.assert_called_once_with(request, "Published 2 project(s).")
+    message_user.assert_called_once_with(request, "Published 2 project(s).")
 
 
 def test_project_admin_archive_action_updates_status():
     project_admin = _project_admin()
-    project_admin.message_user = MagicMock()
+    message_user = MagicMock()
+    setattr(project_admin, "message_user", message_user)
     request = MagicMock()
     queryset = MagicMock()
     queryset.exclude.return_value.update.return_value = 3
@@ -83,7 +85,7 @@ def test_project_admin_archive_action_updates_status():
 
     queryset.exclude.assert_called_once_with(status=ProjectStatus.ARCHIVED)
     queryset.exclude.return_value.update.assert_called_once_with(status=ProjectStatus.ARCHIVED)
-    project_admin.message_user.assert_called_once_with(request, "Archived 3 project(s).")
+    message_user.assert_called_once_with(request, "Archived 3 project(s).")
 
 
 def test_admin_site_access_is_staff_only():

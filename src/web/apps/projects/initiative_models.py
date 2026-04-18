@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.conf import settings
 from django.db import models
 
@@ -140,20 +142,22 @@ class InitiativeProposal(models.Model):
         verbose_name_plural = "Initiative proposals"
 
     def __str__(self) -> str:
-        return self.title
+        return cast(str, self.title)
 
     def build_submission_snapshot(self) -> dict[str, object]:
+        tech_tags = self.tech_tags if isinstance(self.tech_tags, list) else []
+        participants = self.participants if isinstance(self.participants, list) else []
         return {
             "title": self.title,
             "description": self.description,
-            "tech_tags": list(self.tech_tags or []),
+            "tech_tags": list(tech_tags),
             "team_size": self.team_size,
             "study_course": self.study_course,
             "education_program": self.education_program,
             "supervisor_name": self.supervisor_name,
             "supervisor_email": self.supervisor_email,
             "supervisor_department": self.supervisor_department,
-            "participants": list(self.participants or []),
+            "participants": list(participants),
         }
 
 
@@ -249,4 +253,5 @@ class InitiativeProposalSubmission(models.Model):
         verbose_name_plural = "Initiative proposal submissions"
 
     def __str__(self) -> str:
-        return f"Initiative proposal #{self.proposal_id} submission {self.submission_number}"
+        proposal_id = getattr(self, "proposal_id", None)
+        return f"Initiative proposal #{proposal_id} submission {self.submission_number}"

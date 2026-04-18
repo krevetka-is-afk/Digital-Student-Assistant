@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from app.models import GraphEvent
 from starlette.testclient import TestClient
@@ -146,10 +146,18 @@ class FakeGraphStore:
                 self._application_target_map[application_id] = None
 
 
+class _CheckpointState(TypedDict):
+    consumer: str
+    status: str
+    last_acked_event_id: int
+    last_seen_event_id: int
+    metadata: dict[str, Any]
+
+
 class FakeOutboxClient:
     def __init__(self, *, events: list[GraphEvent], initial_checkpoint: int = 0):
         self._events = sorted(events, key=lambda event: event.id or 0)
-        self._checkpoint = {
+        self._checkpoint: _CheckpointState = {
             "consumer": "graph",
             "status": "active",
             "last_acked_event_id": initial_checkpoint,
@@ -159,7 +167,7 @@ class FakeOutboxClient:
         self.calls: list[dict[str, Any]] = []
 
     async def get_checkpoint(self) -> dict[str, Any]:
-        return dict(self._checkpoint)
+        return cast(dict[str, Any], self._checkpoint.copy())
 
     async def fetch_events(
         self,
@@ -179,18 +187,18 @@ class FakeOutboxClient:
         if mode == "replay":
             lower_bound = max((replay_from_id or 1) - 1, 0)
         else:
-            lower_bound = int(self._checkpoint["last_acked_event_id"])
+            lower_bound = self._checkpoint["last_acked_event_id"]
 
         return [event for event in self._events if (event.id or 0) > lower_bound][:batch_size]
 
     async def ack_event(self, *, event_id: int) -> dict[str, Any]:
-        if event_id <= int(self._checkpoint["last_acked_event_id"]):
+        if event_id <= self._checkpoint["last_acked_event_id"]:
             status = "already_acked"
         else:
             status = "advanced"
             self._checkpoint["last_acked_event_id"] = event_id
         self._checkpoint["last_seen_event_id"] = max(
-            int(self._checkpoint["last_seen_event_id"]), event_id
+            self._checkpoint["last_seen_event_id"], event_id
         )
 
         return {
