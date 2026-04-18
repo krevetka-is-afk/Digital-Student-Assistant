@@ -24,6 +24,7 @@ dependencies = [
 dev = [
     "django-debug-toolbar>=6.2.0",
     "pytest>=9.0.3",
+    "ty>=0.0.31",
 ]
 
 [tool.pytest.ini_options]

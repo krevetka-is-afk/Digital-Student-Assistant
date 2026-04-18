@@ -6,5 +6,6 @@
 
 ## Как проверял(а)
 - [ ] `ruff/black/isort` локально
+- [ ] `ty check src/web`
 - [ ] `pytest -q` зелёный
 - [ ] `pre-commit run --all-files`

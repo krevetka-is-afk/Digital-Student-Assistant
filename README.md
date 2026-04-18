@@ -95,6 +95,8 @@ Current release surface includes:
 
 Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `docs/deployment_runbook.md`.
 Admin login and CSRF topology runbook: `docs/ops/admin-login-http-https.md`.
+VM sizing load-test
+Executable `k6` scenarios for that runbook live in `perf/k6/`.
 
 ## Django settings profiles
 
@@ -127,6 +129,18 @@ before PR
 
 ```bash
 ./scripts/uv-linters.sh
+```
+
+Type checking via `ty` is available as a separate script:
+
+```bash
+./scripts/uv-typecheck.sh
+```
+
+You can also include it in the lint script explicitly:
+
+```bash
+CHECK_TYPES=1 ./scripts/uv-linters.sh
 ```
 
 ## Issues
