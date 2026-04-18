@@ -4,9 +4,16 @@ set -euo pipefail
 compose_file="${COMPOSE_FILE:-infra/docker-compose.prod.yml}"
 env_file="${ENV_FILE:-infra/.env.prod}"
 public_base="${PUBLIC_BASE_URL:-http://127.0.0.1}"
+public_curl_opts_str="${PUBLIC_CURL_OPTS:-}"
 compose_cmd=(docker compose -f "$compose_file" --env-file "$env_file")
 retry_count="${SMOKE_RETRY_COUNT:-20}"
 retry_delay_sec="${SMOKE_RETRY_DELAY_SEC:-3}"
+public_curl_opts=()
+
+if [[ -n "$public_curl_opts_str" ]]; then
+  # shellcheck disable=SC2206
+  public_curl_opts=($public_curl_opts_str)
+fi
 
 retry() {
   local n=1
@@ -26,7 +33,7 @@ check_public() {
   local url="$1"
   local expected="$2"
   local body
-  body="$(curl -fsSL --max-time 5 "$url")"
+  body="$(curl "${public_curl_opts[@]}" -fsSL --max-time 5 "$url")"
   if [[ "$body" != *"$expected"* ]]; then
     echo "[FAIL] $url does not contain expected token: $expected" >&2
     echo "Response: $body" >&2
