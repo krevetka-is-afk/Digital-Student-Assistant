@@ -27,6 +27,11 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
     raw_payload = serializers.JSONField(required=False, allow_null=True, default=dict)
     tech_tags = serializers.JSONField(required=False, allow_null=True, default=list)
     source_ref = serializers.CharField(required=False, allow_blank=True, default="")
+    applications_count = serializers.SerializerMethodField(read_only=True)
+    staffing_state = serializers.CharField(read_only=True)
+    application_window_state = serializers.CharField(read_only=True)
+    is_team_project = serializers.BooleanField(read_only=True)
+    is_favorite = serializers.SerializerMethodField(read_only=True)
 
     title = serializers.CharField(validators=[validators.validate_title_no_hello])
 
@@ -44,7 +49,14 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
             "status",
             "status_raw",
             "team_size",
+            "study_course",
+            "education_program",
             "accepted_participants_count",
+            "applications_count",
+            "staffing_state",
+            "application_window_state",
+            "is_team_project",
+            "is_favorite",
             "source_type",
             "source_ref",
             "source_row_index",
@@ -52,8 +64,38 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
             "vacancy_title_en",
             "thesis_title",
             "thesis_title_en",
+            "implementation_language",
+            "activity_type",
             "supervisor_name",
             "supervisor_email",
+            "supervisor_department",
+            "control_form",
+            "work_format",
+            "application_opened_at",
+            "application_deadline",
+            "student_participation_format",
+            "results_presentation_format",
+            "grading_formula",
+            "implementation_features",
+            "selection_criteria",
+            "is_paid",
+            "retakes_allowed",
+            "location",
+            "internal_customer",
+            "external_customer_location",
+            "external_customer",
+            "organization_type",
+            "cooperation_type",
+            "uses_ai",
+            "digital_tools",
+            "usage_areas",
+            "python_libraries",
+            "methods",
+            "programming_languages",
+            "data_tools",
+            "vacancy_initiator",
+            "vacancy_initiator_type",
+            "vacancy_tags",
             "extra_data",
             "raw_payload",
             "moderated_by",
@@ -74,6 +116,20 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
         if request is None:
             return None
         return reverse("api-v1-project-detail", kwargs={"pk": obj.pk}, request=request)
+
+    def get_applications_count(self, obj) -> int:
+        if hasattr(obj, "applications_count"):
+            return int(getattr(obj, "applications_count") or 0)
+        return obj.applications.count()
+
+    def get_is_favorite(self, obj) -> bool:
+        request = self.context.get("request")
+        if request is None or not getattr(request.user, "is_authenticated", False):
+            return False
+        profile = getattr(request.user, "profile", None)
+        if profile is None:
+            return False
+        return obj.pk in (profile.favorite_project_ids or [])
 
     def validate_extra_data(self, value):
         if value is None:

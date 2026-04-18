@@ -5,40 +5,30 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 export PYTHONPATH="$repo_root"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$repo_root/.tmp/uv-cache}"
 
-# Root env is used only for shared linters/checkers.
-uv sync --group dev --frozen
-(
-    cd src/web
-    uv sync
-)
-(
-    cd src/ml
-    uv sync
-)
+mkdir -p "$repo_root/.tmp"
 
-uv run --group dev ruff check --fix .
-uv run --group dev black .
-uv run --group dev isort .
-(
-    cd src/web
-    uv run python manage.py migrate --noinput
-    uv run --with pytest pytest -q
-)
-(
-    cd src/ml
-    uv run --with pytest pytest -q tests
-)
+# Keep a single workspace environment. Per-package `uv sync` calls mutate the same
+# `.venv` and can evict shared dev tools such as ruff/black/isort/pre-commit.
+uv sync --all-packages --group dev --frozen
+
+python_bin="$repo_root/.venv/bin/python"
+pytest_bin="$repo_root/.venv/bin/pytest"
+ruff_bin="$repo_root/.venv/bin/ruff"
+pre_commit_bin="$repo_root/.venv/bin/pre-commit"
+
+"$ruff_bin" check --fix .
 
 if [[ "${CHECK_BUILD:-0}" == "1" ]]; then
     (
         cd src/web
-        uv run --with build python -m build
+        "$python_bin" -m build
     )
     (
         cd src/ml
-        uv run --with build python -m build
+        "$python_bin" -m build
     )
 fi
 
-uv run --group dev pre-commit run --all-files
+"$pre_commit_bin" run --all-files

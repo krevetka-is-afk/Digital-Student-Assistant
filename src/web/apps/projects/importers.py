@@ -332,6 +332,8 @@ def map_project_fields(payload: dict[str, str], row_index: int, epp: EPP) -> dic
         "co_supervisors": payload.get("Внутренние соруководители вакансии/темы", "").strip(),
         "startup_as_thesis": parse_bool(payload.get('ВКР "Стартап как диплом"', "")),
         "team_size": parse_int(payload.get("Количество мест для подачи заявок", "")) or 1,
+        "application_opened_at": parse_date(payload.get("Дата старта подачи заявок", "")),
+        "application_deadline": parse_date(payload.get("Дата окончания подачи заявок", "")),
         "applications_count_source": parse_int(payload.get("Количество актуальных заявок", "")),
         "credits": parse_decimal(payload.get("Кредиты", "")),
         "hours_per_week": parse_decimal(

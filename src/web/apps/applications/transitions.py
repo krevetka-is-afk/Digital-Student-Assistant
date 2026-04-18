@@ -1,4 +1,6 @@
+from apps.account.permissions import has_any_role
 from apps.projects.transitions import recalculate_project_staffing
+from apps.users.models import UserRole
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -10,7 +12,9 @@ def _can_review_application(actor, application: Application) -> bool:
         return False
     if actor.is_staff:
         return True
-    return application.project.owner_id == actor.id
+    return application.project.owner_id == actor.id and has_any_role(
+        actor, allowed={UserRole.CUSTOMER}, allow_staff=False
+    )
 
 
 def review_application(
@@ -27,9 +31,9 @@ def review_application(
     if normalized_decision not in {"accept", "reject"}:
         raise ValidationError({"decision": ["Unsupported decision. Use 'accept' or 'reject'."]})
 
-    if normalized_decision == "reject" and len(normalized_comment) < 20:
+    if normalized_decision == "reject" and len(normalized_comment) < 50:
         raise ValidationError(
-            {"comment": ["Comment is required and must be at least 20 characters for rejection."]}
+            {"comment": ["Comment is required and must be at least 50 characters for rejection."]}
         )
 
     application.status = (

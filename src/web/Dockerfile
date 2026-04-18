@@ -12,8 +12,8 @@ RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN pip install --no-cache-dir uv==0.9.22
-COPY pyproject.toml uv.lock ./
-RUN uv sync --active --frozen --no-install-project
+COPY pyproject.toml ./
+RUN uv sync --active --no-install-project
 
 COPY . .
 

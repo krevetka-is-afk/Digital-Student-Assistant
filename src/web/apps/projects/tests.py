@@ -3,6 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from apps.projects.models import Project, ProjectSourceType, ProjectStatus
+from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import Client
@@ -19,9 +20,16 @@ def test_project_defaults():
     assert project.tech_tags == []
 
 
-def _make_user():
+def _make_user(*, role: str | None = None, is_staff: bool = False):
     username = f"owner-{uuid4().hex[:8]}"
-    return get_user_model().objects.create_user(username=username, password="test-pass-123")
+    user = get_user_model().objects.create_user(
+        username=username,
+        password="test-pass-123",
+        is_staff=is_staff,
+    )
+    if role is not None:
+        UserProfile.objects.create(user=user, role=role)
+    return user
 
 
 def _title(prefix: str) -> str:
@@ -29,7 +37,7 @@ def _title(prefix: str) -> str:
 
 
 def test_create_project_defaults_extra_data_when_missing():
-    user = _make_user()
+    user = _make_user(role=UserRole.CUSTOMER)
     client = Client()
     client.force_login(user)
 
@@ -46,7 +54,7 @@ def test_create_project_defaults_extra_data_when_missing():
 
 
 def test_create_project_normalizes_null_extra_data():
-    user = _make_user()
+    user = _make_user(role=UserRole.CUSTOMER)
     client = Client()
     client.force_login(user)
 
@@ -63,7 +71,7 @@ def test_create_project_normalizes_null_extra_data():
 
 
 def test_create_project_normalizes_null_tech_tags():
-    user = _make_user()
+    user = _make_user(role=UserRole.CUSTOMER)
     client = Client()
     client.force_login(user)
 
@@ -77,6 +85,35 @@ def test_create_project_normalizes_null_tech_tags():
     project = Project.objects.get(pk=response.json()["pk"])
     assert project.tech_tags == []
     assert response.json()["tech_tags"] == []
+
+
+def test_student_cannot_create_project():
+    student = _make_user(role=UserRole.STUDENT)
+    client = Client()
+    client.force_login(student)
+
+    response = client.post(
+        reverse("api-v1-project-list"),
+        data=json.dumps({"title": _title("Student project")}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
+
+
+def test_cpprp_cannot_update_project_even_if_owner():
+    cpprp = _make_user(role=UserRole.CPPRP)
+    project = _make_project(title=_title("CPPRP owned"), owner=cpprp, status=ProjectStatus.DRAFT)
+    client = Client()
+    client.force_login(cpprp)
+
+    response = client.patch(
+        reverse("api-v1-project-detail", kwargs={"pk": project.pk}),
+        data={"title": _title("Renamed by cpprp")},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
 
 
 def _make_project(

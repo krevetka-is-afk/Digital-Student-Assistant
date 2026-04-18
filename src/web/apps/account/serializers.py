@@ -1,8 +1,54 @@
 from apps.applications.models import Application
 from apps.projects.models import Project
-from apps.projects.serializers import EPPSummarySerializer
+from apps.projects.serializers import EPPSummarySerializer, PrimaryProjectSerializer
 from apps.users.serializers import UserProfileSerializer
 from rest_framework import serializers
+from rest_framework.reverse import reverse
+
+from .models import DocumentTemplate, PlatformDeadline
+
+
+class PlatformDeadlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlatformDeadline
+        fields = [
+            "id",
+            "slug",
+            "title",
+            "audience",
+            "description",
+            "starts_at",
+            "ends_at",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class DocumentTemplateSerializer(serializers.ModelSerializer):
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentTemplate
+        fields = [
+            "id",
+            "slug",
+            "title",
+            "audience",
+            "url",
+            "download_url",
+            "description",
+            "is_active",
+            "metadata",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_download_url(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return None
+        return reverse("account-template-download", kwargs={"pk": obj.pk}, request=request)
 
 
 class AccountProjectSerializer(serializers.ModelSerializer):
@@ -15,7 +61,10 @@ class AccountProjectSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     source_status_raw = serializers.CharField(source="status_raw", read_only=True)
+    applications_count = serializers.SerializerMethodField()
     submitted_applications_count = serializers.SerializerMethodField()
+    staffing_state = serializers.CharField(read_only=True)
+    application_window_state = serializers.CharField(read_only=True)
 
     class Meta:
         model = Project
@@ -26,8 +75,15 @@ class AccountProjectSerializer(serializers.ModelSerializer):
             "source_type",
             "source_ref",
             "team_size",
+            "study_course",
+            "education_program",
             "accepted_participants_count",
+            "applications_count",
             "submitted_applications_count",
+            "staffing_state",
+            "application_window_state",
+            "application_opened_at",
+            "application_deadline",
             "epp",
             "epp_id",
             "epp_title",
@@ -37,7 +93,16 @@ class AccountProjectSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_applications_count(self, obj) -> int:
+        if isinstance(obj, dict):
+            return int(obj.get("applications_count") or 0)
+        if hasattr(obj, "applications_count"):
+            return int(getattr(obj, "applications_count") or 0)
+        return obj.applications.count()
+
     def get_submitted_applications_count(self, obj) -> int:
+        if isinstance(obj, dict):
+            return int(obj.get("submitted_applications_count") or 0)
         return int(getattr(obj, "submitted_applications_count", 0) or 0)
 
 
@@ -68,8 +133,18 @@ class AccountOverviewSerializer(serializers.Serializer):
 
 class StudentOverviewSerializer(AccountOverviewSerializer):
     applications = AccountApplicationSerializer(many=True)
+    favorite_projects = PrimaryProjectSerializer(many=True)
+    deadlines = PlatformDeadlineSerializer(many=True)
+    templates = DocumentTemplateSerializer(many=True)
+
+
+class PaginatedAccountApplicationSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.CharField(allow_null=True)
+    previous = serializers.CharField(allow_null=True)
+    results = AccountApplicationSerializer(many=True)
 
 
 class CPPRPApplicationsOverviewSerializer(serializers.Serializer):
     totals = serializers.DictField(child=serializers.IntegerField())
-    recent = AccountApplicationSerializer(many=True)
+    recent = PaginatedAccountApplicationSerializer()
