@@ -68,16 +68,21 @@ def submit_application(request, pk):
     Submit application with motivation text from project detail modal.
     Returns HTMX partial that replaces the apply action area.
     """
+    try:
+        project_pk = int(pk)
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("Invalid project id.")
+
     if not request.user.is_authenticated:
         if request.headers.get("HX-Request"):
             response = HttpResponse(status=204)
-            response["HX-Redirect"] = f"/auth/?next=/projects/{pk}/"
+            response["HX-Redirect"] = f"/auth/?next=/projects/{project_pk}/"
             return response
-        return redirect(f"/auth/?next=/projects/{pk}/")
+        return redirect(f"/auth/?next=/projects/{project_pk}/")
     if not has_any_role(request.user, allowed={UserRole.STUDENT}, allow_staff=False):
         return HttpResponseBadRequest("Подавать заявки могут только студенты.")
 
-    project = get_object_or_404(Project, pk=pk)
+    project = get_object_or_404(Project, pk=project_pk)
 
     if not _project_accepts_applications(project):
         return HttpResponseBadRequest("Project is not accepting applications.")
