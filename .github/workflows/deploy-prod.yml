@@ -40,7 +40,9 @@ jobs:
             set -euo pipefail
 
             APP_DIR="${{ secrets.PROD_APP_DIR }}"
-            TARGET_REF="${{ github.event.inputs.ref }}"
+            TARGET_REF="${{ github.event.inputs.ref || github.sha }}"
+            PUBLIC_HOST="${{ secrets.PROD_SSH_HOST }}"
+            PUBLIC_BASE_URL="http://${{ secrets.PROD_SSH_HOST }}"
 
             cd "$APP_DIR"
 
@@ -52,13 +54,54 @@ jobs:
               git checkout --detach "$TARGET_REF"
             fi
 
+            if [ ! -f infra/.env.prod ]; then
+              cp infra/.env.prod.example infra/.env.prod
+              chmod 600 infra/.env.prod
+            fi
+
+            set_env_key() {
+              local key="$1"
+              local value="$2"
+              if grep -qE "^${key}=" infra/.env.prod; then
+                sed -i "s|^${key}=.*|${key}=${value}|" infra/.env.prod
+              else
+                printf "%s=%s\n" "$key" "$value" >> infra/.env.prod
+              fi
+            }
+
+            set_env_key "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
+            set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST,http://localhost"
+            set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"
+            set_env_key "DJANGO_SESSION_COOKIE_SECURE" "false"
+            set_env_key "DJANGO_CSRF_COOKIE_SECURE" "false"
+
+            cat > infra/nginx/default.conf <<EOF
+            server {
+                listen 80;
+                server_name ${PUBLIC_HOST};
+                server_tokens off;
+
+                location /.well-known/acme-challenge/ {
+                    root /var/www/certbot;
+                }
+
+                client_max_body_size 25m;
+
+                location / {
+                    proxy_pass http://web:8000;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Host \$host;
+                    proxy_set_header X-Forwarded-Port \$server_port;
+                    proxy_set_header X-Forwarded-Proto http;
+                    proxy_http_version 1.1;
+                }
+            }
+            EOF
+
             docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
             docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
-
-            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' infra/.env.prod | cut -d= -f2 | cut -d, -f1)"
-            if [ -z "$PUBLIC_BASE_URL" ]; then
-              PUBLIC_BASE_URL="https://dsa.s3rg.ru"
-            fi
 
             ENV_FILE=infra/.env.prod \
             COMPOSE_FILE=infra/docker-compose.prod.yml \
