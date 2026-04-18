@@ -2,13 +2,13 @@ name: Deploy Production
 
 on:
   push:
-    branches: [dev-staging]
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:
         description: "Branch, tag, or SHA to deploy"
         required: true
-        default: "dev-staging"
+        default: "main"
         type: string
 
 permissions:
@@ -34,7 +34,6 @@ jobs:
           username: ${{ secrets.PROD_SSH_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_SSH_PORT }}
-          script_stop: true
           command_timeout: 40m
           script: |
             set -euo pipefail
