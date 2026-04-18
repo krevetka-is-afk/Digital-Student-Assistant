@@ -6,12 +6,10 @@ Updated: 2026-04-06
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/` | Stable API index with links to versioned and legacy endpoints |
+| GET | `/api/` | Stable API index with links to versioned endpoints |
 | GET | `/api/schema/` | OpenAPI schema (machine-readable contract) |
 | GET | `/api/docs/` | Swagger UI for API schema |
 | GET | `/api/v1/` | Canonical API v1 index |
-| GET | `/api/legacy/` | Deprecated legacy API root |
-| POST | `/api/add/` | Backward-compatible alias for legacy add endpoint |
 
 ## Canonical API v1 (`/api/v1/`)
 
@@ -73,12 +71,11 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | POST | `/api/v1/outbox/events/ack/` | cpprp/staff | Monotonic ack for consumer checkpoint (`consumer`, `event_id`) |
 | GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
 
-## Legacy API (compatibility)
+## Legacy Web Endpoints
 
-These routes remain available, but should be treated as deprecated for new testing.
+The project still contains legacy non-canonical web endpoints outside `/api/v1/`.
+They are not part of the canonical API contract and should not be used for new integrations:
 
-- `/api/legacy/` and `/api/legacy/add/` (legacy `Item` endpoints)
-- `/api/add/` (compatibility alias to legacy add endpoint)
 - `/base/` (legacy base/auth/health helper endpoints)
 - `/base/projects/` (legacy project endpoints)
 - `/base/search` (legacy search endpoint)

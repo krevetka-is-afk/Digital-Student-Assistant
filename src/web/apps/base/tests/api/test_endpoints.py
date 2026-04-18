@@ -53,6 +53,7 @@ def test_api_root_ok():
     assert payload["versions"]["v1"].endswith("/api/v1/")
     assert payload["schema"].endswith("/api/schema/")
     assert payload["docs"].endswith("/api/docs/")
+    assert "legacy" not in payload
 
 
 def test_api_v1_root_ok():
@@ -110,16 +111,3 @@ def test_api_docs_page_ok():
     r = c.get(reverse("api-docs"))
     assert r.status_code == 200
     assert b"swagger" in r.content.lower()
-
-
-def test_legacy_api_is_under_legacy_prefix():
-    c = Client()
-    r = c.get(reverse("legacy-api-root"))
-    assert r.status_code == 200
-    assert isinstance(r.json(), list)
-
-
-def test_legacy_add_compat_alias_exists():
-    c = Client()
-    r = c.get(reverse("legacy-api-add-compat"))
-    assert r.status_code == 405
