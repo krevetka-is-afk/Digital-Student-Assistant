@@ -131,6 +131,18 @@ before PR
 ./scripts/uv-linters.sh
 ```
 
+Type checking via `ty` is available as a separate script:
+
+```bash
+./scripts/uv-typecheck.sh
+```
+
+You can also include it in the lint script explicitly:
+
+```bash
+CHECK_TYPES=1 ./scripts/uv-linters.sh
+```
+
 ## Issues
 
 Now we have two options for issues:
