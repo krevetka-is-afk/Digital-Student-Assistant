@@ -88,11 +88,13 @@ def _build_project_from_submission(
     proposal: InitiativeProposal, submission: InitiativeProposalSubmission
 ) -> Project:
     snapshot = submission.snapshot or proposal.build_submission_snapshot()
+    tech_tags_raw = snapshot.get("tech_tags")
+    participants_raw = snapshot.get("participants")
     return Project.objects.create(
         owner=None,
         title=snapshot.get("title", proposal.title),
         description=snapshot.get("description", proposal.description),
-        tech_tags=list(snapshot.get("tech_tags") or []),
+        tech_tags=list(tech_tags_raw) if isinstance(tech_tags_raw, list) else [],
         status=ProjectStatus.PUBLISHED,
         source_type=ProjectSourceType.INITIATIVE,
         source_ref=f"initiative-proposal:{proposal.pk}",
@@ -108,7 +110,9 @@ def _build_project_from_submission(
         ),
         extra_data={
             "initiative_owner_id": proposal.owner_id,
-            "initiative_participants": list(snapshot.get("participants") or []),
+            "initiative_participants": (
+                list(participants_raw) if isinstance(participants_raw, list) else []
+            ),
             "initiative_submission_number": submission.submission_number,
         },
     )

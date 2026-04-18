@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -583,7 +585,7 @@ class Project(models.Model):
         verbose_name_plural = "Projects"
 
     def __str__(self) -> str:
-        return self.title
+        return cast(str, self.title)
 
     def save(self, *args, **kwargs):
         if self.vacancy_title and not self.title:
@@ -592,19 +594,19 @@ class Project(models.Model):
             self.vacancy_title = self.title
 
         if not self.description:
-            self.description = self.build_source_description()
+            setattr(self, "description", self.build_source_description())
 
         if not self.tech_tags:
-            self.tech_tags = self.build_tech_tags()
+            setattr(self, "tech_tags", self.build_tech_tags())
 
         super().save(*args, **kwargs)
 
     def build_source_description(self) -> str:
         parts = [
-            self.implementation_features.strip(),
-            self.selection_criteria.strip(),
-            self.work_format.strip(),
-            self.student_participation_format.strip(),
+            cast(str, self.implementation_features).strip(),
+            cast(str, self.selection_criteria).strip(),
+            cast(str, self.work_format).strip(),
+            cast(str, self.student_participation_format).strip(),
         ]
         return "\n\n".join(part for part in parts if part)
 

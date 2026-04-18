@@ -401,8 +401,9 @@ def upsert_from_payload(payload: dict[str, str], row_index: int) -> tuple[bool, 
     )
 
     warning = False
+    status_raw = str(project_defaults["status_raw"])
     if project_created:
-        apply_imported_status(project, project_defaults["status_raw"])
+        apply_imported_status(project, status_raw)
         for field, value in project_defaults.items():
             setattr(project, field, value)
         project.save()
@@ -410,7 +411,7 @@ def upsert_from_payload(payload: dict[str, str], row_index: int) -> tuple[bool, 
         project_status_before = project.status
         for field, value in project_defaults.items():
             setattr(project, field, value)
-        project, warning = apply_imported_status(project, project_defaults["status_raw"])
+        project, warning = apply_imported_status(project, status_raw)
         project.save()
         if project_status_before == project.status and warning:
             warning = True
