@@ -381,6 +381,73 @@ jobs:
       #     path: trivy-ml-report.json
       #     if-no-files-found: error
 
+  publish-staging-images:
+    name: Publish staging images to GHCR
+    needs:
+      - repo-lint
+      - lint-test-web
+      - lint-test-ml
+      - release-gate
+      - package-and-artifacts-web
+      - package-and-artifacts-ml
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      target_sha: ${{ steps.meta.outputs.target_sha }}
+      image_prefix: ${{ steps.meta.outputs.image_prefix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Compute image metadata
+        id: meta
+        run: |
+          owner_lc="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          repo_lc="$(printf '%s' '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')"
+          echo "target_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image_prefix=ghcr.io/${owner_lc}/${repo_lc}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/web
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}-web:${{ steps.meta.outputs.target_sha }}
+            ${{ steps.meta.outputs.image_prefix }}-web:dev-staging-latest
+
+      - name: Build and push ml image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/ml
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}-ml:${{ steps.meta.outputs.target_sha }}
+            ${{ steps.meta.outputs.image_prefix }}-ml:dev-staging-latest
+
+      - name: Build and push graph image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/graph
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}-graph:${{ steps.meta.outputs.target_sha }}
+            ${{ steps.meta.outputs.image_prefix }}-graph:dev-staging-latest
+
   deploy-staging:
     name: Deploy to Staging
     needs:
@@ -389,11 +456,15 @@ jobs:
       - lint-test-ml
       - package-and-artifacts-web
       - package-and-artifacts-ml
+      - publish-staging-images
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
     environment:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
+    permissions:
+      contents: read
+      packages: read
     env:
       STAGING_URL: "${{ vars.STAGING_URL || 'https://staging.example' }}"
     steps:
@@ -431,17 +502,50 @@ jobs:
               exit 1
             fi
 
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
+            OWNER_LC="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+            REPO_LC="$(printf '%s' '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')"
+            IMAGE_PREFIX="ghcr.io/${OWNER_LC}/${REPO_LC}"
+            WEB_IMAGE="${IMAGE_PREFIX}-web:${EXPECTED_SHA}"
+            ML_IMAGE="${IMAGE_PREFIX}-ml:${EXPECTED_SHA}"
+            GRAPH_IMAGE="${IMAGE_PREFIX}-graph:${EXPECTED_SHA}"
+
+            echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            WEB_IMAGE="$WEB_IMAGE" \
+            ML_IMAGE="$ML_IMAGE" \
+            GRAPH_IMAGE="$GRAPH_IMAGE" \
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod pull web ml graph
+
+            WEB_IMAGE="$WEB_IMAGE" \
+            ML_IMAGE="$ML_IMAGE" \
+            GRAPH_IMAGE="$GRAPH_IMAGE" \
+            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --no-build --remove-orphans
+            docker logout ghcr.io || true
 
             PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' infra/.env.prod | cut -d= -f2 | cut -d, -f1)"
             if [ -z "$PUBLIC_BASE_URL" ]; then
               PUBLIC_BASE_URL="https://dsa.s3rg.ru"
             fi
 
+            PUBLIC_SCHEME="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^(https?)://.*#\1#')"
+            PUBLIC_HOST="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
+            PUBLIC_PORT="$(printf '%s' "$PUBLIC_BASE_URL" | sed -nE 's#^https?://[^/:]+:([0-9]+).*$#\1#p')"
+            if [ -z "$PUBLIC_PORT" ]; then
+              if [ "$PUBLIC_SCHEME" = "https" ]; then
+                PUBLIC_PORT="443"
+              else
+                PUBLIC_PORT="80"
+              fi
+            fi
+
+            PUBLIC_CURL_OPTS="--resolve ${PUBLIC_HOST}:${PUBLIC_PORT}:127.0.0.1"
+            if [ "$PUBLIC_SCHEME" = "https" ]; then
+              PUBLIC_CURL_OPTS="$PUBLIC_CURL_OPTS -k"
+            fi
+
             ENV_FILE=infra/.env.prod \
             COMPOSE_FILE=infra/docker-compose.prod.yml \
             PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
+            PUBLIC_CURL_OPTS="$PUBLIC_CURL_OPTS" \
             scripts/smoke-prod.sh
 
       - name: Health check staging URL
