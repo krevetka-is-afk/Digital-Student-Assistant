@@ -223,3 +223,7 @@ data_source/
 .omx/
 
 scripts/
+
+artifacts/
+
+docs/runbook/
