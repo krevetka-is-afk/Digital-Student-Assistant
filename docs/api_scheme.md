@@ -67,9 +67,9 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | POST | `/api/v1/recs/reindex/` | cpprp/staff | Emit `recs.reindex_requested` event |
 | GET | `/api/v1/imports/epp/` | cpprp/staff | List import runs |
 | POST | `/api/v1/imports/epp/` | cpprp/staff | Run XLSX import and emit `import.completed` on success |
-| GET | `/api/v1/outbox/events/` | cpprp/staff | Read outbox feed with `consumer` checkpoint semantics (`mode=poll|replay`, `since_id`, `replay_from_id`) |
-| POST | `/api/v1/outbox/events/ack/` | cpprp/staff | Monotonic ack for consumer checkpoint (`consumer`, `event_id`) |
-| GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
+| GET | `/api/v1/outbox/events/` | cpprp/staff or machine consumer token | Read outbox feed with `consumer` checkpoint semantics (`mode=poll|replay`, `since_id`, `replay_from_id`) |
+| POST | `/api/v1/outbox/events/ack/` | cpprp/staff or machine consumer token | Monotonic ack for consumer checkpoint (`consumer`, `event_id`) |
+| GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff or machine consumer token | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
 
 ## Legacy Web Endpoints
 
@@ -117,3 +117,10 @@ They are not part of the canonical API contract and should not be used for new i
 4. Call `POST /api/v1/auth/token/` in DRF browsable API form.
 5. Use token in header: `Authorization: Token <your_token>`.
 6. Open `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.
+
+
+## Outbox Consumer Machine Auth
+
+- Outbox endpoints support bearer machine tokens for downstream consumers such as `ml` and `graph`.
+- Tokens are configured in `OUTBOX_SERVICE_TOKENS` as a JSON object: `{"ml":"...","graph":"..."}`.
+- Human users may still access outbox endpoints via existing `cpprp/staff` permissions.

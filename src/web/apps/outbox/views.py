@@ -1,4 +1,4 @@
-from apps.account.permissions import IsCpprpOrStaff
+from apps.account.permissions import IsOutboxConsumerOrCpprpOrStaff
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
@@ -23,7 +23,7 @@ from .services import (
 
 class OutboxEventListAPIView(generics.ListAPIView):
     serializer_class = OutboxEventSerializer
-    permission_classes = [IsCpprpOrStaff]
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(
         parameters=[
@@ -137,7 +137,7 @@ class OutboxEventListAPIView(generics.ListAPIView):
 
 
 class OutboxEventAckAPIView(APIView):
-    permission_classes = [IsCpprpOrStaff]
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(request=OutboxAckSerializer, responses=OutboxAckResponseSerializer)
     def post(self, request):
@@ -158,7 +158,7 @@ class OutboxEventAckAPIView(APIView):
 
 
 class OutboxConsumerCheckpointAPIView(APIView):
-    permission_classes = [IsCpprpOrStaff]
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(responses=OutboxConsumerCheckpointSerializer)
     def get(self, request, consumer: str):

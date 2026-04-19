@@ -36,5 +36,10 @@
       "replay": "poll with mode=replay and replay_from_id; projector applies events idempotently",
       "idempotency_rule": "deduplicate by idempotency_key and graph upsert keys"
     }
+  },
+  "auth": {
+    "scheme": "Bearer",
+    "human_access": "cpprp_or_staff",
+    "machine_access": "configured_consumer_token"
   }
 }

@@ -1,6 +1,7 @@
 import logging
 
 from apps.users.models import UserRole
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
@@ -11,6 +12,8 @@ logger = logging.getLogger(__name__)
 def get_user_role(user) -> str | None:
     if not getattr(user, "is_authenticated", False):
         return None
+    if getattr(user, "is_service", False):
+        return f"service:{getattr(user, 'service_name', 'unknown')}"
     if getattr(user, "is_staff", False):
         return "staff"
     try:
@@ -83,3 +86,17 @@ class IsCpprpOrStaff(RolePermission):
     allowed_roles = {UserRole.CPPRP}
     message = "Only CPPRP or staff can access this endpoint."
     log_denied = True
+
+
+class IsOutboxConsumerOrCpprpOrStaff(IsCpprpOrStaff):
+    message = "Only CPPRP, staff, or configured outbox consumer services can access this endpoint."
+
+    def has_permission(self, request, view) -> bool:
+        user = getattr(request, "user", None)
+        if getattr(user, "is_service", False):
+            configured = getattr(settings, "OUTBOX_SERVICE_TOKENS", {}) or {}
+            allowed = getattr(user, "service_name", "") in configured
+            if not allowed and self.log_denied:
+                _log_denied_access(request, view)
+            return allowed
+        return super().has_permission(request, view)
