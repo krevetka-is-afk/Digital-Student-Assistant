@@ -362,3 +362,25 @@ def test_projects_list_is_query_efficient():
 
     assert response.status_code == 200
     assert len(query_context.captured_queries) <= 4
+
+
+def test_project_delete_emits_tombstone_event():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    project = _make_project(
+        title=_title("Delete me"), owner=owner, status=ProjectStatus.PUBLISHED
+    )
+    client = Client()
+    client.force_login(owner)
+
+    response = client.delete(reverse("api-v1-project-detail", kwargs={"pk": project.pk}))
+
+    assert response.status_code == 204
+    tombstone = Project.objects.filter(pk=project.pk).exists()
+    assert tombstone is False
+    from apps.outbox.models import OutboxEvent
+
+    event = OutboxEvent.objects.order_by("-id").first()
+    assert event is not None
+    assert event.event_type == "project.deleted"
+    assert event.payload["pk"] == project.pk
+    assert event.payload["tombstone"] is True

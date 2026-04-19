@@ -67,6 +67,35 @@ class FakeGraphStore:
         aggregate_type = event.aggregate_type.lower().strip()
         payload = event.payload
 
+        if event.event_type == "project.deleted":
+            project_id = str(payload.get("pk") or event.aggregate_id)
+            self.projects.discard(project_id)
+            self.project_supervisor_edges = {
+                edge for edge in self.project_supervisor_edges if edge[0] != project_id
+            }
+            self.project_tag_edges = {
+                edge for edge in self.project_tag_edges if edge[0] != project_id
+            }
+            self.application_project_edges = {
+                edge for edge in self.application_project_edges if edge[1] != project_id
+            }
+            self._project_supervisor_map.pop(project_id, None)
+            self._project_tags_map.pop(project_id, None)
+            return
+
+        if event.event_type == "application.deleted":
+            application_id = str(payload.get("id") or event.aggregate_id)
+            self.applications.discard(application_id)
+            self.student_application_edges = {
+                edge for edge in self.student_application_edges if edge[1] != application_id
+            }
+            self.application_project_edges = {
+                edge for edge in self.application_project_edges if edge[0] != application_id
+            }
+            self._application_submitter_map.pop(application_id, None)
+            self._application_target_map.pop(application_id, None)
+            return
+
         if aggregate_type == "project":
             project_id = str(payload.get("pk") or payload.get("id") or event.aggregate_id)
             self.projects.add(project_id)
@@ -404,3 +433,49 @@ def test_replay_requires_offset_when_direct_events_are_not_given(app_factory):
 
     assert response.status_code == 422
     assert "replay_from_id is required" in response.json()["detail"]
+
+
+def test_delete_events_remove_project_and_application_nodes(app_factory):
+    events = [
+        GraphEvent(
+            id=1,
+            event_type="project.changed",
+            aggregate_type="project",
+            aggregate_id="1",
+            payload={"pk": 1, "tech_tags": ["python"]},
+        ),
+        GraphEvent(
+            id=2,
+            event_type="application.changed",
+            aggregate_type="application",
+            aggregate_id="50",
+            payload={"id": 50, "applicant_snapshot": {"id": 7}, "project_snapshot": {"pk": 1}},
+        ),
+        GraphEvent(
+            id=3,
+            event_type="application.deleted",
+            aggregate_type="application",
+            aggregate_id="50",
+            payload={"id": 50, "tombstone": True},
+        ),
+        GraphEvent(
+            id=4,
+            event_type="project.deleted",
+            aggregate_type="project",
+            aggregate_id="1",
+            payload={"pk": 1, "tombstone": True},
+        ),
+    ]
+
+    client, _, _ = _make_client(app_factory, events=[])
+    with client:
+        response = client.post(
+            "/project",
+            json={"events": [event.model_dump(mode="json") for event in events]},
+        )
+        state = client.get("/state")
+
+    assert response.status_code == 200
+    payload = state.json()
+    assert payload["nodes"]["project"] == 0
+    assert payload["nodes"]["application"] == 0

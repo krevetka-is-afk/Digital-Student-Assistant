@@ -204,7 +204,12 @@ class RecommendationIndexStore:
             aggregate_type = event.aggregate_type.lower().strip()
             payload = event.payload or {}
 
-            if aggregate_type == "project":
+            if event.event_type == "project.deleted":
+                try:
+                    self._projects.pop(int(payload.get("pk") or event.aggregate_id), None)
+                except (TypeError, ValueError):
+                    pass
+            elif aggregate_type == "project":
                 self._upsert_project(aggregate_id=event.aggregate_id, payload=payload)
             elif aggregate_type == "user_profile":
                 self._upsert_profile(aggregate_id=event.aggregate_id, payload=payload)

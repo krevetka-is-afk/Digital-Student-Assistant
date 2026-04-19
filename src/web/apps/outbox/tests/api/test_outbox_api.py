@@ -209,3 +209,28 @@ def test_invalid_machine_token_is_rejected_for_outbox_access():
     response = client.get(reverse("api-v1-outbox-events"), data={"consumer": "ml"})
 
     assert response.status_code == 403
+
+
+@override_settings(OUTBOX_SERVICE_TOKENS={"ml": "ml-secret-token"})
+def test_snapshot_endpoint_returns_watermark_and_selected_resources():
+    client = _service_client("ml-secret-token")
+    OutboxEvent.objects.create(
+        event_type="project.changed",
+        aggregate_type="project",
+        aggregate_id="99",
+        idempotency_key=f"project.changed:99:snapshot:{uuid4().hex[:8]}",
+        payload={"pk": 99},
+    )
+
+    response = client.get(
+        reverse("api-v1-outbox-snapshot"),
+        data={"resources": "projects,user_profiles"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["watermark"] >= 1
+    assert body["resources"] == ["projects", "user_profiles"]
+    assert "projects" in body
+    assert "user_profiles" in body
+    assert "applications" not in body

@@ -196,3 +196,37 @@ def test_ready_reports_checkpoint_and_degraded_outbox_status(app_factory):
     payload = response.json()
     assert payload["status"] == "degraded"
     assert payload["outbox"] == "error:RuntimeError"
+
+
+def test_project_deleted_event_removes_item_from_local_index(app_factory):
+    client, _, _ = _make_client(
+        app_factory,
+        events=[
+            OutboxEvent(
+                id=1,
+                event_type="project.changed",
+                aggregate_type="project",
+                aggregate_id="15",
+                payload={
+                    "pk": 15,
+                    "title": "To remove",
+                    "tech_tags": ["ml"],
+                    "status": "published",
+                },
+            ),
+            OutboxEvent(
+                id=2,
+                event_type="project.deleted",
+                aggregate_type="project",
+                aggregate_id="15",
+                payload={"pk": 15, "status": "deleted", "tombstone": True},
+            ),
+        ],
+    )
+    with client:
+        response = client.post("/sync", json={"batch_size": 10})
+        state = client.get("/state")
+
+    assert response.status_code == 200
+    assert state.status_code == 200
+    assert state.json()["projects_indexed"] == 0
