@@ -78,13 +78,14 @@ def _rank_from_query(
     query: str,
     limit: int,
     index_store: RecommendationIndexStore,
+    mode: str,
 ) -> RankedResponse:
     ranked = index_store.rank_projects(
         projects=projects,
         query_tokens=index_store._tokenize(query),  # noqa: SLF001 - central tokenizer
         limit=limit,
     )
-    return RankedResponse(items=ranked)
+    return RankedResponse(mode=mode, items=ranked)
 
 
 
@@ -248,24 +249,32 @@ def create_app(
     @app.post("/search", response_model=RankedResponse)
     async def search(payload: SearchRequest, request: Request) -> RankedResponse:
         index_store = _resolve_index_store(request)
-        projects, _ = _resolve_projects(request_projects=payload.projects, index_store=index_store)
+        projects, source = _resolve_projects(
+            request_projects=payload.projects,
+            index_store=index_store,
+        )
         return _rank_from_query(
             projects=projects,
             query=payload.query,
             limit=payload.limit,
             index_store=index_store,
+            mode="semantic" if source == "outbox" else "stub-heuristic",
         )
 
     @app.post("/recommendations", response_model=RankedResponse)
     async def recommendations(payload: RecommendationRequest, request: Request) -> RankedResponse:
         index_store = _resolve_index_store(request)
-        projects, _ = _resolve_projects(request_projects=payload.projects, index_store=index_store)
+        projects, source = _resolve_projects(
+            request_projects=payload.projects,
+            index_store=index_store,
+        )
         interests = " ".join(payload.interests)
         return _rank_from_query(
             projects=projects,
             query=interests,
             limit=payload.limit,
             index_store=index_store,
+            mode="semantic" if source == "outbox" else "stub-heuristic",
         )
 
     @app.post("/reindex", response_model=ReindexResponse)

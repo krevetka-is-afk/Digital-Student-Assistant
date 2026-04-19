@@ -83,7 +83,9 @@ def test_search_prefers_local_index_when_outbox_state_exists(app_factory):
         )
 
     assert response.status_code == 200
-    assert response.json()["items"][0]["project_id"] == 11
+    payload = response.json()
+    assert payload["mode"] == "semantic"
+    assert payload["items"][0]["project_id"] == 11
 
 
 

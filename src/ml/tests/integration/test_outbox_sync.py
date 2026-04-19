@@ -126,6 +126,7 @@ def test_sync_uses_outbox_poll_and_populates_local_index(app_factory):
 
         search = client.post("/search", json={"query": "semantic", "projects": []})
         assert search.status_code == 200
+        assert search.json()["mode"] == "semantic"
         assert search.json()["items"][0]["project_id"] == 11
 
 
