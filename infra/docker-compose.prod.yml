@@ -80,6 +80,16 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env.prod
+    environment:
+      OUTBOX_BASE_URL: ${OUTBOX_BASE_URL:-http://web:8000}
+      OUTBOX_CONSUMER: ${OUTBOX_CONSUMER:-ml}
+      OUTBOX_AUTH_HEADER: ${OUTBOX_AUTH_HEADER:-}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-100}
+      OUTBOX_POLL_INTERVAL_SEC: ${OUTBOX_POLL_INTERVAL_SEC:-5}
+      ML_ENABLE_BACKGROUND_POLLER: ${ML_ENABLE_BACKGROUND_POLLER:-false}
+      ML_INDEX_STATE_PATH: ${ML_INDEX_STATE_PATH:-/app/data/ml-index.json}
+    volumes:
+      - ml-prod:/app/data
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     read_only: true
     tmpfs:
@@ -182,4 +192,5 @@ volumes:
   postgres-prod:
   graph-prod:
   neo4j-prod:
+  ml-prod:
   bootstrap-state:

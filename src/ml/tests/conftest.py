@@ -1,27 +1,41 @@
-import importlib.util
+import sys
 from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
-MAIN_FILE = SERVICE_ROOT / "app" / "main.py"
+if str(SERVICE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SERVICE_ROOT))
 
-
-def _load_app():
-    spec = importlib.util.spec_from_file_location("ml_test_main", MAIN_FILE)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load ML app from {MAIN_FILE}")
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.app
-
-
-app = _load_app()
+from app.main import create_app  # noqa: E402
+from app.settings import MLSettings  # noqa: E402
 
 
 @pytest.fixture
-def client():
+def app_factory(tmp_path: Path):
+    def _factory(*, index_store=None, outbox_client=None, enable_background_poller: bool = False):
+        settings = MLSettings(
+            outbox_base_url="http://localhost:8000",
+            outbox_consumer="ml",
+            outbox_auth_header="Bearer test-token",
+            outbox_timeout_sec=1.0,
+            default_batch_size=50,
+            poll_interval_sec=0.5,
+            enable_background_poller=enable_background_poller,
+            index_state_path=str(tmp_path / "ml-index.json"),
+        )
+        return create_app(
+            settings=settings,
+            index_store=index_store,
+            outbox_client=outbox_client,
+        )
+
+    return _factory
+
+
+@pytest.fixture
+def client(app_factory):
+    app = app_factory()
     with TestClient(app) as c:
         yield c
