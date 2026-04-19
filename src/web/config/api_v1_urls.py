@@ -4,6 +4,7 @@ from apps.outbox.views import (
     OutboxConsumerCheckpointAPIView,
     OutboxEventAckAPIView,
     OutboxEventListAPIView,
+    OutboxSnapshotAPIView,
 )
 from apps.projects.initiative_views import (
     InitiativeProposalModerationAPIView,
@@ -44,6 +45,7 @@ urlpatterns = [
     path("account/", include("apps.account.urls")),
     path("imports/epp/", ImportRunListCreateAPIView.as_view(), name="api-v1-import-epp"),
     path("outbox/events/", OutboxEventListAPIView.as_view(), name="api-v1-outbox-events"),
+    path("outbox/snapshot/", OutboxSnapshotAPIView.as_view(), name="api-v1-outbox-snapshot"),
     path("outbox/events/ack/", OutboxEventAckAPIView.as_view(), name="api-v1-outbox-events-ack"),
     path(
         "outbox/consumers/<str:consumer>/checkpoint/",

@@ -1,6 +1,7 @@
 from apps.account.permissions import IsCustomerOrStaff, IsStudentOrStaff
 from apps.outbox.services import emit_event
 from apps.projects.models import ProjectStatus
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework import serializers as drf_serializers
@@ -67,6 +68,27 @@ class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
         if user.is_staff:
             return queryset
         return queryset.filter(applicant=user)
+
+    def perform_destroy(self, instance):
+        aggregate_id = instance.pk
+        payload = {
+            "id": aggregate_id,
+            "project": instance.project_id,
+            "applicant": instance.applicant_id,
+            "status": "deleted",
+            "tombstone": True,
+            "created_at": instance.created_at.isoformat() if instance.created_at else None,
+            "updated_at": instance.updated_at.isoformat() if instance.updated_at else None,
+            "deleted_at": timezone.now().isoformat(),
+        }
+        super().perform_destroy(instance)
+        emit_event(
+            event_type="application.deleted",
+            aggregate_type="application",
+            aggregate_id=aggregate_id,
+            payload=payload,
+            idempotency_key=f"application.deleted:{aggregate_id}:{payload['deleted_at']}",
+        )
 
 
 class ApplicationReviewInputSerializer(drf_serializers.Serializer):

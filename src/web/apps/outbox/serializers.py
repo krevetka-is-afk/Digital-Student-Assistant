@@ -1,3 +1,6 @@
+from apps.applications.serializers import ApplicationSerializer
+from apps.projects.serializers import PrimaryProjectSerializer
+from apps.users.serializers import UserProfileSerializer
 from rest_framework import serializers
 
 from .models import OutboxConsumerCheckpoint, OutboxEvent
@@ -59,3 +62,14 @@ class OutboxAckResponseSerializer(OutboxConsumerCheckpointSerializer):
 
     class Meta(OutboxConsumerCheckpointSerializer.Meta):
         fields = ["ack_status", *OutboxConsumerCheckpointSerializer.Meta.fields]
+
+
+class OutboxSnapshotResponseSerializer(serializers.Serializer):
+    watermark = serializers.IntegerField(min_value=0)
+    generated_at = serializers.DateTimeField()
+    resources = serializers.ListField(
+        child=serializers.ChoiceField(choices=["projects", "applications", "user_profiles"])
+    )
+    projects = PrimaryProjectSerializer(many=True, required=False)
+    applications = ApplicationSerializer(many=True, required=False)
+    user_profiles = UserProfileSerializer(many=True, required=False)

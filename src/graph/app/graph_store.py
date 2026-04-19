@@ -83,6 +83,12 @@ class Neo4jGraphStore:
 
     def project_event(self, event: GraphEvent) -> None:
         aggregate_type = event.aggregate_type.strip().lower()
+        if event.event_type == "project.deleted":
+            self._delete_project(event)
+            return
+        if event.event_type == "application.deleted":
+            self._delete_application(event)
+            return
         if aggregate_type == "project":
             self._project_project(event)
             return
