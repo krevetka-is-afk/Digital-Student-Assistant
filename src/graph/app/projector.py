@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .graph_store import GraphStore
-from .models import GraphEvent
+from .models import GraphEvent, GraphNeighborsResponse, GraphNode, GraphSubgraphResponse
 from .outbox_client import OutboxClient
 
 
@@ -68,3 +68,15 @@ class GraphProjector:
 
     def state_summary(self) -> dict[str, Any]:
         return self._graph_store.get_state_summary(consumer=self._consumer)
+
+    def meta(self) -> dict[str, Any]:
+        return self._graph_store.get_graph_meta(consumer=self._consumer)
+
+    def search(self, *, query: str, limit: int) -> list[GraphNode]:
+        return self._graph_store.search_nodes(query=query, limit=limit)
+
+    def neighbors(self, *, node_type: str, node_id: str, limit: int) -> GraphNeighborsResponse:
+        return self._graph_store.get_neighbors(node_type=node_type, node_id=node_id, limit=limit)
+
+    def subgraph(self, *, node_type: str, node_id: str, depth: int) -> GraphSubgraphResponse:
+        return self._graph_store.get_subgraph(node_type=node_type, node_id=node_id, depth=depth)

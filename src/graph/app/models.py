@@ -29,3 +29,36 @@ class ReplayRequest(BaseModel):
     replay_from_id: int | None = Field(default=None, ge=1)
     batch_size: int | None = Field(default=None, ge=1, le=1000)
     events: list[GraphEvent] = Field(default_factory=list)
+
+
+class GraphNode(BaseModel):
+    key: str
+    type: str
+    id: str
+    label: str
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphEdge(BaseModel):
+    type: str
+    source: str
+    target: str
+
+
+class GraphSearchResponse(BaseModel):
+    query: str
+    limit: int
+    items: list[GraphNode] = Field(default_factory=list)
+
+
+class GraphNeighborsResponse(BaseModel):
+    node: GraphNode
+    neighbors: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)
+
+
+class GraphSubgraphResponse(BaseModel):
+    root: GraphNode
+    depth: int
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)

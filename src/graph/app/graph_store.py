@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import importlib
+from collections.abc import Mapping
 from typing import Any, Protocol, cast
 
-from .models import GraphEvent
+from .models import GraphEdge, GraphEvent, GraphNeighborsResponse, GraphNode, GraphSubgraphResponse
 
 try:
     _neo4j_module = importlib.import_module("neo4j")
@@ -28,6 +29,26 @@ class GraphStore(Protocol):
 
     def get_state_summary(self, *, consumer: str) -> dict[str, Any]: ...
 
+    def get_graph_meta(self, *, consumer: str) -> dict[str, Any]: ...
+
+    def search_nodes(self, *, query: str, limit: int) -> list[GraphNode]: ...
+
+    def get_neighbors(
+        self,
+        *,
+        node_type: str,
+        node_id: str,
+        limit: int,
+    ) -> GraphNeighborsResponse: ...
+
+    def get_subgraph(
+        self,
+        *,
+        node_type: str,
+        node_id: str,
+        depth: int,
+    ) -> GraphSubgraphResponse: ...
+
     def set_checkpoint_mirror(self, *, consumer: str, last_acked_event_id: int) -> None: ...
 
     def close(self) -> None: ...
@@ -38,6 +59,136 @@ def _clean_string(value: Any) -> str | None:
         return None
     normalized = str(value).strip()
     return normalized or None
+
+
+_NODE_DEFINITIONS: dict[str, dict[str, Any]] = {
+    "student": {
+        "neo4j_label": "Student",
+        "id_property": "student_id",
+        "display_properties": ("username", "email", "student_id"),
+        "search_properties": ("username", "email", "student_id"),
+        "label": "Student",
+    },
+    "project": {
+        "neo4j_label": "Project",
+        "id_property": "project_id",
+        "display_properties": ("title", "project_id"),
+        "search_properties": ("title", "project_id", "status"),
+        "label": "Project",
+    },
+    "supervisor": {
+        "neo4j_label": "Supervisor",
+        "id_property": "supervisor_key",
+        "display_properties": ("name", "email", "supervisor_key"),
+        "search_properties": ("name", "email", "supervisor_key"),
+        "label": "Supervisor",
+    },
+    "tag": {
+        "neo4j_label": "Tag",
+        "id_property": "tag_name_normalized",
+        "display_properties": ("display_name", "tag_name_normalized"),
+        "search_properties": ("display_name", "tag_name_normalized"),
+        "label": "Tag",
+    },
+    "application": {
+        "neo4j_label": "Application",
+        "id_property": "application_id",
+        "display_properties": ("application_id", "status"),
+        "search_properties": ("application_id", "status"),
+        "label": "Application",
+    },
+}
+_LABEL_TO_NODE_TYPE = {
+    definition["neo4j_label"]: node_type for node_type, definition in _NODE_DEFINITIONS.items()
+}
+_EDGE_DEFINITIONS = (
+    {
+        "type": "SUPERVISED_BY",
+        "source": "project",
+        "target": "supervisor",
+        "label": "Project supervised by supervisor",
+    },
+    {
+        "type": "TAGGED_WITH",
+        "source": "project",
+        "target": "tag",
+        "label": "Project tagged with technology",
+    },
+    {
+        "type": "INTERESTED_IN",
+        "source": "student",
+        "target": "tag",
+        "label": "Student interested in technology",
+    },
+    {
+        "type": "SUBMITTED",
+        "source": "student",
+        "target": "application",
+        "label": "Student submitted application",
+    },
+    {
+        "type": "TARGETS",
+        "source": "application",
+        "target": "project",
+        "label": "Application targets project",
+    },
+)
+
+
+def _resolve_node_definition(node_type: str) -> dict[str, Any]:
+    normalized = node_type.strip().lower()
+    definition = _NODE_DEFINITIONS.get(normalized)
+    if definition is None:
+        raise ValueError(f"Unsupported graph node type '{node_type}'.")
+    return definition
+
+
+def _graph_node_key(node_type: str, node_id: str) -> str:
+    return f"{node_type}:{node_id}"
+
+
+def _clean_properties(properties: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in dict(properties).items() if value is not None}
+
+
+def _node_from_properties(*, node_type: str, properties: Mapping[str, Any]) -> GraphNode:
+    definition = _resolve_node_definition(node_type)
+    cleaned_properties = _clean_properties(properties)
+    raw_node_id = _clean_string(cleaned_properties.get(definition["id_property"]))
+    if raw_node_id is None:
+        raise ValueError(f"Node '{node_type}' is missing identifier '{definition['id_property']}'.")
+
+    label = next(
+        (
+            candidate
+            for property_name in definition["display_properties"]
+            if (candidate := _clean_string(cleaned_properties.get(property_name))) is not None
+        ),
+        raw_node_id,
+    )
+    cleaned_properties[definition["id_property"]] = raw_node_id
+    return GraphNode(
+        key=_graph_node_key(node_type, raw_node_id),
+        type=node_type,
+        id=raw_node_id,
+        label=label,
+        properties=cleaned_properties,
+    )
+
+
+def _edge_from_identifiers(
+    *,
+    relationship_type: str,
+    source_type: str,
+    source_id: str,
+    target_type: str,
+    target_id: str,
+) -> GraphEdge:
+    return GraphEdge(
+        type=relationship_type,
+        source=_graph_node_key(source_type, source_id),
+        target=_graph_node_key(target_type, target_id),
+    )
 
 
 class Neo4jGraphStore:
@@ -135,6 +286,202 @@ class Neo4jGraphStore:
             },
         }
 
+    def get_graph_meta(self, *, consumer: str) -> dict[str, Any]:
+        summary = self.get_state_summary(consumer=consumer)
+        node_counts = summary["nodes"]
+        return {
+            "node_types": [
+                {
+                    "type": node_type,
+                    "label": definition["label"],
+                    "count": int(node_counts.get(node_type, 0)),
+                }
+                for node_type, definition in _NODE_DEFINITIONS.items()
+            ],
+            "edge_types": list(_EDGE_DEFINITIONS),
+            "totals": {
+                "nodes": int(sum(int(value) for value in node_counts.values())),
+                "edges": int(summary["edges"]),
+            },
+            "checkpoint_mirror": summary["checkpoint_mirror"],
+        }
+
+    def search_nodes(self, *, query: str, limit: int) -> list[GraphNode]:
+        normalized_query = query.strip().lower()
+        if not normalized_query:
+            return []
+
+        union_parts: list[str] = []
+        for node_type, definition in _NODE_DEFINITIONS.items():
+            contains_filters = " OR ".join(
+                f"toLower(coalesce(toString(n.{property_name}), '')) CONTAINS $q"
+                for property_name in definition["search_properties"]
+            )
+            exact_filters = " OR ".join(
+                f"toLower(coalesce(toString(n.{property_name}), '')) = $q"
+                for property_name in definition["search_properties"]
+            )
+            prefix_filters = " OR ".join(
+                f"toLower(coalesce(toString(n.{property_name}), '')) STARTS WITH $q"
+                for property_name in definition["search_properties"]
+            )
+            union_parts.append(
+                f"""
+                MATCH (n:{definition["neo4j_label"]})
+                WHERE {contains_filters}
+                RETURN '{node_type}' AS node_type,
+                       properties(n) AS properties,
+                       CASE
+                           WHEN {exact_filters} THEN 0
+                           WHEN {prefix_filters} THEN 1
+                           ELSE 2
+                       END AS rank
+                """
+            )
+
+        query_text = _cypher(
+            """
+            CALL {
+            """
+            + "\nUNION ALL\n".join(union_parts)
+            + """
+            }
+            RETURN node_type, properties, rank
+            ORDER BY rank ASC, node_type ASC
+            LIMIT $limit
+            """
+        )
+
+        with self._driver.session() as session:
+            records = list(session.run(query_text, {"q": normalized_query, "limit": limit}))
+
+        items = [
+            _node_from_properties(node_type=record["node_type"], properties=record["properties"])
+            for record in records
+        ]
+        return sorted(items, key=lambda item: (item.label.lower(), item.type, item.id))[:limit]
+
+    def get_neighbors(
+        self,
+        *,
+        node_type: str,
+        node_id: str,
+        limit: int,
+    ) -> GraphNeighborsResponse:
+        center_node = self._fetch_node(node_type=node_type, node_id=node_id)
+        definition = _resolve_node_definition(node_type)
+        query = _cypher(
+            f"""
+            MATCH (n:{definition["neo4j_label"]} {{{definition["id_property"]}: $node_id}})
+            OPTIONAL MATCH (n)-[r]-(m)
+            RETURN type(r) AS relationship_type,
+                   labels(startNode(r))[0] AS source_label,
+                   properties(startNode(r)) AS source_properties,
+                   labels(endNode(r))[0] AS target_label,
+                   properties(endNode(r)) AS target_properties
+            LIMIT $limit
+            """
+        )
+
+        nodes_by_key: dict[str, GraphNode] = {center_node.key: center_node}
+        edges: list[GraphEdge] = []
+        with self._driver.session() as session:
+            records = list(session.run(query, {"node_id": node_id, "limit": limit}))
+
+        for record in records:
+            relationship_type = record["relationship_type"]
+            if relationship_type is None:
+                continue
+            source_type = _LABEL_TO_NODE_TYPE[record["source_label"]]
+            target_type = _LABEL_TO_NODE_TYPE[record["target_label"]]
+            source_node = _node_from_properties(
+                node_type=source_type,
+                properties=record["source_properties"],
+            )
+            target_node = _node_from_properties(
+                node_type=target_type,
+                properties=record["target_properties"],
+            )
+            nodes_by_key[source_node.key] = source_node
+            nodes_by_key[target_node.key] = target_node
+            edges.append(
+                _edge_from_identifiers(
+                    relationship_type=relationship_type,
+                    source_type=source_type,
+                    source_id=source_node.id,
+                    target_type=target_type,
+                    target_id=target_node.id,
+                )
+            )
+
+        neighbors = sorted(
+            (node for key, node in nodes_by_key.items() if key != center_node.key),
+            key=lambda item: (item.type, item.label.lower(), item.id),
+        )
+        return GraphNeighborsResponse(node=center_node, neighbors=neighbors, edges=edges)
+
+    def get_subgraph(
+        self,
+        *,
+        node_type: str,
+        node_id: str,
+        depth: int,
+    ) -> GraphSubgraphResponse:
+        root_node = self._fetch_node(node_type=node_type, node_id=node_id)
+        definition = _resolve_node_definition(node_type)
+        query = _cypher(
+            f"""
+            MATCH (root:{definition["neo4j_label"]} {{{definition["id_property"]}: $node_id}})
+            OPTIONAL MATCH path = (root)-[*1..{depth}]-(connected)
+            UNWIND relationships(path) AS rel
+            RETURN DISTINCT labels(startNode(rel))[0] AS source_label,
+                            properties(startNode(rel)) AS source_properties,
+                            type(rel) AS relationship_type,
+                            labels(endNode(rel))[0] AS target_label,
+                            properties(endNode(rel)) AS target_properties
+            """
+        )
+
+        nodes_by_key: dict[str, GraphNode] = {root_node.key: root_node}
+        edges_by_key: dict[tuple[str, str, str], GraphEdge] = {}
+        with self._driver.session() as session:
+            records = list(session.run(query, {"node_id": node_id}))
+
+        for record in records:
+            relationship_type = record["relationship_type"]
+            if relationship_type is None:
+                continue
+            source_type = _LABEL_TO_NODE_TYPE[record["source_label"]]
+            target_type = _LABEL_TO_NODE_TYPE[record["target_label"]]
+            source_node = _node_from_properties(
+                node_type=source_type,
+                properties=record["source_properties"],
+            )
+            target_node = _node_from_properties(
+                node_type=target_type,
+                properties=record["target_properties"],
+            )
+            nodes_by_key[source_node.key] = source_node
+            nodes_by_key[target_node.key] = target_node
+            edge_key = (relationship_type, source_node.key, target_node.key)
+            edges_by_key[edge_key] = _edge_from_identifiers(
+                relationship_type=relationship_type,
+                source_type=source_type,
+                source_id=source_node.id,
+                target_type=target_type,
+                target_id=target_node.id,
+            )
+
+        nodes = sorted(
+            nodes_by_key.values(),
+            key=lambda item: (item.type, item.label.lower(), item.id),
+        )
+        edges = sorted(
+            edges_by_key.values(),
+            key=lambda item: (item.type, item.source, item.target),
+        )
+        return GraphSubgraphResponse(root=root_node, depth=depth, nodes=nodes, edges=edges)
+
     def set_checkpoint_mirror(self, *, consumer: str, last_acked_event_id: int) -> None:
         with self._driver.session() as session:
             session.run(
@@ -146,6 +493,20 @@ class Neo4jGraphStore:
                 consumer=consumer,
                 last_acked_event_id=last_acked_event_id,
             ).consume()
+
+    def _fetch_node(self, *, node_type: str, node_id: str) -> GraphNode:
+        definition = _resolve_node_definition(node_type)
+        query = _cypher(
+            f"""
+            MATCH (n:{definition["neo4j_label"]} {{{definition["id_property"]}: $node_id}})
+            RETURN properties(n) AS properties
+            """
+        )
+        with self._driver.session() as session:
+            record = session.run(query, {"node_id": node_id}).single()
+        if record is None:
+            raise KeyError(f"Graph node '{node_type}:{node_id}' was not found.")
+        return _node_from_properties(node_type=node_type, properties=record["properties"])
 
     @staticmethod
     def _normalize_tags(raw_values: list[Any]) -> list[dict[str, str]]:
