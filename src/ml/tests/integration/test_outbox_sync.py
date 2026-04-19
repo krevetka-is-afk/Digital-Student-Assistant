@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any, TypedDict, cast
 
-from app.index_store import RecommendationIndexStore
-from app.models import OutboxEvent
 from starlette.testclient import TestClient
+
+from src.ml.app.index_store import RecommendationIndexStore
+from src.ml.app.models import OutboxEvent
 
 
 class _CheckpointState(TypedDict):

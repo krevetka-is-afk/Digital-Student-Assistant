@@ -4,12 +4,12 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-SERVICE_ROOT = Path(__file__).resolve().parents[1]
-if str(SERVICE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SERVICE_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from app.main import create_app  # noqa: E402
-from app.settings import MLSettings  # noqa: E402
+from src.ml.app.main import create_app  # noqa: E402
+from src.ml.app.settings import MLSettings  # noqa: E402
 
 
 @pytest.fixture

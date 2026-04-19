@@ -1,6 +1,7 @@
-from app.index_store import RecommendationIndexStore
-from app.models import OutboxEvent, ProjectPayload
 from starlette.testclient import TestClient
+
+from src.ml.app.index_store import RecommendationIndexStore
+from src.ml.app.models import OutboxEvent, ProjectPayload
 
 
 def test_health_ok(client):

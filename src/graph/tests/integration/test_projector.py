@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any, TypedDict, cast
 
-from app.models import GraphEvent
 from starlette.testclient import TestClient
+
+from src.graph.app.models import GraphEvent
 
 
 class FakeGraphStore:
