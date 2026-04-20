@@ -98,6 +98,7 @@ def test_recs_search_endpoint_uses_remote_ml_service(monkeypatch):
     assert payload["items"][0]["project"]["pk"] == project.pk
     assert payload["items"][0]["reason"] == "semantic similarity"
     assert post_mock.call_args.args[0] == "http://ml.example/search"
+    assert post_mock.call_args.kwargs["json"] == {"query": "graph databases", "limit": 10}
 
 
 def test_recommendations_endpoint_uses_remote_ml_service(monkeypatch):
@@ -125,7 +126,7 @@ def test_recommendations_endpoint_uses_remote_ml_service(monkeypatch):
         ],
     }
 
-    with patch("apps.recs.services.requests.post", return_value=remote_response):
+    with patch("apps.recs.services.requests.post", return_value=remote_response) as post_mock:
         response = client.get(reverse("api-v1-recs-recommendations"))
 
     assert response.status_code == 200
@@ -133,6 +134,7 @@ def test_recommendations_endpoint_uses_remote_ml_service(monkeypatch):
     assert payload["mode"] == "semantic"
     assert payload["items"][0]["project"]["title"] == f"Semantic match {token}"
     assert payload["items"][0]["score"] == 0.91
+    assert post_mock.call_args.kwargs["json"] == {"interests": [token], "limit": 10}
 
 
 def test_recommendations_endpoint_falls_back_on_ml_timeout(monkeypatch):
@@ -202,6 +204,33 @@ def test_recs_search_endpoint_falls_back_on_invalid_ml_payload(monkeypatch):
     assert payload["mode"] == "keyword-fallback"
     titles = [item["project"]["title"] for item in payload["items"]]
     assert f"Invalid payload fallback {token}" in titles
+
+
+def test_recs_search_endpoint_falls_back_when_ml_reports_non_semantic_mode(monkeypatch):
+    token = f"remote-fallback-{uuid4().hex[:8]}"
+    Project.objects.create(
+        title=f"Fallback project {token}",
+        description=f"semantic search fallback {token}",
+        status=ProjectStatus.PUBLISHED,
+        tech_tags=["search", token],
+    )
+    monkeypatch.setenv("ML_SERVICE_URL", "http://ml.example")
+
+    remote_response = Mock()
+    remote_response.raise_for_status.return_value = None
+    remote_response.json.return_value = {
+        "mode": "stub-heuristic",
+        "items": [],
+    }
+
+    with patch("apps.recs.services.requests.post", return_value=remote_response):
+        response = Client().get(reverse("api-v1-recs-search"), data={"q": token})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "keyword-fallback"
+    titles = [item["project"]["title"] for item in payload["items"]]
+    assert f"Fallback project {token}" in titles
 
 
 def test_only_cpprp_can_request_reindex():

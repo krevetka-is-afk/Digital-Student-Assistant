@@ -1,6 +1,7 @@
 from apps.account.permissions import IsCpprpOrStaff
 from apps.outbox.services import emit_event
 from apps.users.models import UserProfile
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -79,6 +80,7 @@ class RecommendationReindexAPIView(APIView):
             payload={
                 "requested_by_id": request.user.id,
                 "reason": request.data.get("reason", "manual_reindex"),
+                "requested_at": timezone.now().isoformat(),
             },
             idempotency_key=(
                 f"recs.reindex_requested:{request.user.id}:"

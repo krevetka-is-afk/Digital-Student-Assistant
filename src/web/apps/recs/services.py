@@ -83,16 +83,6 @@ def _published_projects() -> list[Project]:
     )
 
 
-def _project_payload(project: Project) -> dict[str, object]:
-    return {
-        "id": project.pk,
-        "title": project.title,
-        "description": project.description,
-        "tech_tags": project.get_tags_list(),
-        "supervisor_name": project.supervisor_name,
-        "source_type": project.source_type,
-    }
-
 
 def _ml_timeout_seconds() -> float:
     raw_timeout = os.getenv("ML_SERVICE_TIMEOUT", str(ML_DEFAULT_TIMEOUT_SECONDS))
@@ -200,6 +190,20 @@ def _call_remote_ml(
             fallback_reason="ml_invalid_body",
         )
 
+    remote_mode = str(body.get("mode") or "").strip()
+    if remote_mode and remote_mode != ML_GATEWAY_SEMANTIC_MODE:
+        logger.info(
+            "recs.gateway mode=%s operation=%s reason=remote_mode_%s",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+            remote_mode,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason=f"remote_mode_{remote_mode}",
+        )
+
     raw_items = body.get("items")
     items = _normalize_remote_items(raw_items)
     if items is None:
@@ -260,7 +264,6 @@ def search_projects(query: str, *, limit: int = 10) -> tuple[str, list[dict[str,
         {
             "query": query,
             "limit": limit,
-            "projects": [_project_payload(project) for project in projects],
         },
         operation="search",
     )
@@ -293,7 +296,6 @@ def recommend_projects(
         {
             "interests": interests,
             "limit": limit,
-            "projects": [_project_payload(project) for project in projects],
         },
         operation="recommendations",
     )
