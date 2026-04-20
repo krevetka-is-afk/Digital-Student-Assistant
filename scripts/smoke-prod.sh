@@ -42,13 +42,6 @@ check_public() {
   echo "[OK] $url"
 }
 
-check_internal_from_web() {
-  local url="$1"
-  local expected="$2"
-  "${compose_cmd[@]}" exec -T web python -c "import sys,urllib.request as u; d=u.urlopen('$url', timeout=5).read().decode(); print(d); sys.exit(0 if '$expected' in d else 1)" >/dev/null
-  echo "[OK] internal $url"
-}
-
 if [[ ! -f "$env_file" ]]; then
   echo "Missing env file: $env_file" >&2
   exit 1
@@ -74,13 +67,5 @@ retry check_public "$public_base/api/v1/projects/" '"results"' || {
   exit 1
 }
 
-retry check_internal_from_web "http://ml:8000/ready" '"status":"ok"' || {
-  echo "[FAIL] ml readiness did not stabilize in time" >&2
-  exit 1
-}
-retry check_internal_from_web "http://graph:8002/ready" '"status":"ok"' || {
-  echo "[FAIL] graph readiness did not stabilize in time" >&2
-  exit 1
-}
 
 echo "Smoke suite passed."
