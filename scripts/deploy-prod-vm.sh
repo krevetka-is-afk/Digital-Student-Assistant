@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/dsa}"
+APP_DIR="${APP_DIR:-/opt/digital-student-assistant}"
 COMPOSE_FILE="${COMPOSE_FILE:-$APP_DIR/infra/docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/infra/.env.prod}"
 ENV_EXAMPLE_FILE="${ENV_EXAMPLE_FILE:-$APP_DIR/infra/.env.prod.example}"
@@ -15,7 +15,7 @@ usage() {
 Usage: scripts/deploy-prod-vm.sh
 
 Environment variables:
-  APP_DIR          Project directory on VM (default: /opt/dsa)
+  APP_DIR          Project directory on VM (default: /opt/digital-student-assistant)
   COMPOSE_FILE     Compose file path (default: $APP_DIR/infra/docker-compose.prod.yml)
   ENV_FILE         Prod env file path (default: $APP_DIR/infra/.env.prod)
   ENV_EXAMPLE_FILE Env template file (default: $APP_DIR/infra/.env.prod.example)
@@ -96,11 +96,9 @@ print(secrets.token_urlsafe(64))
 PY
 )"
 PG_PASS="$(openssl rand -hex 20)"
-NEO_PASS="$(openssl rand -hex 20)"
 
 replace_if_placeholder "DJANGO_SECRET_KEY" "$DJ_SECRET"
 replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
-replace_if_placeholder "NEO4J_PASSWORD" "$NEO_PASS"
 POSTGRES_DB_VAL="$(get_env_val POSTGRES_DB)"
 POSTGRES_USER_VAL="$(get_env_val POSTGRES_USER)"
 POSTGRES_PASS_VAL="$(get_env_val POSTGRES_PASSWORD)"
@@ -120,32 +118,18 @@ if is_placeholder "$DATABASE_URL_VAL"; then
   set_env_key "DATABASE_URL" "postgresql+psycopg2://$POSTGRES_USER_VAL:$POSTGRES_PASS_VAL@postgres:5432/$POSTGRES_DB_VAL"
 fi
 
-NEO_USER_VAL="$(get_env_val NEO4J_USER)"
-NEO_PASS_VAL="$(get_env_val NEO4J_PASSWORD)"
-if [[ -z "$NEO_USER_VAL" ]]; then
-  NEO_USER_VAL="neo4j"
-fi
-if is_placeholder "$NEO_PASS_VAL"; then
-  NEO_PASS_VAL="$NEO_PASS"
-  set_env_key "NEO4J_PASSWORD" "$NEO_PASS_VAL"
-fi
-
-NEO_AUTH_VAL="$(get_env_val NEO4J_AUTH)"
-if is_placeholder "$NEO_AUTH_VAL"; then
-  set_env_key "NEO4J_AUTH" "$NEO_USER_VAL/$NEO_PASS_VAL"
-fi
-
 set_default_env_key "DSA_BOOTSTRAP_IMPORT_IF_EMPTY" "true"
 set_default_env_key "DSA_BOOTSTRAP_XLSX_PATH" "/app/bootstrap-data/EPP.xlsx"
 set_default_env_key "DSA_BOOTSTRAP_ALLOW_MISSING_XLSX" "true"
 set_default_env_key "DSA_BOOTSTRAP_FAIL_ON_IMPORT_ERRORS" "true"
+set_default_env_key "ML_SERVICE_URL" ""
 set_default_env_key "DSA_BOOTSTRAP_STATE_FILE" "/var/lib/dsa/bootstrap/state.json"
 set_default_env_key "BOOTSTRAP_DATA_HOST_DIR" "../.bootstrap-data"
 
 if [[ -n "$PUBLIC_HOST" ]]; then
   HOST_PORT="${PORT_MAPPING%%:*}"
-  set_env_key "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
-  set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST:$HOST_PORT,http://localhost"
+  replace_if_placeholder "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
+  replace_if_placeholder "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST:$HOST_PORT,http://localhost"
 fi
 
 python3 - "$COMPOSE_FILE" "$PORT_MAPPING" <<'PY'
@@ -197,7 +181,7 @@ compose_file.write_text(text)
 PY
 
 cd "$APP_DIR"
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
 if [[ "$RUN_SMOKE" == "1" ]]; then

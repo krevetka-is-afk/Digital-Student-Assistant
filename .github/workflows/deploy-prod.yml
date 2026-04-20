@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-push-images:
-    name: Build and push production images
+  build-and-push-image:
+    name: Build and push production web image
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -45,6 +45,9 @@ jobs:
           echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "image_prefix=ghcr.io/${owner_lc}/${repo_lc}" >> "$GITHUB_OUTPUT"
 
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -59,32 +62,15 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/web
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ steps.meta.outputs.image_prefix }}-web:${{ steps.meta.outputs.target_sha }}
             ${{ steps.meta.outputs.image_prefix }}-web:main-latest
 
-      - name: Build and push ml image
-        uses: docker/build-push-action@v6
-        with:
-          context: src/ml
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.image_prefix }}-ml:${{ steps.meta.outputs.target_sha }}
-            ${{ steps.meta.outputs.image_prefix }}-ml:main-latest
-
-      - name: Build and push graph image
-        uses: docker/build-push-action@v6
-        with:
-          context: src/graph
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.image_prefix }}-graph:${{ steps.meta.outputs.target_sha }}
-            ${{ steps.meta.outputs.image_prefix }}-graph:main-latest
-
   deploy:
     name: Deploy over SSH
-    needs: build-and-push-images
+    needs: build-and-push-image
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment:
@@ -106,11 +92,12 @@ jobs:
             set -euo pipefail
 
             APP_DIR="${{ secrets.PROD_APP_DIR }}"
-            TARGET_REF="${{ needs.build-and-push-images.outputs.target_ref }}"
-            TARGET_SHA="${{ needs.build-and-push-images.outputs.target_sha }}"
-            IMAGE_PREFIX="${{ needs.build-and-push-images.outputs.image_prefix }}"
+            TARGET_REF="${{ needs.build-and-push-image.outputs.target_ref }}"
+            TARGET_SHA="${{ needs.build-and-push-image.outputs.target_sha }}"
+            IMAGE_PREFIX="${{ needs.build-and-push-image.outputs.image_prefix }}"
             PUBLIC_HOST="${{ secrets.PROD_SSH_HOST }}"
             PUBLIC_BASE_URL="http://${{ secrets.PROD_SSH_HOST }}"
+            compose_cmd=(docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod)
 
             cd "$APP_DIR"
 
@@ -122,10 +109,26 @@ jobs:
               git checkout --detach "$TARGET_REF"
             fi
 
+            ACTUAL_SHA="$(git rev-parse HEAD)"
+            if [ "$ACTUAL_SHA" != "$TARGET_SHA" ]; then
+              echo "Ref mismatch: expected $TARGET_SHA, got $ACTUAL_SHA" >&2
+              exit 1
+            fi
+
             if [ ! -f infra/.env.prod ]; then
               cp infra/.env.prod.example infra/.env.prod
               chmod 600 infra/.env.prod
             fi
+
+            get_env_val() {
+              local key="$1"
+              grep -E "^${key}=" infra/.env.prod | tail -n1 | cut -d= -f2- || true
+            }
+
+            is_placeholder() {
+              local value="${1:-}"
+              [[ -z "$value" || "$value" =~ ^(replace|change-me|placeholder) ]]
+            }
 
             set_env_key() {
               local key="$1"
@@ -137,13 +140,71 @@ jobs:
               fi
             }
 
-            set_env_key "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
-            set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST,http://localhost"
+            replace_if_placeholder() {
+              local key="$1"
+              local candidate="$2"
+              local current
+              current="$(get_env_val "$key")"
+              if is_placeholder "$current"; then
+                set_env_key "$key" "$candidate"
+              fi
+            }
+
+            DJ_SECRET="$(python3 - <<'PY'
+            import secrets
+            print(secrets.token_urlsafe(64))
+            PY
+            )"
+            PG_PASS="$(openssl rand -hex 20)"
+
+            replace_if_placeholder "DJANGO_SECRET_KEY" "$DJ_SECRET"
+            replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
+
+            POSTGRES_DB_VAL="$(get_env_val POSTGRES_DB)"
+            POSTGRES_USER_VAL="$(get_env_val POSTGRES_USER)"
+            POSTGRES_PASS_VAL="$(get_env_val POSTGRES_PASSWORD)"
+            if [ -z "$POSTGRES_DB_VAL" ]; then
+              POSTGRES_DB_VAL="dsa"
+              set_env_key "POSTGRES_DB" "$POSTGRES_DB_VAL"
+            fi
+            if [ -z "$POSTGRES_USER_VAL" ]; then
+              POSTGRES_USER_VAL="dsa"
+              set_env_key "POSTGRES_USER" "$POSTGRES_USER_VAL"
+            fi
+            if is_placeholder "$POSTGRES_PASS_VAL"; then
+              POSTGRES_PASS_VAL="$PG_PASS"
+              set_env_key "POSTGRES_PASSWORD" "$POSTGRES_PASS_VAL"
+            fi
+
+            DATABASE_URL_VAL="$(get_env_val DATABASE_URL)"
+            if is_placeholder "$DATABASE_URL_VAL"; then
+              set_env_key "DATABASE_URL" "postgresql+psycopg2://${POSTGRES_USER_VAL}:${POSTGRES_PASS_VAL}@postgres:5432/${POSTGRES_DB_VAL}"
+            fi
+
+            set_env_key "ML_SERVICE_URL" ""
+            replace_if_placeholder "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
+            replace_if_placeholder "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST,http://localhost"
             set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"
             set_env_key "DJANGO_SESSION_COOKIE_SECURE" "false"
             set_env_key "DJANGO_CSRF_COOKIE_SECURE" "false"
 
-            cat > infra/nginx/default.conf <<EOF
+            dump_compose_diagnostics() {
+              local status="$1"
+              if [ "$status" -eq 0 ]; then
+                return 0
+              fi
+              trap - EXIT
+              echo "Deploy failed; collecting docker compose diagnostics..." >&2
+              "${compose_cmd[@]}" ps || true
+              for service in postgres web nginx; do
+                echo "--- docker compose logs: ${service} ---" >&2
+                "${compose_cmd[@]}" logs --tail 200 "$service" || true
+              done
+              exit "$status"
+            }
+            trap 'dump_compose_diagnostics $?' EXIT
+
+            cat > infra/nginx/default.conf <<EOF2
             server {
                 listen 80;
                 server_name ${PUBLIC_HOST};
@@ -166,25 +227,40 @@ jobs:
                     proxy_http_version 1.1;
                 }
             }
-            EOF
+            EOF2
 
             WEB_IMAGE="${IMAGE_PREFIX}-web:${TARGET_SHA}"
-            ML_IMAGE="${IMAGE_PREFIX}-ml:${TARGET_SHA}"
-            GRAPH_IMAGE="${IMAGE_PREFIX}-graph:${TARGET_SHA}"
+
+            pull_web_image() {
+              local attempt
+              for attempt in 1 2 3; do
+                if WEB_IMAGE="$WEB_IMAGE" "${compose_cmd[@]}" pull web; then
+                  return 0
+                fi
+                echo "web image pull attempt ${attempt} failed" >&2
+                sleep $((attempt * 10))
+              done
+              return 1
+            }
 
             echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-            WEB_IMAGE="$WEB_IMAGE" \
-            ML_IMAGE="$ML_IMAGE" \
-            GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod pull web ml graph
+            pull_web_image
 
             WEB_IMAGE="$WEB_IMAGE" \
-            ML_IMAGE="$ML_IMAGE" \
-            GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --no-build --remove-orphans
+            "${compose_cmd[@]}" up -d --no-build --remove-orphans --wait --wait-timeout 240
             docker logout ghcr.io || true
+
+            SMOKE_HOST="$(get_env_val DJANGO_ALLOWED_HOSTS | tr "," "\n" | sed "s/^ *//;s/ *$//" | grep -vE "^(localhost|127\.0\.0\.1|web|[0-9.]+)$" | head -n1 || true)"
+            if [ -n "$SMOKE_HOST" ]; then
+              SMOKE_BASE_URL="https://${SMOKE_HOST}"
+              SMOKE_CURL_OPTS="--resolve ${SMOKE_HOST}:443:127.0.0.1"
+            else
+              SMOKE_BASE_URL="http://127.0.0.1"
+              SMOKE_CURL_OPTS=""
+            fi
 
             ENV_FILE=infra/.env.prod \
             COMPOSE_FILE=infra/docker-compose.prod.yml \
-            PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
+            PUBLIC_BASE_URL="$SMOKE_BASE_URL" \
+            PUBLIC_CURL_OPTS="$SMOKE_CURL_OPTS" \
             scripts/smoke-prod.sh
