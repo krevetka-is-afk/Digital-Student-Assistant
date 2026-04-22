@@ -102,6 +102,10 @@ jobs:
             cd "$APP_DIR"
 
             git fetch --all --prune --tags
+            if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
+              echo "Discarding tracked local changes in deploy worktree"
+              git reset --hard HEAD
+            fi
             if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
               git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
               git pull --ff-only origin "$TARGET_REF"
