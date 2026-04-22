@@ -122,7 +122,7 @@ set_default_env_key "DSA_BOOTSTRAP_IMPORT_IF_EMPTY" "true"
 set_default_env_key "DSA_BOOTSTRAP_XLSX_PATH" "/app/bootstrap-data/EPP.xlsx"
 set_default_env_key "DSA_BOOTSTRAP_ALLOW_MISSING_XLSX" "true"
 set_default_env_key "DSA_BOOTSTRAP_FAIL_ON_IMPORT_ERRORS" "true"
-set_default_env_key "ML_SERVICE_URL" ""
+set_default_env_key "ML_SERVICE_URL" "http://ml:8000"
 set_default_env_key "DSA_BOOTSTRAP_STATE_FILE" "/var/lib/dsa/bootstrap/state.json"
 set_default_env_key "BOOTSTRAP_DATA_HOST_DIR" "../.bootstrap-data"
 

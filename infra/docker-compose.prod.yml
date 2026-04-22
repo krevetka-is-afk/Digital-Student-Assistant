@@ -17,6 +17,51 @@ services:
       start_period: 10s
       retries: 5
 
+  neo4j:
+    image: neo4j:5-community
+    restart: unless-stopped
+    env_file:
+      - ./.env.prod
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/test}
+    volumes:
+      - neo4j-prod:/data
+    healthcheck:
+      test: ["CMD-SHELL", "AUTH=\"$${NEO4J_AUTH:-neo4j/test}\"; USER=$${AUTH%%/*}; PASS=$${AUTH#*/}; cypher-shell -a bolt://localhost:7687 -u \"$${USER}\" -p \"$${PASS}\" 'RETURN 1' >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 10s
+      start_period: 20s
+      retries: 10
+
+  ml:
+    image: ${ML_IMAGE:-infra-ml}
+    build:
+      context: ../src/ml
+    restart: unless-stopped
+    env_file:
+      - ./.env.prod
+    environment:
+      PYTHONUNBUFFERED: "1"
+      OUTBOX_BASE_URL: ${OUTBOX_BASE_URL:-http://web:8000}
+      OUTBOX_CONSUMER: ml
+      OUTBOX_AUTH_HEADER: ${OUTBOX_AUTH_HEADER:-}
+      OUTBOX_TIMEOUT_SEC: ${OUTBOX_TIMEOUT_SEC:-10}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-100}
+      OUTBOX_POLL_INTERVAL_SEC: ${OUTBOX_POLL_INTERVAL_SEC:-5}
+      ML_ENABLE_BACKGROUND_POLLER: ${ML_ENABLE_BACKGROUND_POLLER:-false}
+      ML_INDEX_STATE_PATH: ${ML_INDEX_STATE_PATH:-/tmp/ml-index.json}
+    depends_on:
+      web:
+        condition: service_healthy
+    stop_grace_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   web:
     image: ${WEB_IMAGE:-infra-web}
     build:
@@ -28,7 +73,7 @@ services:
       PYTHONUNBUFFERED: "1"
       DJANGO_SETTINGS_MODULE: config.settings.prod
       DATABASE_URL: ${DATABASE_URL:-}
-      ML_SERVICE_URL: ${ML_SERVICE_URL:-}
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://ml:8000}
       DJANGO_BEHIND_PROXY: "true"
       DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-false}
       DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
@@ -71,6 +116,42 @@ services:
       start_period: 40s
       retries: 5
 
+  graph:
+    image: ${GRAPH_IMAGE:-infra-graph}
+    build:
+      context: ../src/graph
+    restart: unless-stopped
+    env_file:
+      - ./.env.prod
+    environment:
+      PYTHONUNBUFFERED: "1"
+      NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7687}
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-test}
+      OUTBOX_BASE_URL: ${OUTBOX_BASE_URL:-http://web:8000}
+      OUTBOX_CONSUMER: graph
+      OUTBOX_AUTH_HEADER: ${OUTBOX_AUTH_HEADER:-}
+      OUTBOX_TIMEOUT_SEC: ${OUTBOX_TIMEOUT_SEC:-10}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-100}
+      OUTBOX_POLL_INTERVAL_SEC: ${OUTBOX_POLL_INTERVAL_SEC:-5}
+      GRAPH_ENABLE_BACKGROUND_POLLER: ${GRAPH_ENABLE_BACKGROUND_POLLER:-false}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request as u; u.urlopen('http://127.0.0.1:8002/health').read(); sys.exit(0)"]
+      interval: 30s
+      timeout: 3s
+      start_period: 15s
+      retries: 5
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -101,4 +182,5 @@ services:
 
 volumes:
   postgres-prod:
+  neo4j-prod:
   bootstrap-state:
