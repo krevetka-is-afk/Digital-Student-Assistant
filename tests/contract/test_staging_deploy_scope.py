@@ -27,7 +27,8 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert 'infra/docker-compose.staging.yml' in workflow
     assert 'infra/.env.staging' in workflow
     assert 'pull web ml graph' in workflow
-    assert 'infra/docker-compose.prod.yml --env-file infra/.env.prod pull web ml graph' not in workflow
+    assert 'infra/docker-compose.prod.yml\
+         --env-file infra/.env.prod pull web ml graph' not in workflow
 
 
 def test_staging_env_example_exists_for_full_stack():
