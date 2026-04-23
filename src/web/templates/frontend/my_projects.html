@@ -40,6 +40,11 @@
     Сотрудники
     <span class="ml-1 text-xs text-gray-400">{{ sample_staff|length }}</span>
   </button>
+  <button id="tab-btn-graph"
+          onclick="switchTab('graph')"
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+    Граф соавторства
+  </button>
 </div>
 
 <!-- ================================================================ -->
@@ -400,10 +405,107 @@
 </div><!-- /tab-panel-staff -->
 
 
+<!-- ================================================================ -->
+<!-- TAB: Граф соавторства                                           -->
+<!-- ================================================================ -->
+<div id="tab-panel-graph" style="display:none;">
+
+  <p class="text-sm text-gray-500 mb-2">
+    Граф соавторства по научным публикациям.
+    Узел — автор, ребро — совместная публикация.
+    Размер узла пропорционален числу публикаций в выборке.
+  </p>
+  <p class="text-xs text-gray-400 mb-5">
+    Данные демонстрационные. После подключения faculty service граф будет построен по реальным публикациям НИУ ВШЭ.
+  </p>
+
+  <!-- Legend -->
+  <div class="flex items-center gap-4 mb-4 flex-wrap">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-4 h-4 rounded-full bg-blue-200 border-2 border-blue-500"></span>
+      <span class="text-xs text-gray-500">Автор</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-6 border-t-2 border-gray-300"></span>
+      <span class="text-xs text-gray-500">Совместная публикация</span>
+    </div>
+    <span class="text-xs text-gray-400">Наведите на узел или ребро для подсказки</span>
+  </div>
+
+  <!-- Graph canvas -->
+  <div id="vis-graph-container"
+       style="height:500px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;"></div>
+
+  <!-- Stats -->
+  <div class="flex gap-6 mt-4">
+    <div class="text-center">
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-nodes">—</p>
+      <p class="text-xs text-gray-500">авторов</p>
+    </div>
+    <div class="text-center">
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-edges">—</p>
+      <p class="text-xs text-gray-500">связей</p>
+    </div>
+    <div class="text-center">
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-articles">{{ sample_articles|length }}</p>
+      <p class="text-xs text-gray-500">публикаций в выборке</p>
+    </div>
+  </div>
+
+</div><!-- /tab-panel-graph -->
+
+
+<!-- Vis.js Network (CDN) — загружается один раз, используется только при открытии вкладки Граф -->
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
 <!-- Tab switching JS -->
 <script>
+var _graphInitialized = false;
+
+function _initGraph() {
+  if (_graphInitialized) return;
+  _graphInitialized = true;
+
+  var rawNodes = {{ graph_nodes_json|safe }};
+  var rawEdges = {{ graph_edges_json|safe }};
+
+  document.getElementById('graph-stat-nodes').textContent = rawNodes.length;
+  document.getElementById('graph-stat-edges').textContent = rawEdges.length;
+
+  var container = document.getElementById('vis-graph-container');
+  var data = {
+    nodes: new vis.DataSet(rawNodes),
+    edges: new vis.DataSet(rawEdges),
+  };
+  var options = {
+    nodes: {
+      shape: 'dot',
+      scaling: { min: 16, max: 42, label: { enabled: true, min: 11, max: 16 } },
+      font: { size: 12, face: 'Arial', color: '#374151' },
+      borderWidth: 2,
+      color: {
+        background: '#dbeafe',
+        border:     '#3b82f6',
+        highlight:  { background: '#bfdbfe', border: '#1d4ed8' },
+        hover:      { background: '#eff6ff', border: '#2563eb' },
+      },
+    },
+    edges: {
+      width: 1.5,
+      color: { color: '#cbd5e1', highlight: '#64748b', hover: '#94a3b8' },
+      smooth: { type: 'continuous' },
+    },
+    physics: {
+      stabilization: { iterations: 300 },
+      barnesHut: { gravitationalConstant: -6000, springLength: 120 },
+    },
+    interaction: { hover: true, tooltipDelay: 150 },
+  };
+  new vis.Network(container, data, options);
+}
+
 function switchTab(tab) {
-  var tabs = ['projects', 'articles', 'staff'];
+  var tabs = ['projects', 'articles', 'staff', 'graph'];
   tabs.forEach(function(t) {
     var panel = document.getElementById('tab-panel-' + t);
     var btn   = document.getElementById('tab-btn-' + t);
@@ -417,6 +519,9 @@ function switchTab(tab) {
       btn.classList.add('text-gray-500', 'hover:text-gray-700');
     }
   });
+  // Initialize graph on first open
+  if (tab === 'graph') { _initGraph(); }
+
   // Reflect active tab in URL without reload
   var url = new URL(window.location);
   if (tab !== 'projects') {

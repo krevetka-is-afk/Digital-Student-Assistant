@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 
@@ -296,14 +297,19 @@ def _customer_project_list(request):
     paginator = Paginator(queryset, PAGE_SIZE)
     page_obj  = paginator.get_page(page_number)
 
+    articles = _get_sample_articles()
+    graph_nodes, graph_edges = _build_graph_data(articles)
+
     return render(request, "frontend/my_projects.html", {
         "page_obj":      page_obj,
         "status_filter": status_filter,
         "ProjectStatus": ProjectStatus,
         "counts":        counts,
         "total_count":   base_qs.count(),
-        "sample_articles": _get_sample_articles(),
+        "sample_articles": articles,
         "sample_staff":    _get_sample_staff(),
+        "graph_nodes_json": json.dumps(graph_nodes, ensure_ascii=False),
+        "graph_edges_json": json.dumps(graph_edges, ensure_ascii=False),
     })
 
 
@@ -410,6 +416,62 @@ def _get_sample_staff():
             "profile_url":    "https://www.hse.ru/org/persons/",
         },
     ]
+
+
+def _build_graph_data(articles):
+    """
+    Build co-authorship graph from articles list.
+
+    Each article contributes edges between all pairs of its authors.
+    Node size (value) = number of articles the author appears in.
+
+    Returns:
+        nodes: list of dicts  {id, label, value, title}
+        edges: list of dicts  {from, to, title}
+
+    Compatible with Vis.js Network (vis-network).
+    When connected to a real data source (e.g. faculty service API),
+    replace the articles list — the rest of the pipeline stays unchanged.
+    """
+    from collections import defaultdict
+
+    author_articles: dict[str, list[str]] = defaultdict(list)
+    for article in articles:
+        for author in article.get("authors", []):
+            author_articles[author].append(article.get("title", ""))
+
+    # Nodes
+    nodes = []
+    author_index: dict[str, int] = {}
+    for i, (author, titles) in enumerate(author_articles.items()):
+        author_index[author] = i
+        nodes.append({
+            "id":    i,
+            "label": author,
+            "value": len(titles),          # drives node size in Vis.js
+            "title": f"{author}<br/>Публикаций в выборке: {len(titles)}",
+        })
+
+    # Edges — unique pairs of co-authors per article
+    edge_set: set[tuple[int, int]] = set()
+    edges = []
+    for article in articles:
+        authors = article.get("authors", [])
+        for i in range(len(authors)):
+            for j in range(i + 1, len(authors)):
+                a = author_index[authors[i]]
+                b = author_index[authors[j]]
+                key = (min(a, b), max(a, b))
+                if key not in edge_set:
+                    edge_set.add(key)
+                    title = article.get("title", "")
+                    edges.append({
+                        "from":  a,
+                        "to":    b,
+                        "title": title[:60] + ("…" if len(title) > 60 else ""),
+                    })
+
+    return nodes, edges
 
 
 # ---------------------------------------------------------------------------
