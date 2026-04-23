@@ -524,6 +524,109 @@ jobs:
               chmod 600 "$STAGING_ENV_FILE"
             fi
 
+            STAGING_BASE_URL="${{ vars.STAGING_URL || 'https://staging.example' }}"
+            STAGING_HOST="$(printf '%s' "$STAGING_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
+
+            get_env_val() {
+              local key="$1"
+              grep -E "^${key}=" "$STAGING_ENV_FILE" | tail -n1 | cut -d= -f2- || true
+            }
+
+            is_placeholder() {
+              local value="${1:-}"
+              [[ -z "$value" || "$value" =~ ^(replace|change-me|placeholder) ]]
+            }
+
+            set_env_key() {
+              local key="$1"
+              local value="$2"
+              if grep -qE "^${key}=" "$STAGING_ENV_FILE"; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$STAGING_ENV_FILE"
+              else
+                printf "%s=%s\n" "$key" "$value" >> "$STAGING_ENV_FILE"
+              fi
+            }
+
+            replace_if_placeholder() {
+              local key="$1"
+              local candidate="$2"
+              local current
+              current="$(get_env_val "$key")"
+              if is_placeholder "$current"; then
+                set_env_key "$key" "$candidate"
+              fi
+            }
+
+            DJ_SECRET="$(python3 - <<'PY'
+            import secrets
+            print(secrets.token_urlsafe(64))
+            PY
+            )"
+            PG_PASS="$(openssl rand -hex 20)"
+            NEO4J_PASS="$(openssl rand -hex 20)"
+
+            replace_if_placeholder "DJANGO_SECRET_KEY" "$DJ_SECRET"
+            replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
+            replace_if_placeholder "NEO4J_AUTH" "neo4j/${NEO4J_PASS}"
+            replace_if_placeholder "NEO4J_PASSWORD" "$NEO4J_PASS"
+
+            POSTGRES_DB_VAL="$(get_env_val POSTGRES_DB)"
+            POSTGRES_USER_VAL="$(get_env_val POSTGRES_USER)"
+            POSTGRES_PASS_VAL="$(get_env_val POSTGRES_PASSWORD)"
+            if [ -z "$POSTGRES_DB_VAL" ]; then
+              POSTGRES_DB_VAL="dsa"
+              set_env_key "POSTGRES_DB" "$POSTGRES_DB_VAL"
+            fi
+            if [ -z "$POSTGRES_USER_VAL" ]; then
+              POSTGRES_USER_VAL="dsa"
+              set_env_key "POSTGRES_USER" "$POSTGRES_USER_VAL"
+            fi
+            if is_placeholder "$POSTGRES_PASS_VAL"; then
+              POSTGRES_PASS_VAL="$PG_PASS"
+              set_env_key "POSTGRES_PASSWORD" "$POSTGRES_PASS_VAL"
+            fi
+
+            DATABASE_URL_VAL="$(get_env_val DATABASE_URL)"
+            if is_placeholder "$DATABASE_URL_VAL"; then
+              set_env_key "DATABASE_URL" "postgresql+psycopg2://${POSTGRES_USER_VAL}:${POSTGRES_PASS_VAL}@postgres:5432/${POSTGRES_DB_VAL}"
+            fi
+
+            NEO4J_AUTH_VAL="$(get_env_val NEO4J_AUTH)"
+            NEO4J_USER_VAL="$(get_env_val NEO4J_USER)"
+            if [ -z "$NEO4J_USER_VAL" ]; then
+              set_env_key "NEO4J_USER" "neo4j"
+            fi
+            if [[ -n "$NEO4J_AUTH_VAL" ]]; then
+              set_env_key "NEO4J_PASSWORD" "${NEO4J_AUTH_VAL#*/}"
+            fi
+
+            set_env_key "ML_SERVICE_URL" "http://ml:8000"
+            DJANGO_ALLOWED_HOSTS_VAL="$(get_env_val DJANGO_ALLOWED_HOSTS)"
+            if is_placeholder "$DJANGO_ALLOWED_HOSTS_VAL" || [[ "$DJANGO_ALLOWED_HOSTS_VAL" == *"staging.example"* ]]; then
+              set_env_key "DJANGO_ALLOWED_HOSTS" "${STAGING_HOST},localhost,127.0.0.1,web"
+            fi
+
+            DJANGO_CSRF_TRUSTED_ORIGINS_VAL="$(get_env_val DJANGO_CSRF_TRUSTED_ORIGINS)"
+            if is_placeholder "$DJANGO_CSRF_TRUSTED_ORIGINS_VAL" || [[ "$DJANGO_CSRF_TRUSTED_ORIGINS_VAL" == *"staging.example"* ]]; then
+              set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "${STAGING_BASE_URL},http://${STAGING_HOST}"
+            fi
+
+            dump_compose_diagnostics() {
+              local status="$1"
+              if [ "$status" -eq 0 ]; then
+                return 0
+              fi
+              trap - EXIT
+              echo "Staging deploy failed; collecting docker compose diagnostics..." >&2
+              docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" ps || true
+              for service in postgres neo4j web ml graph nginx; do
+                echo "--- docker compose logs: ${service} ---" >&2
+                docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" logs --tail 200 "$service" || true
+              done
+              exit "$status"
+            }
+            trap 'dump_compose_diagnostics $?' EXIT
+
             echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \

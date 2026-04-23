@@ -19,6 +19,8 @@ def test_staging_compose_is_full_stack():
     assert 'postgres-staging' in compose
     assert 'neo4j-staging' in compose
     assert 'bootstrap-state-staging' in compose
+    neo4j_block = compose.split('\n  neo4j:\n', 1)[1].split('\n  web:\n', 1)[0]
+    assert 'env_file:' not in neo4j_block
 
 
 def test_staging_workflow_uses_staging_specific_artifacts():
@@ -27,8 +29,13 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert 'infra/docker-compose.staging.yml' in workflow
     assert 'infra/.env.staging' in workflow
     assert 'pull web ml graph' in workflow
-    assert 'infra/docker-compose.prod.yml\
-         --env-file infra/.env.prod pull web ml graph' not in workflow
+    assert 'infra/docker-compose.prod.yml \
+        --env-file infra/.env.prod pull web ml graph' not in workflow
+    assert 'replace_if_placeholder "DJANGO_SECRET_KEY"' in workflow
+    assert 'replace_if_placeholder "NEO4J_AUTH"' in workflow
+    assert 'Staging deploy failed; collecting docker compose diagnostics...' in workflow
+    assert 'STAGING_BASE_URL=' in workflow
+    assert 'DJANGO_CSRF_TRUSTED_ORIGINS' in workflow
 
 
 def test_staging_env_example_exists_for_full_stack():

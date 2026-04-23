@@ -20,8 +20,6 @@ services:
   neo4j:
     image: neo4j:5-community
     restart: unless-stopped
-    env_file:
-      - ./.env.staging
     environment:
       NEO4J_AUTH: ${NEO4J_AUTH:?NEO4J_AUTH is required}
     volumes:
