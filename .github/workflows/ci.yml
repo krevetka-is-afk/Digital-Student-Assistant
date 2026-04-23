@@ -42,7 +42,11 @@ jobs:
               - 'src/**/Dockerfile'
               - 'infra/docker-compose.yml'
               - 'infra/docker-compose.dev.yml'
+              - 'infra/docker-compose.prod.yml'
+              - 'infra/docker-compose.staging.yml'
               - 'infra/compose/test/docker-compose.yml'
+              - 'infra/.env.prod.example'
+              - 'infra/.env.staging.example'
             root:
               - '.github/workflows/**'
               - '.pre-commit-config.yaml'
@@ -482,6 +486,8 @@ jobs:
             APP_DIR="${{ secrets.STAGING_APP_DIR }}"
             TARGET_REF="${{ github.sha }}"
             EXPECTED_SHA="${{ github.sha }}"
+            STAGING_COMPOSE_FILE="infra/docker-compose.staging.yml"
+            STAGING_ENV_FILE="infra/.env.staging"
 
             test -n "$APP_DIR"
             test -d "$APP_DIR"
@@ -513,21 +519,26 @@ jobs:
             ML_IMAGE="${IMAGE_PREFIX}-ml:${EXPECTED_SHA}"
             GRAPH_IMAGE="${IMAGE_PREFIX}-graph:${EXPECTED_SHA}"
 
+            if [ ! -f "$STAGING_ENV_FILE" ]; then
+              cp infra/.env.staging.example "$STAGING_ENV_FILE"
+              chmod 600 "$STAGING_ENV_FILE"
+            fi
+
             echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \
             GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod pull web ml graph
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" pull web ml graph
 
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \
             GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --no-build --remove-orphans --wait --wait-timeout 240
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" up -d --no-build --remove-orphans --wait --wait-timeout 240
             docker logout ghcr.io || true
 
-            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' infra/.env.prod | cut -d= -f2 | cut -d, -f1)"
+            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' "$STAGING_ENV_FILE" | cut -d= -f2 | cut -d, -f1)"
             if [ -z "$PUBLIC_BASE_URL" ]; then
-              PUBLIC_BASE_URL="https://dsa.s3rg.ru"
+              PUBLIC_BASE_URL="${{ vars.STAGING_URL || 'https://staging.example' }}"
             fi
 
             PUBLIC_SCHEME="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^(https?)://.*#\1#')"
@@ -546,8 +557,8 @@ jobs:
               PUBLIC_CURL_OPTS="$PUBLIC_CURL_OPTS -k"
             fi
 
-            ENV_FILE=infra/.env.prod \
-            COMPOSE_FILE=infra/docker-compose.prod.yml \
+            ENV_FILE="$STAGING_ENV_FILE" \
+            COMPOSE_FILE="$STAGING_COMPOSE_FILE" \
             PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
             PUBLIC_CURL_OPTS="$PUBLIC_CURL_OPTS" \
             scripts/smoke-prod.sh

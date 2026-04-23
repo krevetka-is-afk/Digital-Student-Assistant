@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-push-images:
-    name: Build and push production images
+  build-and-push-image:
+    name: Build and push production web image
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -68,29 +68,9 @@ jobs:
             ${{ steps.meta.outputs.image_prefix }}-web:${{ steps.meta.outputs.target_sha }}
             ${{ steps.meta.outputs.image_prefix }}-web:main-latest
 
-      - name: Build and push ml image
-        uses: docker/build-push-action@v6
-        with:
-          context: src/ml
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.image_prefix }}-ml:${{ steps.meta.outputs.target_sha }}
-            ${{ steps.meta.outputs.image_prefix }}-ml:main-latest
-
-      - name: Build and push graph image
-        uses: docker/build-push-action@v6
-        with:
-          context: src/graph
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.image_prefix }}-graph:${{ steps.meta.outputs.target_sha }}
-            ${{ steps.meta.outputs.image_prefix }}-graph:main-latest
-
   deploy:
     name: Deploy over SSH
-    needs: build-and-push-images
+    needs: build-and-push-image
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment:
@@ -112,9 +92,9 @@ jobs:
             set -euo pipefail
 
             APP_DIR="${{ secrets.PROD_APP_DIR }}"
-            TARGET_REF="${{ needs.build-and-push-images.outputs.target_ref }}"
-            TARGET_SHA="${{ needs.build-and-push-images.outputs.target_sha }}"
-            IMAGE_PREFIX="${{ needs.build-and-push-images.outputs.image_prefix }}"
+            TARGET_REF="${{ needs.build-and-push-image.outputs.target_ref }}"
+            TARGET_SHA="${{ needs.build-and-push-image.outputs.target_sha }}"
+            IMAGE_PREFIX="${{ needs.build-and-push-image.outputs.image_prefix }}"
             PUBLIC_HOST="${{ secrets.PROD_SSH_HOST }}"
             PUBLIC_BASE_URL="http://${{ secrets.PROD_SSH_HOST }}"
             compose_cmd=(docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod)
@@ -205,7 +185,7 @@ jobs:
               set_env_key "DATABASE_URL" "postgresql+psycopg2://${POSTGRES_USER_VAL}:${POSTGRES_PASS_VAL}@postgres:5432/${POSTGRES_DB_VAL}"
             fi
 
-            set_env_key "ML_SERVICE_URL" "http://ml:8000"
+            set_env_key "ML_SERVICE_URL" ""
             replace_if_placeholder "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
             replace_if_placeholder "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST,http://localhost"
             set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"
@@ -220,7 +200,7 @@ jobs:
               trap - EXIT
               echo "Deploy failed; collecting docker compose diagnostics..." >&2
               "${compose_cmd[@]}" ps || true
-              for service in postgres neo4j web ml graph nginx; do
+              for service in postgres web nginx; do
                 echo "--- docker compose logs: ${service} ---" >&2
                 "${compose_cmd[@]}" logs --tail 200 "$service" || true
               done
@@ -254,28 +234,23 @@ jobs:
             EOF2
 
             WEB_IMAGE="${IMAGE_PREFIX}-web:${TARGET_SHA}"
-            ML_IMAGE="${IMAGE_PREFIX}-ml:${TARGET_SHA}"
-            GRAPH_IMAGE="${IMAGE_PREFIX}-graph:${TARGET_SHA}"
 
-            pull_runtime_images() {
+            pull_web_image() {
               local attempt
               for attempt in 1 2 3; do
-                if WEB_IMAGE="$WEB_IMAGE" ML_IMAGE="$ML_IMAGE" GRAPH_IMAGE="$GRAPH_IMAGE" \
-                  "${compose_cmd[@]}" pull web ml graph; then
+                if WEB_IMAGE="$WEB_IMAGE" "${compose_cmd[@]}" pull web; then
                   return 0
                 fi
-                echo "runtime image pull attempt ${attempt} failed" >&2
+                echo "web image pull attempt ${attempt} failed" >&2
                 sleep $((attempt * 10))
               done
               return 1
             }
 
             echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-            pull_runtime_images
+            pull_web_image
 
             WEB_IMAGE="$WEB_IMAGE" \
-            ML_IMAGE="$ML_IMAGE" \
-            GRAPH_IMAGE="$GRAPH_IMAGE" \
             "${compose_cmd[@]}" up -d --no-build --remove-orphans --wait --wait-timeout 240
             docker logout ghcr.io || true
 
