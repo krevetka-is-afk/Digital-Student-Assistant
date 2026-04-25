@@ -3,6 +3,7 @@ from apps.projects.serializers import PrimaryProjectSerializer
 from django.db import connections
 from django.db.utils import Error as DatabaseError
 from django.shortcuts import render
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 # from django.http import JsonResponse # need to set cookie
 
 
+@extend_schema(exclude=True)
 @api_view(["POST"])
 def api_home(request, *args, **kwargs):
     """
@@ -31,11 +33,13 @@ def api_home(request, *args, **kwargs):
     return Response({"invalid": "not good data"}, status=400)
 
 
+@extend_schema(exclude=True)
 @api_view(["GET"])
 def health_custom(request, *args, **kwargs):
     return Response({"status": "ok"})
 
 
+@extend_schema(exclude=True)
 @api_view(["GET"])
 def readiness(request, *args, **kwargs):
     try:

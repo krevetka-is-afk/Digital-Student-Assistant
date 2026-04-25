@@ -36,6 +36,8 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert 'Staging deploy failed; collecting docker compose diagnostics...' in workflow
     assert 'STAGING_BASE_URL=' in workflow
     assert 'DJANGO_CSRF_TRUSTED_ORIGINS' in workflow
+    assert 'restart nginx' in workflow
+    assert 'PUBLIC_CURL_OPTS=' in workflow
 
 
 def test_staging_env_example_exists_for_full_stack():
