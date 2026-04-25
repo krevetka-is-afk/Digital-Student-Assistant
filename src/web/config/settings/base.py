@@ -27,6 +27,12 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return int(value.strip())
+
 
 def env_json_map(name: str) -> dict[str, str]:
     value = env_secret(name)
@@ -45,6 +51,7 @@ def env_json_map(name: str) -> dict[str, str]:
         if key_str and token_str:
             normalized[key_str] = token_str
     return normalized
+
 
 def env_secret(name: str) -> str | None:
     """Load secret from NAME or from a mounted file via NAME_FILE."""
@@ -213,6 +220,30 @@ REST_FRAMEWORK = {
 }
 
 OUTBOX_SERVICE_TOKENS = env_json_map("OUTBOX_SERVICE_TOKENS")
+AUTH_ENABLE_LOCAL_TOKEN_FALLBACK = env_bool("AUTH_ENABLE_LOCAL_TOKEN_FALLBACK", True)
+
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+).strip()
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "no-reply@digital-student-assistant.local",
+).strip()
+EMAIL_HOST = os.getenv("EMAIL_HOST", "").strip()
+EMAIL_PORT = env_int("EMAIL_PORT", 25)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = env_secret("EMAIL_HOST_PASSWORD") or ""
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = env_int("EMAIL_TIMEOUT", 10)
+
+EMAIL_VERIFICATION_CODE_TTL_SECONDS = env_int("EMAIL_VERIFICATION_CODE_TTL_SECONDS", 900)
+EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = env_int(
+    "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
+    60,
+)
+EMAIL_VERIFICATION_MAX_ATTEMPTS = env_int("EMAIL_VERIFICATION_MAX_ATTEMPTS", 5)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Digital Student Assistant API",
