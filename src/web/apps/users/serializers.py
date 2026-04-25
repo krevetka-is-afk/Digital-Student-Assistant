@@ -8,6 +8,7 @@ from .models import UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
+    email_verified = serializers.BooleanField(read_only=True)
     favorite_projects_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -19,11 +20,21 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "role",
             "interests",
             "favorite_project_ids",
+            "email_verified",
+            "email_verified_at",
             "favorite_projects_count",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "username", "email", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "username",
+            "email",
+            "email_verified",
+            "email_verified_at",
+            "created_at",
+            "updated_at",
+        ]
 
     def get_fields(self):
         fields = super().get_fields()
@@ -34,9 +45,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context.get("request")
-        if (
-            "role" in getattr(self, "initial_data", {})
-            and (request is None or not getattr(request.user, "is_staff", False))
+        if "role" in getattr(self, "initial_data", {}) and (
+            request is None or not getattr(request.user, "is_staff", False)
         ):
             raise serializers.ValidationError(
                 {"role": ["You cannot change role via this endpoint."]}
