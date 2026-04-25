@@ -2,7 +2,7 @@ name: CI
 on:
   push:
   pull_request:
-    branches: [deploy-staging, main]
+    branches: [dev-staging, main]
 
 permissions:
   contents: read
@@ -452,7 +452,7 @@ jobs:
             ${{ steps.meta.outputs.image_prefix }}-graph:${{ steps.meta.outputs.target_sha }}
             ${{ steps.meta.outputs.image_prefix }}-graph:dev-staging-latest
 
-  deploy-staging:
+  dev-staging:
     name: Deploy to Staging
     needs:
       - repo-lint
