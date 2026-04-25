@@ -106,6 +106,22 @@ def test_api_schema_exposes_initiative_proposal_paths():
     assert "/api/v1/initiative-proposals/{id}/actions/moderate/" in payload["paths"]
 
 
+def test_api_schema_hides_non_public_helper_routes():
+    c = Client()
+    r = c.get(reverse("api-schema"), HTTP_ACCEPT="application/vnd.oai.openapi+json")
+    assert r.status_code == 200
+
+    paths = set(r.json()["paths"])
+    assert "/api/" in paths
+    assert "/api/v1/" in paths
+    assert "/api/schema/" not in paths
+    assert "/base/" not in paths
+    assert "/base/search" not in paths
+    assert "/base/v2/projects/" not in paths
+    assert "/health/" not in paths
+    assert "/ready/" not in paths
+
+
 def test_api_docs_page_ok():
     c = Client()
     r = c.get(reverse("api-docs"))

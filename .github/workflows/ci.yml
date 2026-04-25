@@ -637,6 +637,7 @@ jobs:
             ML_IMAGE="$ML_IMAGE" \
             GRAPH_IMAGE="$GRAPH_IMAGE" \
             docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" up -d --no-build --remove-orphans --wait --wait-timeout 240
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" restart nginx
             docker logout ghcr.io || true
 
             PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' "$STAGING_ENV_FILE" | cut -d= -f2 | cut -d, -f1)"
