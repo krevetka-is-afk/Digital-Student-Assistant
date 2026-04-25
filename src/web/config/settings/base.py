@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -25,6 +26,25 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
         return list(default or [])
     return [item.strip() for item in value.split(",") if item.strip()]
 
+
+
+def env_json_map(name: str) -> dict[str, str]:
+    value = env_secret(name)
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{name} must contain a valid JSON object.") from exc
+    if not isinstance(parsed, dict):
+        raise RuntimeError(f"{name} must contain a JSON object.")
+    normalized: dict[str, str] = {}
+    for key, token in parsed.items():
+        key_str = str(key).strip()
+        token_str = str(token).strip()
+        if key_str and token_str:
+            normalized[key_str] = token_str
+    return normalized
 
 def env_secret(name: str) -> str | None:
     """Load secret from NAME or from a mounted file via NAME_FILE."""
@@ -183,6 +203,7 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
+        "apps.base.authentication.ServiceTokenAuthentication",
         "apps.base.authentication.TokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
@@ -191,8 +212,13 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,
 }
 
+OUTBOX_SERVICE_TOKENS = env_json_map("OUTBOX_SERVICE_TOKENS")
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Digital Student Assistant API",
     "DESCRIPTION": "Versioned REST API for web and future service integrations.",
     "VERSION": "1.0.0",
+    "PREPROCESSING_HOOKS": [
+        "config.schema.public_api_only_preprocessing_hook",
+    ],
 }

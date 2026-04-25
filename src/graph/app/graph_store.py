@@ -83,6 +83,12 @@ class Neo4jGraphStore:
 
     def project_event(self, event: GraphEvent) -> None:
         aggregate_type = event.aggregate_type.strip().lower()
+        if event.event_type == "project.deleted":
+            self._delete_project(event)
+            return
+        if event.event_type == "application.deleted":
+            self._delete_application(event)
+            return
         if aggregate_type == "project":
             self._project_project(event)
             return
@@ -206,6 +212,28 @@ class Neo4jGraphStore:
 
         with self._driver.session() as session:
             session.run(query, params).consume()
+
+    def _delete_project(self, event: GraphEvent) -> None:
+        project_id = _clean_string(event.payload.get("pk") or event.aggregate_id)
+        if project_id is None:
+            return
+        query = _cypher("""
+        MATCH (p:Project {project_id: $project_id})
+        DETACH DELETE p
+        """)
+        with self._driver.session() as session:
+            session.run(query, {"project_id": project_id}).consume()
+
+    def _delete_application(self, event: GraphEvent) -> None:
+        application_id = _clean_string(event.payload.get("id") or event.aggregate_id)
+        if application_id is None:
+            return
+        query = _cypher("""
+        MATCH (a:Application {application_id: $application_id})
+        DETACH DELETE a
+        """)
+        with self._driver.session() as session:
+            session.run(query, {"application_id": application_id}).consume()
 
     def _project_profile(self, event: GraphEvent) -> None:
         payload = event.payload

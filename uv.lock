@@ -310,7 +310,7 @@ dev = [
 dev = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pre-commit", specifier = "==4.5.0" },
-    { name = "pytest", specifier = "==9.0.3" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = "==0.15.11" },
     { name = "ty", specifier = ">=0.0.31" },

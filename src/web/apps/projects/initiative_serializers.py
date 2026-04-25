@@ -1,4 +1,5 @@
 from apps.base.serializers import UserPublicSerializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -89,7 +90,8 @@ class InitiativeProposalSerializer(serializers.ModelSerializer):
             "submission_history",
         ]
 
-    def get_edit_url(self, obj):
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_edit_url(self, obj) -> str | None:
         request = self.context.get("request")
         if request is None:
             return None

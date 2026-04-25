@@ -251,3 +251,25 @@ def test_direct_application_status_patch_is_blocked():
 
     assert response.status_code == 400
     assert "status" in response.json()
+
+
+def test_application_delete_emits_tombstone_event():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+    application = _make_application(project, student)
+
+    client = Client()
+    client.force_login(student)
+    response = client.delete(reverse("application-detail", kwargs={"pk": application.pk}))
+
+    assert response.status_code == 204
+    assert Application.objects.filter(pk=application.pk).exists() is False
+
+    from apps.outbox.models import OutboxEvent
+
+    event = OutboxEvent.objects.order_by("-id").first()
+    assert event is not None
+    assert event.event_type == "application.deleted"
+    assert event.payload["id"] == application.pk
+    assert event.payload["tombstone"] is True

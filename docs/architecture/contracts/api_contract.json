@@ -35,43 +35,134 @@
     "/api/v1/imports/epp/",
     "/api/v1/outbox/events/",
     "/api/v1/outbox/events/ack/",
-    "/api/v1/outbox/consumers/{consumer}/checkpoint/"
+    "/api/v1/outbox/consumers/{consumer}/checkpoint/",
+    "/api/v1/outbox/snapshot/"
   ],
   "required_operations": {
-    "/api/v1/auth/token/": ["post"],
-    "/api/v1/search/": ["get"],
-    "/api/v1/initiative-proposals/": ["get", "post"],
-    "/api/v1/initiative-proposals/{id}/": ["get", "patch", "put", "delete"],
-    "/api/v1/initiative-proposals/{id}/actions/submit/": ["post"],
-    "/api/v1/initiative-proposals/{id}/actions/moderate/": ["post"],
-    "/api/v1/projects/": ["get", "post"],
-    "/api/v1/projects/{id}/": ["get", "patch", "put", "delete"],
-    "/api/v1/projects/{id}/actions/submit/": ["post"],
-    "/api/v1/projects/{id}/actions/moderate/": ["post"],
-    "/api/v1/applications/": ["get", "post"],
-    "/api/v1/applications/{id}/": ["get", "patch", "put", "delete"],
-    "/api/v1/applications/{id}/actions/review/": ["post"],
-    "/api/v1/account/me/": ["get"],
-    "/api/v1/account/student/overview/": ["get"],
-    "/api/v1/account/customer/projects/": ["get"],
-    "/api/v1/account/customer/applications/": ["get"],
-    "/api/v1/account/cpprp/moderation-queue/": ["get"],
-    "/api/v1/account/cpprp/applications/": ["get"],
-    "/api/v1/account/cpprp/deadlines/": ["get", "post"],
-    "/api/v1/account/cpprp/templates/": ["get", "post"],
-    "/api/v1/account/templates/{id}/download/": ["get"],
-    "/api/v1/account/cpprp/export/projects/": ["get"],
-    "/api/v1/account/cpprp/export/applications/": ["get"],
-    "/api/v1/users/me/": ["get", "patch", "put"],
-    "/api/v1/users/me/favorites/": ["get", "post", "put"],
-    "/api/v1/users/me/favorites/{id}/": ["delete"],
-    "/api/v1/recs/search/": ["get"],
-    "/api/v1/recs/recommendations/": ["get"],
-    "/api/v1/recs/reindex/": ["post"],
-    "/api/v1/imports/epp/": ["get", "post"],
-    "/api/v1/outbox/events/": ["get"],
-    "/api/v1/outbox/events/ack/": ["post"],
-    "/api/v1/outbox/consumers/{consumer}/checkpoint/": ["get"]
+    "/api/v1/auth/token/": [
+      "post"
+    ],
+    "/api/v1/search/": [
+      "get"
+    ],
+    "/api/v1/initiative-proposals/": [
+      "get",
+      "post"
+    ],
+    "/api/v1/initiative-proposals/{id}/": [
+      "get",
+      "patch",
+      "put",
+      "delete"
+    ],
+    "/api/v1/initiative-proposals/{id}/actions/submit/": [
+      "post"
+    ],
+    "/api/v1/initiative-proposals/{id}/actions/moderate/": [
+      "post"
+    ],
+    "/api/v1/projects/": [
+      "get",
+      "post"
+    ],
+    "/api/v1/projects/{id}/": [
+      "get",
+      "patch",
+      "put",
+      "delete"
+    ],
+    "/api/v1/projects/{id}/actions/submit/": [
+      "post"
+    ],
+    "/api/v1/projects/{id}/actions/moderate/": [
+      "post"
+    ],
+    "/api/v1/applications/": [
+      "get",
+      "post"
+    ],
+    "/api/v1/applications/{id}/": [
+      "get",
+      "patch",
+      "put",
+      "delete"
+    ],
+    "/api/v1/applications/{id}/actions/review/": [
+      "post"
+    ],
+    "/api/v1/account/me/": [
+      "get"
+    ],
+    "/api/v1/account/student/overview/": [
+      "get"
+    ],
+    "/api/v1/account/customer/projects/": [
+      "get"
+    ],
+    "/api/v1/account/customer/applications/": [
+      "get"
+    ],
+    "/api/v1/account/cpprp/moderation-queue/": [
+      "get"
+    ],
+    "/api/v1/account/cpprp/applications/": [
+      "get"
+    ],
+    "/api/v1/account/cpprp/deadlines/": [
+      "get",
+      "post"
+    ],
+    "/api/v1/account/cpprp/templates/": [
+      "get",
+      "post"
+    ],
+    "/api/v1/account/templates/{id}/download/": [
+      "get"
+    ],
+    "/api/v1/account/cpprp/export/projects/": [
+      "get"
+    ],
+    "/api/v1/account/cpprp/export/applications/": [
+      "get"
+    ],
+    "/api/v1/users/me/": [
+      "get",
+      "patch",
+      "put"
+    ],
+    "/api/v1/users/me/favorites/": [
+      "get",
+      "post",
+      "put"
+    ],
+    "/api/v1/users/me/favorites/{id}/": [
+      "delete"
+    ],
+    "/api/v1/recs/search/": [
+      "get"
+    ],
+    "/api/v1/recs/recommendations/": [
+      "get"
+    ],
+    "/api/v1/recs/reindex/": [
+      "post"
+    ],
+    "/api/v1/imports/epp/": [
+      "get",
+      "post"
+    ],
+    "/api/v1/outbox/events/": [
+      "get"
+    ],
+    "/api/v1/outbox/events/ack/": [
+      "post"
+    ],
+    "/api/v1/outbox/consumers/{consumer}/checkpoint/": [
+      "get"
+    ],
+    "/api/v1/outbox/snapshot/": [
+      "get"
+    ]
   },
   "required_schema_components": [
     "AuthToken",
@@ -107,6 +198,7 @@
     "OutboxEvent",
     "PaginatedOutboxEventList",
     "OutboxAck",
-    "OutboxConsumerCheckpoint"
+    "OutboxConsumerCheckpoint",
+    "OutboxSnapshotResponse"
   ]
 }

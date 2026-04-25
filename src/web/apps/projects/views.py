@@ -294,6 +294,8 @@ class ProjectUpdateAPIView(generics.UpdateAPIView):
 project_update_view = ProjectUpdateAPIView.as_view()
 
 
+
+
 class ProjectDestroyAPIView(generics.DestroyAPIView):
     queryset = Project.objects.select_related("owner", "epp")
     serializer_class = PrimaryProjectSerializer
@@ -305,6 +307,27 @@ class ProjectDestroyAPIView(generics.DestroyAPIView):
         if user.is_staff:
             return self.queryset
         return self.queryset.filter(owner=user)
+
+    def perform_destroy(self, instance):
+        deleted_at = timezone.now()
+        aggregate_id = instance.pk
+        snapshot = {
+            "pk": aggregate_id,
+            "title": instance.title,
+            "status": "deleted",
+            "tombstone": True,
+            "created_at": instance.created_at.isoformat() if instance.created_at else None,
+            "updated_at": instance.updated_at.isoformat() if instance.updated_at else None,
+            "deleted_at": deleted_at.isoformat(),
+        }
+        super().perform_destroy(instance)
+        emit_event(
+            event_type="project.deleted",
+            aggregate_type="project",
+            aggregate_id=aggregate_id,
+            payload=snapshot,
+            idempotency_key=f"project.deleted:{aggregate_id}:{deleted_at.isoformat()}",
+        )
 
 
 project_destroy_view = ProjectDestroyAPIView.as_view()
@@ -334,6 +357,27 @@ class ProjectRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
         if user.is_staff:
             return self.queryset
         return self.queryset.filter(owner=user)
+
+    def perform_destroy(self, instance):
+        deleted_at = timezone.now()
+        aggregate_id = instance.pk
+        snapshot = {
+            "pk": aggregate_id,
+            "title": instance.title,
+            "status": "deleted",
+            "tombstone": True,
+            "created_at": instance.created_at.isoformat() if instance.created_at else None,
+            "updated_at": instance.updated_at.isoformat() if instance.updated_at else None,
+            "deleted_at": deleted_at.isoformat(),
+        }
+        super().perform_destroy(instance)
+        emit_event(
+            event_type="project.deleted",
+            aggregate_type="project",
+            aggregate_id=aggregate_id,
+            payload=snapshot,
+            idempotency_key=f"project.deleted:{aggregate_id}:{deleted_at.isoformat()}",
+        )
 
     def perform_update(self, serializer):
         project = serializer.save()

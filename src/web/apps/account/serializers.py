@@ -2,6 +2,7 @@ from apps.applications.models import Application
 from apps.projects.models import Project
 from apps.projects.serializers import EPPSummarySerializer, PrimaryProjectSerializer
 from apps.users.serializers import UserProfileSerializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -44,7 +45,8 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_download_url(self, obj):
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_download_url(self, obj) -> str | None:
         request = self.context.get("request")
         if request is None:
             return None
