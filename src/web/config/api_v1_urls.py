@@ -43,6 +43,7 @@ urlpatterns = [
     ),
     path("recs/reindex/", RecommendationReindexAPIView.as_view(), name="api-v1-recs-reindex"),
     path("account/", include("apps.account.urls")),
+    path("faculty/", include("apps.faculty.urls")),
     path("imports/epp/", ImportRunListCreateAPIView.as_view(), name="api-v1-import-epp"),
     path("outbox/events/", OutboxEventListAPIView.as_view(), name="api-v1-outbox-events"),
     path("outbox/snapshot/", OutboxSnapshotAPIView.as_view(), name="api-v1-outbox-snapshot"),

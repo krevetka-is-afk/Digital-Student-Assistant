@@ -128,6 +128,7 @@ INSTALLED_APPS = [
     "apps.imports",
     "apps.outbox",
     "apps.recs",
+    "apps.faculty",
     "apps.frontend",
     # healthchecks
     "health_check",  # core
@@ -221,6 +222,8 @@ REST_FRAMEWORK = {
 
 OUTBOX_SERVICE_TOKENS = env_json_map("OUTBOX_SERVICE_TOKENS")
 AUTH_ENABLE_LOCAL_TOKEN_FALLBACK = env_bool("AUTH_ENABLE_LOCAL_TOKEN_FALLBACK", True)
+FACULTY_SERVICE_URL = (env_secret("FACULTY_SERVICE_URL") or "").rstrip("/")
+FACULTY_SERVICE_TIMEOUT = float(os.getenv("FACULTY_SERVICE_TIMEOUT", "10"))
 
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
