@@ -42,7 +42,11 @@ jobs:
               - 'src/**/Dockerfile'
               - 'infra/docker-compose.yml'
               - 'infra/docker-compose.dev.yml'
+              - 'infra/docker-compose.prod.yml'
+              - 'infra/docker-compose.staging.yml'
               - 'infra/compose/test/docker-compose.yml'
+              - 'infra/.env.prod.example'
+              - 'infra/.env.staging.example'
             root:
               - '.github/workflows/**'
               - '.pre-commit-config.yaml'
@@ -381,6 +385,73 @@ jobs:
       #     path: trivy-ml-report.json
       #     if-no-files-found: error
 
+  publish-staging-images:
+    name: Publish staging images to GHCR
+    needs:
+      - repo-lint
+      - lint-test-web
+      - lint-test-ml
+      - release-gate
+      - package-and-artifacts-web
+      - package-and-artifacts-ml
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      target_sha: ${{ steps.meta.outputs.target_sha }}
+      image_prefix: ${{ steps.meta.outputs.image_prefix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Compute image metadata
+        id: meta
+        run: |
+          owner_lc="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          repo_lc="$(printf '%s' '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')"
+          echo "target_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image_prefix=ghcr.io/${owner_lc}/${repo_lc}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/web
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}-web:${{ steps.meta.outputs.target_sha }}
+            ${{ steps.meta.outputs.image_prefix }}-web:dev-staging-latest
+
+      - name: Build and push ml image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/ml
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}-ml:${{ steps.meta.outputs.target_sha }}
+            ${{ steps.meta.outputs.image_prefix }}-ml:dev-staging-latest
+
+      - name: Build and push graph image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/graph
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}-graph:${{ steps.meta.outputs.target_sha }}
+            ${{ steps.meta.outputs.image_prefix }}-graph:dev-staging-latest
+
   deploy-staging:
     name: Deploy to Staging
     needs:
@@ -389,11 +460,15 @@ jobs:
       - lint-test-ml
       - package-and-artifacts-web
       - package-and-artifacts-ml
+      - publish-staging-images
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
     environment:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
+    permissions:
+      contents: read
+      packages: read
     env:
       STAGING_URL: "${{ vars.STAGING_URL || 'https://staging.example' }}"
     steps:
@@ -411,6 +486,8 @@ jobs:
             APP_DIR="${{ secrets.STAGING_APP_DIR }}"
             TARGET_REF="${{ github.sha }}"
             EXPECTED_SHA="${{ github.sha }}"
+            STAGING_COMPOSE_FILE="infra/docker-compose.staging.yml"
+            STAGING_ENV_FILE="infra/.env.staging"
 
             test -n "$APP_DIR"
             test -d "$APP_DIR"
@@ -418,6 +495,10 @@ jobs:
             test -d .git
 
             git fetch --all --prune --tags
+            if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
+              echo "Discarding tracked local changes in deploy worktree"
+              git reset --hard HEAD
+            fi
             if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
               git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
               git pull --ff-only origin "$TARGET_REF"
@@ -431,17 +512,159 @@ jobs:
               exit 1
             fi
 
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod build --pull
-            docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --remove-orphans
+            OWNER_LC="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+            REPO_LC="$(printf '%s' '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')"
+            IMAGE_PREFIX="ghcr.io/${OWNER_LC}/${REPO_LC}"
+            WEB_IMAGE="${IMAGE_PREFIX}-web:${EXPECTED_SHA}"
+            ML_IMAGE="${IMAGE_PREFIX}-ml:${EXPECTED_SHA}"
+            GRAPH_IMAGE="${IMAGE_PREFIX}-graph:${EXPECTED_SHA}"
 
-            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' infra/.env.prod | cut -d= -f2 | cut -d, -f1)"
-            if [ -z "$PUBLIC_BASE_URL" ]; then
-              PUBLIC_BASE_URL="https://dsa.s3rg.ru"
+            if [ ! -f "$STAGING_ENV_FILE" ]; then
+              cp infra/.env.staging.example "$STAGING_ENV_FILE"
+              chmod 600 "$STAGING_ENV_FILE"
             fi
 
-            ENV_FILE=infra/.env.prod \
-            COMPOSE_FILE=infra/docker-compose.prod.yml \
+            STAGING_BASE_URL="${{ vars.STAGING_URL || 'https://staging.example' }}"
+            STAGING_HOST="$(printf '%s' "$STAGING_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
+
+            get_env_val() {
+              local key="$1"
+              grep -E "^${key}=" "$STAGING_ENV_FILE" | tail -n1 | cut -d= -f2- || true
+            }
+
+            is_placeholder() {
+              local value="${1:-}"
+              [[ -z "$value" || "$value" =~ ^(replace|change-me|placeholder) ]]
+            }
+
+            set_env_key() {
+              local key="$1"
+              local value="$2"
+              if grep -qE "^${key}=" "$STAGING_ENV_FILE"; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$STAGING_ENV_FILE"
+              else
+                printf "%s=%s\n" "$key" "$value" >> "$STAGING_ENV_FILE"
+              fi
+            }
+
+            replace_if_placeholder() {
+              local key="$1"
+              local candidate="$2"
+              local current
+              current="$(get_env_val "$key")"
+              if is_placeholder "$current"; then
+                set_env_key "$key" "$candidate"
+              fi
+            }
+
+            DJ_SECRET="$(python3 - <<'PY'
+            import secrets
+            print(secrets.token_urlsafe(64))
+            PY
+            )"
+            PG_PASS="$(openssl rand -hex 20)"
+            NEO4J_PASS="$(openssl rand -hex 20)"
+
+            replace_if_placeholder "DJANGO_SECRET_KEY" "$DJ_SECRET"
+            replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
+            replace_if_placeholder "NEO4J_AUTH" "neo4j/${NEO4J_PASS}"
+            replace_if_placeholder "NEO4J_PASSWORD" "$NEO4J_PASS"
+
+            POSTGRES_DB_VAL="$(get_env_val POSTGRES_DB)"
+            POSTGRES_USER_VAL="$(get_env_val POSTGRES_USER)"
+            POSTGRES_PASS_VAL="$(get_env_val POSTGRES_PASSWORD)"
+            if [ -z "$POSTGRES_DB_VAL" ]; then
+              POSTGRES_DB_VAL="dsa"
+              set_env_key "POSTGRES_DB" "$POSTGRES_DB_VAL"
+            fi
+            if [ -z "$POSTGRES_USER_VAL" ]; then
+              POSTGRES_USER_VAL="dsa"
+              set_env_key "POSTGRES_USER" "$POSTGRES_USER_VAL"
+            fi
+            if is_placeholder "$POSTGRES_PASS_VAL"; then
+              POSTGRES_PASS_VAL="$PG_PASS"
+              set_env_key "POSTGRES_PASSWORD" "$POSTGRES_PASS_VAL"
+            fi
+
+            DATABASE_URL_VAL="$(get_env_val DATABASE_URL)"
+            if is_placeholder "$DATABASE_URL_VAL"; then
+              set_env_key "DATABASE_URL" "postgresql+psycopg2://${POSTGRES_USER_VAL}:${POSTGRES_PASS_VAL}@postgres:5432/${POSTGRES_DB_VAL}"
+            fi
+
+            NEO4J_AUTH_VAL="$(get_env_val NEO4J_AUTH)"
+            NEO4J_USER_VAL="$(get_env_val NEO4J_USER)"
+            if [ -z "$NEO4J_USER_VAL" ]; then
+              set_env_key "NEO4J_USER" "neo4j"
+            fi
+            if [[ -n "$NEO4J_AUTH_VAL" ]]; then
+              set_env_key "NEO4J_PASSWORD" "${NEO4J_AUTH_VAL#*/}"
+            fi
+
+            set_env_key "ML_SERVICE_URL" "http://ml:8000"
+            DJANGO_ALLOWED_HOSTS_VAL="$(get_env_val DJANGO_ALLOWED_HOSTS)"
+            if is_placeholder "$DJANGO_ALLOWED_HOSTS_VAL" || [[ "$DJANGO_ALLOWED_HOSTS_VAL" == *"staging.example"* ]]; then
+              set_env_key "DJANGO_ALLOWED_HOSTS" "${STAGING_HOST},localhost,127.0.0.1,web"
+            fi
+
+            DJANGO_CSRF_TRUSTED_ORIGINS_VAL="$(get_env_val DJANGO_CSRF_TRUSTED_ORIGINS)"
+            if is_placeholder "$DJANGO_CSRF_TRUSTED_ORIGINS_VAL" || [[ "$DJANGO_CSRF_TRUSTED_ORIGINS_VAL" == *"staging.example"* ]]; then
+              set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "${STAGING_BASE_URL},http://${STAGING_HOST}"
+            fi
+
+            dump_compose_diagnostics() {
+              local status="$1"
+              if [ "$status" -eq 0 ]; then
+                return 0
+              fi
+              trap - EXIT
+              echo "Staging deploy failed; collecting docker compose diagnostics..." >&2
+              docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" ps || true
+              for service in postgres neo4j web ml graph nginx; do
+                echo "--- docker compose logs: ${service} ---" >&2
+                docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" logs --tail 200 "$service" || true
+              done
+              exit "$status"
+            }
+            trap 'dump_compose_diagnostics $?' EXIT
+
+            echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            WEB_IMAGE="$WEB_IMAGE" \
+            ML_IMAGE="$ML_IMAGE" \
+            GRAPH_IMAGE="$GRAPH_IMAGE" \
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" pull web ml graph
+
+            WEB_IMAGE="$WEB_IMAGE" \
+            ML_IMAGE="$ML_IMAGE" \
+            GRAPH_IMAGE="$GRAPH_IMAGE" \
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" up -d --no-build --remove-orphans --wait --wait-timeout 240
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" restart nginx
+            docker logout ghcr.io || true
+
+            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' "$STAGING_ENV_FILE" | cut -d= -f2 | cut -d, -f1)"
+            if [ -z "$PUBLIC_BASE_URL" ]; then
+              PUBLIC_BASE_URL="${{ vars.STAGING_URL || 'https://staging.example' }}"
+            fi
+
+            PUBLIC_SCHEME="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^(https?)://.*#\1#')"
+            PUBLIC_HOST="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
+            PUBLIC_PORT="$(printf '%s' "$PUBLIC_BASE_URL" | sed -nE 's#^https?://[^/:]+:([0-9]+).*$#\1#p')"
+            if [ -z "$PUBLIC_PORT" ]; then
+              if [ "$PUBLIC_SCHEME" = "https" ]; then
+                PUBLIC_PORT="443"
+              else
+                PUBLIC_PORT="80"
+              fi
+            fi
+
+            PUBLIC_CURL_OPTS="--resolve ${PUBLIC_HOST}:${PUBLIC_PORT}:127.0.0.1"
+            if [ "$PUBLIC_SCHEME" = "https" ]; then
+              PUBLIC_CURL_OPTS="$PUBLIC_CURL_OPTS -k"
+            fi
+
+            ENV_FILE="$STAGING_ENV_FILE" \
+            COMPOSE_FILE="$STAGING_COMPOSE_FILE" \
             PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
+            PUBLIC_CURL_OPTS="$PUBLIC_CURL_OPTS" \
             scripts/smoke-prod.sh
 
       - name: Health check staging URL
