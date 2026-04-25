@@ -167,16 +167,20 @@ class InitiativeProposalModerationAPIView(APIView):
             comment=payload.validated_data["comment"],
         )
 
-        if proposal.published_project_id is not None:
+        if proposal.published_project_id is not None and proposal.published_project is not None:
             project = proposal.published_project
+            project_pk = project.pk
+            project_updated_at = project.updated_at
+            if project_pk is None or project_updated_at is None:
+                serializer = InitiativeProposalSerializer(proposal, context={"request": request})
+                return Response(serializer.data)
             emit_event(
                 event_type="project.changed",
                 aggregate_type="project",
-                aggregate_id=project.pk,
+                aggregate_id=project_pk,
                 payload=PrimaryProjectSerializer(project, context={"request": request}).data,
                 idempotency_key=(
-                    f"project.changed:{project.pk}:{project.updated_at.isoformat()}:"
-                    "initiative-publish"
+                    f"project.changed:{project_pk}:{project_updated_at.isoformat()}:initiative-publish"
                 ),
             )
 

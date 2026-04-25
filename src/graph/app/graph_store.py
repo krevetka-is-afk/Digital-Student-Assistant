@@ -1,13 +1,22 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
+import importlib
+from typing import Any, Protocol, cast
 
 from .models import GraphEvent
 
 try:
-    from neo4j import GraphDatabase
+    _neo4j_module = importlib.import_module("neo4j")
 except ModuleNotFoundError:  # pragma: no cover - covered by startup checks
-    GraphDatabase = None
+    _neo4j_module = None
+
+GraphDatabase = _neo4j_module.GraphDatabase if _neo4j_module is not None else None
+
+
+def _cypher(query: str) -> Any:
+    if _neo4j_module is None:
+        return query
+    return _neo4j_module.Query(cast(Any, query))
 
 
 class GraphStore(Protocol):
@@ -70,10 +79,16 @@ class Neo4jGraphStore:
 
         with self._driver.session() as session:
             for statement in statements:
-                session.run(statement).consume()
+                session.run(_cypher(statement)).consume()
 
     def project_event(self, event: GraphEvent) -> None:
         aggregate_type = event.aggregate_type.strip().lower()
+        if event.event_type == "project.deleted":
+            self._delete_project(event)
+            return
+        if event.event_type == "application.deleted":
+            self._delete_application(event)
+            return
         if aggregate_type == "project":
             self._project_project(event)
             return
@@ -87,7 +102,7 @@ class Neo4jGraphStore:
     def get_state_summary(self, *, consumer: str) -> dict[str, Any]:
         def _count(query: str) -> int:
             with self._driver.session() as session:
-                record = session.run(query).single()
+                record = session.run(_cypher(query)).single()
             return int(record["count"] if record else 0)
 
         with self._driver.session() as session:
@@ -170,7 +185,7 @@ class Neo4jGraphStore:
             "tags": self._normalize_tags(payload.get("tech_tags") or []),
         }
 
-        query = """
+        query = _cypher("""
         MERGE (p:Project {project_id: $project_id})
         SET p.title = coalesce($title, p.title),
             p.status = coalesce($status, p.status),
@@ -193,10 +208,32 @@ class Neo4jGraphStore:
         MERGE (t:Tag {tag_name_normalized: tag.normalized})
         SET t.display_name = tag.display_name
         MERGE (p)-[:TAGGED_WITH]->(t)
-        """
+        """)
 
         with self._driver.session() as session:
-            session.run(query, **params).consume()
+            session.run(query, params).consume()
+
+    def _delete_project(self, event: GraphEvent) -> None:
+        project_id = _clean_string(event.payload.get("pk") or event.aggregate_id)
+        if project_id is None:
+            return
+        query = _cypher("""
+        MATCH (p:Project {project_id: $project_id})
+        DETACH DELETE p
+        """)
+        with self._driver.session() as session:
+            session.run(query, {"project_id": project_id}).consume()
+
+    def _delete_application(self, event: GraphEvent) -> None:
+        application_id = _clean_string(event.payload.get("id") or event.aggregate_id)
+        if application_id is None:
+            return
+        query = _cypher("""
+        MATCH (a:Application {application_id: $application_id})
+        DETACH DELETE a
+        """)
+        with self._driver.session() as session:
+            session.run(query, {"application_id": application_id}).consume()
 
     def _project_profile(self, event: GraphEvent) -> None:
         payload = event.payload
@@ -209,7 +246,7 @@ class Neo4jGraphStore:
             "tags": self._normalize_tags(payload.get("interests") or []),
         }
 
-        query = """
+        query = _cypher("""
         MERGE (s:Student {student_id: $student_id})
         SET s.username = coalesce($username, s.username),
             s.email = coalesce($email, s.email)
@@ -221,10 +258,10 @@ class Neo4jGraphStore:
         MERGE (t:Tag {tag_name_normalized: tag.normalized})
         SET t.display_name = tag.display_name
         MERGE (s)-[:INTERESTED_IN]->(t)
-        """
+        """)
 
         with self._driver.session() as session:
-            session.run(query, **params).consume()
+            session.run(query, params).consume()
 
     def _project_application(self, event: GraphEvent) -> None:
         payload = event.payload
@@ -248,7 +285,7 @@ class Neo4jGraphStore:
             ),
         }
 
-        query = """
+        query = _cypher("""
         MERGE (a:Application {application_id: $application_id})
         SET a.status = coalesce($status, a.status),
             a.updated_at = coalesce($updated_at, a.updated_at)
@@ -270,7 +307,7 @@ class Neo4jGraphStore:
             SET p.title = coalesce($project_title, p.title)
             MERGE (a)-[:TARGETS]->(p)
         )
-        """
+        """)
 
         with self._driver.session() as session:
-            session.run(query, **params).consume()
+            session.run(query, params).consume()

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict, cast
 
-from app.models import GraphEvent
 from starlette.testclient import TestClient
+
+from src.graph.app.models import GraphEvent
 
 
 class FakeGraphStore:
@@ -66,6 +67,35 @@ class FakeGraphStore:
     def project_event(self, event: GraphEvent) -> None:
         aggregate_type = event.aggregate_type.lower().strip()
         payload = event.payload
+
+        if event.event_type == "project.deleted":
+            project_id = str(payload.get("pk") or event.aggregate_id)
+            self.projects.discard(project_id)
+            self.project_supervisor_edges = {
+                edge for edge in self.project_supervisor_edges if edge[0] != project_id
+            }
+            self.project_tag_edges = {
+                edge for edge in self.project_tag_edges if edge[0] != project_id
+            }
+            self.application_project_edges = {
+                edge for edge in self.application_project_edges if edge[1] != project_id
+            }
+            self._project_supervisor_map.pop(project_id, None)
+            self._project_tags_map.pop(project_id, None)
+            return
+
+        if event.event_type == "application.deleted":
+            application_id = str(payload.get("id") or event.aggregate_id)
+            self.applications.discard(application_id)
+            self.student_application_edges = {
+                edge for edge in self.student_application_edges if edge[1] != application_id
+            }
+            self.application_project_edges = {
+                edge for edge in self.application_project_edges if edge[0] != application_id
+            }
+            self._application_submitter_map.pop(application_id, None)
+            self._application_target_map.pop(application_id, None)
+            return
 
         if aggregate_type == "project":
             project_id = str(payload.get("pk") or payload.get("id") or event.aggregate_id)
@@ -146,10 +176,18 @@ class FakeGraphStore:
                 self._application_target_map[application_id] = None
 
 
+class _CheckpointState(TypedDict):
+    consumer: str
+    status: str
+    last_acked_event_id: int
+    last_seen_event_id: int
+    metadata: dict[str, Any]
+
+
 class FakeOutboxClient:
     def __init__(self, *, events: list[GraphEvent], initial_checkpoint: int = 0):
         self._events = sorted(events, key=lambda event: event.id or 0)
-        self._checkpoint = {
+        self._checkpoint: _CheckpointState = {
             "consumer": "graph",
             "status": "active",
             "last_acked_event_id": initial_checkpoint,
@@ -159,7 +197,7 @@ class FakeOutboxClient:
         self.calls: list[dict[str, Any]] = []
 
     async def get_checkpoint(self) -> dict[str, Any]:
-        return dict(self._checkpoint)
+        return cast(dict[str, Any], self._checkpoint.copy())
 
     async def fetch_events(
         self,
@@ -179,18 +217,18 @@ class FakeOutboxClient:
         if mode == "replay":
             lower_bound = max((replay_from_id or 1) - 1, 0)
         else:
-            lower_bound = int(self._checkpoint["last_acked_event_id"])
+            lower_bound = self._checkpoint["last_acked_event_id"]
 
         return [event for event in self._events if (event.id or 0) > lower_bound][:batch_size]
 
     async def ack_event(self, *, event_id: int) -> dict[str, Any]:
-        if event_id <= int(self._checkpoint["last_acked_event_id"]):
+        if event_id <= self._checkpoint["last_acked_event_id"]:
             status = "already_acked"
         else:
             status = "advanced"
             self._checkpoint["last_acked_event_id"] = event_id
         self._checkpoint["last_seen_event_id"] = max(
-            int(self._checkpoint["last_seen_event_id"]), event_id
+            self._checkpoint["last_seen_event_id"], event_id
         )
 
         return {
@@ -396,3 +434,49 @@ def test_replay_requires_offset_when_direct_events_are_not_given(app_factory):
 
     assert response.status_code == 422
     assert "replay_from_id is required" in response.json()["detail"]
+
+
+def test_delete_events_remove_project_and_application_nodes(app_factory):
+    events = [
+        GraphEvent(
+            id=1,
+            event_type="project.changed",
+            aggregate_type="project",
+            aggregate_id="1",
+            payload={"pk": 1, "tech_tags": ["python"]},
+        ),
+        GraphEvent(
+            id=2,
+            event_type="application.changed",
+            aggregate_type="application",
+            aggregate_id="50",
+            payload={"id": 50, "applicant_snapshot": {"id": 7}, "project_snapshot": {"pk": 1}},
+        ),
+        GraphEvent(
+            id=3,
+            event_type="application.deleted",
+            aggregate_type="application",
+            aggregate_id="50",
+            payload={"id": 50, "tombstone": True},
+        ),
+        GraphEvent(
+            id=4,
+            event_type="project.deleted",
+            aggregate_type="project",
+            aggregate_id="1",
+            payload={"pk": 1, "tombstone": True},
+        ),
+    ]
+
+    client, _, _ = _make_client(app_factory, events=[])
+    with client:
+        response = client.post(
+            "/project",
+            json={"events": [event.model_dump(mode="json") for event in events]},
+        )
+        state = client.get("/state")
+
+    assert response.status_code == 200
+    payload = state.json()
+    assert payload["nodes"]["project"] == 0
+    assert payload["nodes"]["application"] == 0

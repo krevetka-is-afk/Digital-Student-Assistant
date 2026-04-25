@@ -1,4 +1,8 @@
-from apps.account.permissions import IsCpprpOrStaff
+from apps.account.permissions import IsOutboxConsumerOrCpprpOrStaff
+from apps.applications.models import Application
+from apps.projects.models import Project, ProjectStatus
+from apps.users.models import UserProfile
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
@@ -11,6 +15,7 @@ from .serializers import (
     OutboxAckSerializer,
     OutboxConsumerCheckpointSerializer,
     OutboxEventSerializer,
+    OutboxSnapshotResponseSerializer,
 )
 from .services import (
     ack_event,
@@ -23,7 +28,7 @@ from .services import (
 
 class OutboxEventListAPIView(generics.ListAPIView):
     serializer_class = OutboxEventSerializer
-    permission_classes = [IsCpprpOrStaff]
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(
         parameters=[
@@ -137,7 +142,7 @@ class OutboxEventListAPIView(generics.ListAPIView):
 
 
 class OutboxEventAckAPIView(APIView):
-    permission_classes = [IsCpprpOrStaff]
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(request=OutboxAckSerializer, responses=OutboxAckResponseSerializer)
     def post(self, request):
@@ -158,10 +163,68 @@ class OutboxEventAckAPIView(APIView):
 
 
 class OutboxConsumerCheckpointAPIView(APIView):
-    permission_classes = [IsCpprpOrStaff]
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(responses=OutboxConsumerCheckpointSerializer)
     def get(self, request, consumer: str):
         checkpoint = get_or_create_consumer_checkpoint(consumer)
         serializer = OutboxConsumerCheckpointSerializer(checkpoint)
+        return Response(serializer.data)
+
+
+class OutboxSnapshotAPIView(APIView):
+    permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
+    allowed_resources = {"projects", "applications", "user_profiles"}
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="resources",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Optional comma-separated snapshot resources. "
+                    "Allowed: projects, applications, user_profiles. Default: all."
+                ),
+            )
+        ],
+        responses=OutboxSnapshotResponseSerializer,
+    )
+    def get(self, request):
+        resources_param = (request.query_params.get("resources") or "").strip()
+        if resources_param:
+            resources = [item.strip() for item in resources_param.split(",") if item.strip()]
+        else:
+            resources = ["projects", "applications", "user_profiles"]
+
+        invalid = sorted(set(resources) - self.allowed_resources)
+        if invalid:
+            raise ValidationError(
+                {
+                    "resources": [
+                        "Unsupported resources: " + ", ".join(invalid) + ". "
+                        "Allowed: projects, applications, user_profiles."
+                    ]
+                }
+            )
+
+        watermark = OutboxEvent.objects.order_by("-id").values_list("id", flat=True).first() or 0
+        payload = {
+            "watermark": watermark,
+            "generated_at": timezone.now(),
+            "resources": resources,
+        }
+
+        if "projects" in resources:
+            payload["projects"] = Project.objects.filter(
+                status__in=ProjectStatus.catalog_values()
+            ).select_related("owner", "epp")
+        if "applications" in resources:
+            payload["applications"] = Application.objects.select_related(
+                "project", "project__owner", "project__epp", "applicant", "reviewed_by"
+            )
+        if "user_profiles" in resources:
+            payload["user_profiles"] = UserProfile.objects.select_related("user")
+
+        serializer = OutboxSnapshotResponseSerializer(payload, context={"request": request})
         return Response(serializer.data)

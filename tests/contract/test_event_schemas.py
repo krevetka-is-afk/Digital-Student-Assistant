@@ -38,3 +38,28 @@ def test_event_contract_matches_current_emitters():
     payload = _load_event_contract()
 
     assert set(payload["required_event_types"]) == _collect_emitted_event_types()
+
+
+def test_event_contract_examples_include_lineage_fields():
+    payload = _load_event_contract()
+    examples = payload["payload_examples"]
+    lineage_policy = payload["lineage_policy"]
+
+    for event_type in (
+        "project.changed",
+        "application.changed",
+        "user_profile.changed",
+        "deadline.changed",
+    ):
+        for field in lineage_policy["changed_events"]:
+            assert field in examples[event_type]
+
+    for event_type in ("project.deleted", "application.deleted"):
+        for field in lineage_policy["deleted_events"]:
+            assert field in examples[event_type]
+
+    for field in lineage_policy["reindex_events"]:
+        assert field in examples["recs.reindex_requested"]
+
+    for field in lineage_policy["import_events"]:
+        assert field in examples["import.completed"]

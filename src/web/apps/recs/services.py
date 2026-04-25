@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from typing import Iterable, TypedDict
+from typing import Iterable, TypedDict, cast
 
 import requests
 from apps.projects.models import Project, ProjectStatus
@@ -38,17 +38,16 @@ def _tokenize(value: str) -> set[str]:
 
 
 def _project_text(project: Project) -> str:
-    return " ".join(
-        [
-            project.title or "",
-            project.description or "",
-            project.vacancy_title or "",
-            project.thesis_title or "",
-            project.implementation_features or "",
-            project.selection_criteria or "",
-            " ".join(project.get_tags_list()),
-        ]
-    )
+    parts: list[str] = [
+        project.title or "",
+        project.description or "",
+        project.vacancy_title or "",
+        project.thesis_title or "",
+        project.implementation_features or "",
+        project.selection_criteria or "",
+        " ".join(project.get_tags_list()),
+    ]
+    return " ".join(parts)
 
 
 def _heuristic_rank(
@@ -84,16 +83,6 @@ def _published_projects() -> list[Project]:
     )
 
 
-def _project_payload(project: Project) -> dict[str, object]:
-    return {
-        "id": project.pk,
-        "title": project.title,
-        "description": project.description,
-        "tech_tags": project.get_tags_list(),
-        "supervisor_name": project.supervisor_name,
-        "source_type": project.source_type,
-    }
-
 
 def _ml_timeout_seconds() -> float:
     raw_timeout = os.getenv("ML_SERVICE_TIMEOUT", str(ML_DEFAULT_TIMEOUT_SECONDS))
@@ -113,15 +102,18 @@ def _normalize_remote_items(items: object) -> list[MLRankedItem] | None:
     for item in items:
         if not isinstance(item, dict):
             continue
+        item_dict = cast(dict[str, object], item)
+        project_id_raw = item_dict.get("project_id")
         try:
-            project_id = int(item.get("project_id"))
+            project_id = int(cast(int | str, project_id_raw))
         except (TypeError, ValueError):
             continue
+        score_raw = item_dict.get("score", 0)
         try:
-            score = float(item.get("score", 0))
+            score = float(cast(int | float | str, score_raw))
         except (TypeError, ValueError):
             score = 0.0
-        reason_raw = item.get("reason")
+        reason_raw = item_dict.get("reason")
         reason = str(reason_raw) if reason_raw is not None else ML_DEFAULT_REASON
         normalized.append({"project_id": project_id, "score": score, "reason": reason})
     return normalized
@@ -198,6 +190,20 @@ def _call_remote_ml(
             fallback_reason="ml_invalid_body",
         )
 
+    remote_mode = str(body.get("mode") or "").strip()
+    if remote_mode and remote_mode != ML_GATEWAY_SEMANTIC_MODE:
+        logger.info(
+            "recs.gateway mode=%s operation=%s reason=remote_mode_%s",
+            ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            operation,
+            remote_mode,
+        )
+        return _RemoteCallResult(
+            mode=ML_GATEWAY_KEYWORD_FALLBACK_MODE,
+            items=[],
+            fallback_reason=f"remote_mode_{remote_mode}",
+        )
+
     raw_items = body.get("items")
     items = _normalize_remote_items(raw_items)
     if items is None:
@@ -258,7 +264,6 @@ def search_projects(query: str, *, limit: int = 10) -> tuple[str, list[dict[str,
         {
             "query": query,
             "limit": limit,
-            "projects": [_project_payload(project) for project in projects],
         },
         operation="search",
     )
@@ -291,7 +296,6 @@ def recommend_projects(
         {
             "interests": interests,
             "limit": limit,
-            "projects": [_project_payload(project) for project in projects],
         },
         operation="recommendations",
     )

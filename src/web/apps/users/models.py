@@ -76,4 +76,4 @@ class UserProfile(models.Model):
                 continue
             seen.add(project_id)
             normalized.append(project_id)
-        self.favorite_project_ids = normalized
+        setattr(self, "favorite_project_ids", normalized)
