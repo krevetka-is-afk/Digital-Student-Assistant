@@ -1,3 +1,4 @@
+from apps.base.auth_views import VerifiedObtainAuthTokenView
 from apps.base.views import health_custom, readiness
 from apps.imports.views import ImportRunListCreateAPIView
 from apps.outbox.views import (
@@ -25,7 +26,6 @@ from apps.recs.views import (
 )
 from apps.search.views import SearchListView
 from django.urls import include, path
-from rest_framework.authtoken.views import obtain_auth_token
 
 from .api_views import ApiV1RootView
 
@@ -33,7 +33,7 @@ urlpatterns = [
     path("", ApiV1RootView.as_view(), name="api-v1-root"),
     path("health/", health_custom, name="api-v1-health"),
     path("ready/", readiness, name="api-v1-ready"),
-    path("auth/token/", obtain_auth_token, name="api-v1-auth-token"),
+    path("auth/token/", VerifiedObtainAuthTokenView.as_view(), name="api-v1-auth-token"),
     path("search/", SearchListView.as_view(), name="api-v1-search"),
     path("recs/search/", SearchProxyAPIView.as_view(), name="api-v1-recs-search"),
     path(

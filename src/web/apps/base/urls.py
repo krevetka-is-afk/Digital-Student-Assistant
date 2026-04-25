@@ -1,11 +1,11 @@
 from django.urls import path
 from health_check.views import HealthCheckView
-from rest_framework.authtoken.views import obtain_auth_token
 
 from . import views
+from .auth_views import VerifiedObtainAuthTokenView
 
 urlpatterns = [
-    path("auth/", obtain_auth_token),
+    path("auth/", VerifiedObtainAuthTokenView.as_view()),
     path("", views.api_home, name="api-home"),
     path(
         "health/",
