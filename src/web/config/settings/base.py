@@ -195,4 +195,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Digital Student Assistant API",
     "DESCRIPTION": "Versioned REST API for web and future service integrations.",
     "VERSION": "1.0.0",
+    "PREPROCESSING_HOOKS": [
+        "config.schema.public_api_only_preprocessing_hook",
+    ],
 }

@@ -1,13 +1,46 @@
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 
 
+class ApiRootVersionsSerializer(serializers.Serializer):
+    v1 = serializers.URLField()
+
+
+class ApiRootResponseSerializer(serializers.Serializer):
+    default_version = serializers.CharField()
+    versions = ApiRootVersionsSerializer()
+    schema = serializers.URLField()
+    docs = serializers.URLField()
+
+
+class ApiV1RootResponseSerializer(serializers.Serializer):
+    version = serializers.CharField()
+    health = serializers.URLField()
+    ready = serializers.URLField()
+    auth_token = serializers.URLField()
+    search = serializers.URLField()
+    recs_search = serializers.URLField()
+    recs_recommendations = serializers.URLField()
+    account = serializers.URLField()
+    imports_epp = serializers.URLField()
+    outbox_events = serializers.URLField()
+    outbox_ack = serializers.URLField()
+    outbox_checkpoint_template = serializers.CharField()
+    projects = serializers.URLField()
+    initiative_proposals = serializers.URLField()
+    applications = serializers.URLField()
+    users_me = serializers.URLField()
+
+
 class ApiRootView(APIView):
     permission_classes = [AllowAny]
     name = "API Root"
 
+    @extend_schema(responses=ApiRootResponseSerializer)
     def get(self, request, *args, **kwargs):
         return Response(
             {
@@ -25,6 +58,7 @@ class ApiV1RootView(APIView):
     permission_classes = [AllowAny]
     name = "API v1 Root"
 
+    @extend_schema(responses=ApiV1RootResponseSerializer)
     def get(self, request, *args, **kwargs):
         return Response(
             {
