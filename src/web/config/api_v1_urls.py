@@ -22,7 +22,11 @@ urlpatterns = [
     path("auth/token/", obtain_auth_token, name="api-v1-auth-token"),
     path("search/", SearchListView.as_view(), name="api-v1-search"),
     path("recs/search/", SearchProxyAPIView.as_view(), name="api-v1-recs-search"),
-    path("recs/recommendations/", RecommendationListAPIView.as_view(), name="api-v1-recs-recommendations"),
+    path(
+        "recs/recommendations/",
+        RecommendationListAPIView.as_view(),
+        name="api-v1-recs-recommendations",
+    ),
     path("recs/reindex/", RecommendationReindexAPIView.as_view(), name="api-v1-recs-reindex"),
     path("projects/", project_list_create_view, name="api-v1-project-list"),
     path(

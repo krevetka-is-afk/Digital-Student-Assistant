@@ -103,14 +103,15 @@ def _ml_service_url() -> str:
     if env_url:
         return env_url.rstrip("/")
     from django.conf import settings as django_settings
+
     return (getattr(django_settings, "ML_SERVICE_URL", None) or "").rstrip("/")
 
 
 def _ml_timeout_seconds() -> float:
     from django.conf import settings as django_settings
-    raw_timeout = (
-        getattr(django_settings, "ML_SERVICE_TIMEOUT", None)
-        or os.getenv("ML_SERVICE_TIMEOUT", str(ML_DEFAULT_TIMEOUT_SECONDS))
+
+    raw_timeout = getattr(django_settings, "ML_SERVICE_TIMEOUT", None) or os.getenv(
+        "ML_SERVICE_TIMEOUT", str(ML_DEFAULT_TIMEOUT_SECONDS)
     )
     try:
         parsed_timeout = float(raw_timeout)
@@ -142,9 +143,7 @@ def _normalize_remote_items(items: object) -> list[MLRankedItem] | None:
     return normalized
 
 
-def _call_remote_ml(
-    path: str, payload: dict[str, object], *, operation: str
-) -> _RemoteCallResult:
+def _call_remote_ml(path: str, payload: dict[str, object], *, operation: str) -> _RemoteCallResult:
     base_url = _ml_service_url()
     if not base_url:
         logger.info(

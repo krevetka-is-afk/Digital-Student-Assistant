@@ -28,8 +28,7 @@ class RecommendationResponseSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(
         choices=["semantic", "keyword-fallback"],
         help_text=(
-            "semantic for successful ML integration, "
-            "keyword-fallback for local keyword mode."
+            "semantic for successful ML integration, " "keyword-fallback for local keyword mode."
         ),
     )
 

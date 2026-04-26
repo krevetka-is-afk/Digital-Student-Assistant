@@ -1,10 +1,9 @@
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
-
 from apps.applications.models import Application
 from apps.projects.models import Project, ProjectSourceType, ProjectStatus
 from apps.users.models import UserRole
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 
 
 @login_required(login_url="/auth/")
@@ -13,24 +12,24 @@ def profile_view(request):
     user = request.user
     try:
         profile = user.profile
-        role    = profile.role
+        role = profile.role
     except Exception:
         profile = None
-        role    = ""
+        role = ""
 
     profile_errors = {}
 
     if request.method == "POST":
-        full_name     = request.POST.get("full_name", "").strip()
-        bio           = request.POST.get("bio", "").strip()
+        full_name = request.POST.get("full_name", "").strip()
+        bio = request.POST.get("bio", "").strip()
         interests_raw = request.POST.get("interests_raw", "").strip()
 
-        parts      = full_name.split(None, 1)
+        parts = full_name.split(None, 1)
         first_name = parts[0] if parts else ""
-        last_name  = parts[1] if len(parts) > 1 else ""
+        last_name = parts[1] if len(parts) > 1 else ""
 
         user.first_name = first_name
-        user.last_name  = last_name
+        user.last_name = last_name
         user.save(update_fields=["first_name", "last_name"])
 
         if profile:
@@ -49,12 +48,12 @@ def profile_view(request):
         own_projects_count = Project.objects.filter(owner=user).count()
 
     applications_count = 0
-    bookmarks_count    = 0
-    initiative_count   = 0
+    bookmarks_count = 0
+    initiative_count = 0
     if role == UserRole.STUDENT:
         applications_count = Application.objects.filter(applicant=user).count()
-        bookmarks_count    = len(profile.favorite_project_ids) if profile else 0
-        initiative_count   = Project.objects.filter(
+        bookmarks_count = len(profile.favorite_project_ids) if profile else 0
+        initiative_count = Project.objects.filter(
             owner=user, source_type=ProjectSourceType.INITIATIVE
         ).count()
 
@@ -65,15 +64,15 @@ def profile_view(request):
     interests_initial = ",".join(profile.interests) if profile and profile.interests else ""
 
     context = {
-        "profile_user":           user,
-        "profile":                profile,
-        "role":                   role,
-        "own_projects_count":     own_projects_count,
-        "applications_count":     applications_count,
-        "bookmarks_count":        bookmarks_count,
-        "initiative_count":       initiative_count,
+        "profile_user": user,
+        "profile": profile,
+        "role": role,
+        "own_projects_count": own_projects_count,
+        "applications_count": applications_count,
+        "bookmarks_count": bookmarks_count,
+        "initiative_count": initiative_count,
         "moderation_queue_count": moderation_queue_count,
-        "interests_initial":      interests_initial,
-        "profile_errors":         profile_errors,
+        "interests_initial": interests_initial,
+        "profile_errors": profile_errors,
     }
     return render(request, "frontend/profile.html", context)

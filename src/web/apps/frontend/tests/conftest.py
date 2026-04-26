@@ -15,7 +15,7 @@ for path in (WEB_DIR, APPS_DIR):
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
 django.setup()
 
-from django.conf import settings
+from django.conf import settings  # noqa: E402
 
 if "testserver" not in settings.ALLOWED_HOSTS:
     settings.ALLOWED_HOSTS.append("testserver")

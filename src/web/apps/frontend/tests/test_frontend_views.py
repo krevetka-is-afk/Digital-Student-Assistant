@@ -1,16 +1,14 @@
 """
 Frontend view tests: bookmarks, initiative project, profile, tab redirects.
 """
-import json
-from uuid import uuid4
 
-import pytest
-from django.contrib.auth import get_user_model
-from django.test import Client
-from django.urls import reverse
+from uuid import uuid4
 
 from apps.projects.models import Project, ProjectSourceType, ProjectStatus
 from apps.users.models import UserProfile, UserRole
+from django.contrib.auth import get_user_model
+from django.test import Client
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -18,6 +16,7 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _uid():
     return uuid4().hex[:8]
@@ -59,6 +58,7 @@ def _make_project(**kwargs):
 # Project list — tabs visible for students
 # ---------------------------------------------------------------------------
 
+
 def test_project_list_shows_tabs_for_student():
     client = Client()
     client.force_login(_make_student())
@@ -81,6 +81,7 @@ def test_project_list_redirects_anonymous_to_auth():
 # ---------------------------------------------------------------------------
 # Bookmark toggle
 # ---------------------------------------------------------------------------
+
 
 def test_toggle_bookmark_creates_and_removes():
     student = _make_student()
@@ -153,6 +154,7 @@ def test_bookmarked_project_appears_in_bookmarks_tab():
 # ---------------------------------------------------------------------------
 # Initiative project creation
 # ---------------------------------------------------------------------------
+
 
 def test_initiative_form_get_renders_for_student():
     student = _make_student()
@@ -236,9 +238,7 @@ def test_initiative_project_with_supervisor():
         },
     )
 
-    project = Project.objects.filter(
-        owner=student, source_type=ProjectSourceType.INITIATIVE
-    ).last()
+    project = Project.objects.filter(owner=student, source_type=ProjectSourceType.INITIATIVE).last()
     assert project is not None
     assert project.supervisor_name == "Иванов Иван Иванович"
 
@@ -246,6 +246,7 @@ def test_initiative_project_with_supervisor():
 # ---------------------------------------------------------------------------
 # Initiative projects appear in Applications tab for their owner
 # ---------------------------------------------------------------------------
+
 
 def test_initiative_projects_visible_in_applications_tab():
     student = _make_student()
@@ -265,9 +266,10 @@ def test_initiative_projects_visible_in_applications_tab():
 # Profile view
 # ---------------------------------------------------------------------------
 
+
 def test_profile_view_shows_student_stats():
     student = _make_student()
-    project = _make_project(
+    _project = _make_project(
         owner=student,
         source_type=ProjectSourceType.INITIATIVE,
         status=ProjectStatus.ON_MODERATION,
@@ -314,6 +316,7 @@ def test_profile_update_post_saves_name():
 # Legacy redirects
 # ---------------------------------------------------------------------------
 
+
 def test_application_list_redirects_to_projects_tab():
     student = _make_student()
     client = Client()
@@ -335,6 +338,7 @@ def test_recommendations_view_redirects_to_projects_tab():
 # ---------------------------------------------------------------------------
 # Moderation: only CPPRP can access
 # ---------------------------------------------------------------------------
+
 
 def test_moderation_list_forbidden_for_student():
     student = _make_student()

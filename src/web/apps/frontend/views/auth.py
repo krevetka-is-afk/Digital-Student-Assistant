@@ -1,15 +1,14 @@
+from apps.users.models import UserProfile, UserRole
 from django.contrib import messages
 from django.contrib.auth import (
     authenticate,
     get_user_model,
-    login as auth_login,
-    logout as auth_logout,
 )
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-
-from apps.users.models import UserProfile, UserRole
 
 
 def auth_view(request):
@@ -33,7 +32,7 @@ def auth_view(request):
         # ── LOGIN ──────────────────────────────────────────────────────────
         if active_tab == "login":
             login_email = request.POST.get("email", "").strip()
-            password    = request.POST.get("password", "")
+            password = request.POST.get("password", "")
 
             if not login_email:
                 login_errors["email"] = "Введите email."
@@ -58,9 +57,9 @@ def auth_view(request):
         # ── REGISTER ───────────────────────────────────────────────────────
         elif active_tab == "register":
             reg_email = request.POST.get("email", "").strip().lower()
-            password  = request.POST.get("password", "")
-            reg_name  = request.POST.get("name", "").strip()
-            reg_role  = request.POST.get("role", UserRole.STUDENT)
+            password = request.POST.get("password", "")
+            reg_name = request.POST.get("name", "").strip()
+            reg_role = request.POST.get("role", UserRole.STUDENT)
 
             if not reg_email:
                 register_errors["email"] = "Введите email."
@@ -91,7 +90,7 @@ def auth_view(request):
                     if reg_name:
                         parts = reg_name.split(" ", 1)
                         new_user.first_name = parts[0]
-                        new_user.last_name  = parts[1] if len(parts) > 1 else ""
+                        new_user.last_name = parts[1] if len(parts) > 1 else ""
                         new_user.save(update_fields=["first_name", "last_name"])
 
                     UserProfile.objects.create(user=new_user, role=reg_role)
@@ -99,17 +98,21 @@ def auth_view(request):
                     messages.success(request, f"Добро пожаловать, {new_user.username}!")
                     return redirect("frontend:project_list")
 
-    return render(request, "frontend/auth.html", {
-        "active_tab":      active_tab,
-        "next":            next_url,
-        "login_errors":    login_errors,
-        "register_errors": register_errors,
-        "login_email":     login_email,
-        "reg_email":       reg_email,
-        "reg_name":        reg_name,
-        "reg_role":        reg_role,
-        "UserRole":        UserRole,
-    })
+    return render(
+        request,
+        "frontend/auth.html",
+        {
+            "active_tab": active_tab,
+            "next": next_url,
+            "login_errors": login_errors,
+            "register_errors": register_errors,
+            "login_email": login_email,
+            "reg_email": reg_email,
+            "reg_name": reg_name,
+            "reg_role": reg_role,
+            "UserRole": UserRole,
+        },
+    )
 
 
 @require_POST

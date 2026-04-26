@@ -6,13 +6,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('projects', '0007_bookmark'),
+        ("projects", "0007_bookmark"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='project',
-            name='supervisor_name',
-            field=models.CharField(blank=True, default='', help_text='Optional desired supervisor for student initiative projects.', max_length=255, verbose_name='Supervisor name'),
+            model_name="project",
+            name="supervisor_name",
+            field=models.CharField(
+                blank=True,
+                default="",
+                help_text="Optional desired supervisor for student initiative projects.",
+                max_length=255,
+                verbose_name="Supervisor name",
+            ),
         ),
     ]

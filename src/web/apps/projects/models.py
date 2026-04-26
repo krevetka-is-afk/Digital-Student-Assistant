@@ -231,5 +231,3 @@ class Project(models.Model):
         if isinstance(self.tech_tags, list):
             return [str(tag) for tag in self.tech_tags]
         return []
-
-

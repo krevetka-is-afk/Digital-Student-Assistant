@@ -1,5 +1,8 @@
 import json
 
+from apps.applications.models import Application, ApplicationStatus
+from apps.projects.models import Project, ProjectStatus
+from apps.users.utils import user_is_moderator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -7,16 +10,12 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.applications.models import Application, ApplicationStatus
-from apps.projects.models import Project, ProjectStatus
-from apps.users.utils import user_is_moderator
-
 from .projects import PAGE_SIZE
-
 
 # ---------------------------------------------------------------------------
 # Apply (card quick-apply)
 # ---------------------------------------------------------------------------
+
 
 @require_POST
 def apply_to_project(request, pk):
@@ -40,10 +39,10 @@ def apply_to_project(request, pk):
         )
 
     ctx = {
-        "project":           project,
+        "project": project,
         "application_status": existing.status,
         "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
+        "ProjectStatus": ProjectStatus,
     }
     return render(request, "frontend/partials/apply_button.html", ctx)
 
@@ -51,6 +50,7 @@ def apply_to_project(request, pk):
 # ---------------------------------------------------------------------------
 # Submit Application (detail page, with motivation modal)
 # ---------------------------------------------------------------------------
+
 
 @require_POST
 def submit_application(request, pk):
@@ -66,6 +66,7 @@ def submit_application(request, pk):
             return response
         # fetch() call from the shared apply modal — return JSON so JS can handle it cleanly
         from django.http import JsonResponse
+
         return JsonResponse({"error": "unauthenticated", "redirect": "/auth/"}, status=401)
     if user_is_moderator(request.user):
         return HttpResponseBadRequest("Модераторы не могут подавать заявки.")
@@ -85,11 +86,13 @@ def submit_application(request, pk):
         applicant=request.user,
         defaults={
             "motivation": motivation,
-            "status":     ApplicationStatus.SUBMITTED,
+            "status": ApplicationStatus.SUBMITTED,
         },
     )
 
-    toast_msg  = "Заявка успешно отправлена!" if created else "Вы уже подавали заявку на этот проект."
+    toast_msg = (
+        "Заявка успешно отправлена!" if created else "Вы уже подавали заявку на этот проект."
+    )
     toast_type = "success" if created else "info"
 
     # source=card   → compact button partial (project list cards)
@@ -98,19 +101,19 @@ def submit_application(request, pk):
 
     if source == "card":
         ctx = {
-            "project":            project,
+            "project": project,
             "application_status": application.status,
-            "ApplicationStatus":  ApplicationStatus,
-            "ProjectStatus":      ProjectStatus,
+            "ApplicationStatus": ApplicationStatus,
+            "ProjectStatus": ProjectStatus,
         }
         response = render(request, "frontend/partials/apply_button.html", ctx)
     else:
         ctx = {
-            "project":           project,
-            "application":       application,
-            "is_owner":          False,
+            "project": project,
+            "application": application,
+            "is_owner": False,
             "ApplicationStatus": ApplicationStatus,
-            "ProjectStatus":     ProjectStatus,
+            "ProjectStatus": ProjectStatus,
         }
         response = render(request, "frontend/partials/apply_action_detail.html", ctx)
 
@@ -122,16 +125,19 @@ def submit_application(request, pk):
 # Application List (student: my applications)
 # ---------------------------------------------------------------------------
 
+
 @login_required(login_url="/auth/")
 def application_list(request):
     """Legacy standalone page — redirect to the Applications tab in /projects/."""
     from django.urls import reverse
+
     return redirect(reverse("frontend:project_list") + "?tab=applications")
 
 
 # ---------------------------------------------------------------------------
 # Project Applications (customer: review applications to their project)
 # ---------------------------------------------------------------------------
+
 
 @login_required(login_url="/auth/")
 def project_applications(request, pk):
@@ -142,11 +148,10 @@ def project_applications(request, pk):
         raise Http404
 
     status_filter = request.GET.get("status", "").strip()
-    page_number   = request.GET.get("page", 1)
+    page_number = request.GET.get("page", 1)
 
     queryset = (
-        Application.objects
-        .filter(project=project)
+        Application.objects.filter(project=project)
         .select_related("applicant")
         .order_by("-created_at")
     )
@@ -155,24 +160,24 @@ def project_applications(request, pk):
         queryset = queryset.filter(status=status_filter)
 
     paginator = Paginator(queryset, PAGE_SIZE)
-    page_obj  = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
     base_qs = Application.objects.filter(project=project)
-    counts  = {
+    counts = {
         "submitted": base_qs.filter(status=ApplicationStatus.SUBMITTED).count(),
-        "accepted":  base_qs.filter(status=ApplicationStatus.ACCEPTED).count(),
-        "rejected":  base_qs.filter(status=ApplicationStatus.REJECTED).count(),
+        "accepted": base_qs.filter(status=ApplicationStatus.ACCEPTED).count(),
+        "rejected": base_qs.filter(status=ApplicationStatus.REJECTED).count(),
     }
 
     context = {
-        "project":           project,
-        "page_obj":          page_obj,
-        "status_filter":     status_filter,
+        "project": project,
+        "page_obj": page_obj,
+        "status_filter": status_filter,
         "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
-        "counts":            counts,
-        "total_count":       sum(counts.values()),
-        "spots_left":        max(0, project.team_size - project.accepted_participants_count),
+        "ProjectStatus": ProjectStatus,
+        "counts": counts,
+        "total_count": sum(counts.values()),
+        "spots_left": max(0, project.team_size - project.accepted_participants_count),
     }
     return render(request, "frontend/project_applications.html", context)
 
@@ -181,19 +186,21 @@ def project_applications(request, pk):
 # Review Application (accept / reject)
 # ---------------------------------------------------------------------------
 
+
 @require_POST
 @login_required(login_url="/auth/")
 def review_application_view(request, pk):
     """Accept or reject an application (project owner / staff)."""
     from apps.applications.transitions import review_application
-    from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
+    from rest_framework.exceptions import PermissionDenied
+    from rest_framework.exceptions import ValidationError as DRFValidationError
 
     application = get_object_or_404(
         Application.objects.select_related("project", "project__owner"),
         pk=pk,
     )
     decision = request.POST.get("decision", "").strip()
-    comment  = request.POST.get("comment", "").strip()
+    comment = request.POST.get("comment", "").strip()
 
     try:
         review_application(application, request.user, decision, comment)

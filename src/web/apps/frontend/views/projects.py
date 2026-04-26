@@ -2,6 +2,10 @@ import json
 import logging
 import re
 
+from apps.applications.models import Application, ApplicationStatus
+from apps.projects.models import Project, ProjectSourceType, ProjectStatus
+from apps.projects.utils import collect_all_tags
+from apps.users.models import UserRole
 from django import forms as dj_forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,11 +13,6 @@ from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-
-from apps.applications.models import Application, ApplicationStatus
-from apps.projects.models import Project, ProjectSourceType, ProjectStatus
-from apps.projects.utils import collect_all_tags
-from apps.users.models import UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ _TAG_RE = re.compile(r"^[A-Za-zА-Яа-яЁё0-9][A-Za-zА-Яа-яЁё0-9 \-\.+#
 PAGE_SIZE = 9
 RECOMMENDED_COUNT = 4
 
-_LOCKED_STATUSES   = {ProjectStatus.PUBLISHED, ProjectStatus.STAFFED, ProjectStatus.ARCHIVED}
+_LOCKED_STATUSES = {ProjectStatus.PUBLISHED, ProjectStatus.STAFFED, ProjectStatus.ARCHIVED}
 _DELETABLE_STATUSES = {ProjectStatus.DRAFT, ProjectStatus.REJECTED}
 
 
@@ -32,10 +31,14 @@ _DELETABLE_STATUSES = {ProjectStatus.DRAFT, ProjectStatus.REJECTED}
 # Project form (used in create / edit views)
 # ---------------------------------------------------------------------------
 
+
 class ProjectFrontendForm(dj_forms.Form):
     title = dj_forms.CharField(
         max_length=255,
-        error_messages={"required": "Название обязательно.", "max_length": "Не более 255 символов."},
+        error_messages={
+            "required": "Название обязательно.",
+            "max_length": "Не более 255 символов.",
+        },
     )
     description = dj_forms.CharField(
         widget=dj_forms.Textarea,
@@ -46,8 +49,8 @@ class ProjectFrontendForm(dj_forms.Form):
         min_value=1,
         max_value=100,
         error_messages={
-            "required":  "Укажите размер команды.",
-            "invalid":   "Введите целое число.",
+            "required": "Укажите размер команды.",
+            "invalid": "Введите целое число.",
             "min_value": "Минимум 1 участник.",
             "max_value": "Максимум 100 участников.",
         },
@@ -73,6 +76,7 @@ class ProjectFrontendForm(dj_forms.Form):
 # Project List
 # ---------------------------------------------------------------------------
 
+
 @login_required(login_url="/auth/")
 def project_list(request):
     # Customer sees their own projects (all statuses); moderators see the catalog
@@ -84,13 +88,13 @@ def project_list(request):
             _role = ""
         if _role == UserRole.CUSTOMER:
             return _customer_project_list(request)
-        _is_student = (_role == UserRole.STUDENT)
+        _is_student = _role == UserRole.STUDENT
 
     # Everyone else: public PUBLISHED catalog
-    q                = request.GET.get("q", "").strip()
+    q = request.GET.get("q", "").strip()
     tech_tags_filter = request.GET.getlist("tech_tags")
     team_size_filter = request.GET.get("team_size", "").strip()
-    page_number      = request.GET.get("page", 1)
+    page_number = request.GET.get("page", 1)
 
     queryset = Project.objects.filter(status=ProjectStatus.PUBLISHED).select_related("owner")
 
@@ -107,12 +111,12 @@ def project_list(request):
         except ValueError:
             pass
 
-    queryset  = queryset.order_by("-created_at")
+    queryset = queryset.order_by("-created_at")
     paginator = Paginator(queryset, PAGE_SIZE)
-    page_obj  = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
-    is_filtered     = bool(q or tech_tags_filter or team_size_filter)
-    visible_ids     = [p.id for p in page_obj.object_list]
+    is_filtered = bool(q or tech_tags_filter or team_size_filter)
+    visible_ids = [p.id for p in page_obj.object_list]
     all_visible_ids = visible_ids
 
     user_applications = {}
@@ -134,30 +138,30 @@ def project_list(request):
             pass
 
     context = {
-        "page_obj":          page_obj,
-        "query":             q,
-        "tech_tags_filter":  tech_tags_filter,
-        "team_size_filter":  team_size_filter,
+        "page_obj": page_obj,
+        "query": q,
+        "tech_tags_filter": tech_tags_filter,
+        "team_size_filter": team_size_filter,
         "user_applications": user_applications,
-        "all_tags":          all_tags,
-        "is_filtered":       is_filtered,
-        "user_interests":    user_interests,
+        "all_tags": all_tags,
+        "is_filtered": is_filtered,
+        "user_interests": user_interests,
         "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
+        "ProjectStatus": ProjectStatus,
     }
 
     # --- Recommendations tab (students only) ---
-    show_recs_tab         = False
-    rec_projects          = []
-    rec_reasons           = {}
-    rec_mode              = None
-    has_interests         = False
+    show_recs_tab = False
+    rec_projects = []
+    rec_reasons = {}
+    rec_mode = None
+    has_interests = False
     rec_user_applications = {}
 
-    show_applications_tab   = False
-    my_applications         = []
-    app_counts              = {}
-    my_initiative_projects  = []
+    show_applications_tab = False
+    my_applications = []
+    app_counts = {}
+    my_initiative_projects = []
 
     if _is_student:
         show_recs_tab = True
@@ -165,9 +169,7 @@ def project_list(request):
             rec_projects, rec_reasons, rec_mode = _get_recommendations(request)
         except Exception:
             logger.warning("_get_recommendations failed in project_list", exc_info=True)
-        has_interests = bool(
-            getattr(getattr(request.user, "profile", None), "interests", None)
-        )
+        has_interests = bool(getattr(getattr(request.user, "profile", None), "interests", None))
         rec_ids = [p.id for p in rec_projects]
         if rec_ids:
             rec_apps = Application.objects.filter(
@@ -178,27 +180,26 @@ def project_list(request):
 
         show_applications_tab = True
         my_applications = list(
-            Application.objects
-            .filter(applicant=request.user)
+            Application.objects.filter(applicant=request.user)
             .select_related("project", "project__owner")
             .order_by("-created_at")
         )
         app_counts = {
-            "total":     len(my_applications),
+            "total": len(my_applications),
             "submitted": sum(1 for a in my_applications if a.status == ApplicationStatus.SUBMITTED),
-            "accepted":  sum(1 for a in my_applications if a.status == ApplicationStatus.ACCEPTED),
-            "rejected":  sum(1 for a in my_applications if a.status == ApplicationStatus.REJECTED),
+            "accepted": sum(1 for a in my_applications if a.status == ApplicationStatus.ACCEPTED),
+            "rejected": sum(1 for a in my_applications if a.status == ApplicationStatus.REJECTED),
         }
         my_initiative_projects = list(
-            Project.objects
-            .filter(owner=request.user, source_type=ProjectSourceType.INITIATIVE)
-            .order_by("-created_at")
+            Project.objects.filter(
+                owner=request.user, source_type=ProjectSourceType.INITIATIVE
+            ).order_by("-created_at")
         )
 
     # --- Bookmarks tab (all authenticated users) ---
-    show_bookmarks_tab        = False
-    bookmarked_ids            = set()
-    bookmark_projects         = []
+    show_bookmarks_tab = False
+    bookmarked_ids = set()
+    bookmark_projects = []
     bookmark_user_applications = {}
 
     if request.user.is_authenticated:
@@ -206,33 +207,31 @@ def project_list(request):
         fav_ids = list(request.user.profile.favorite_project_ids)
         bookmarked_ids = set(fav_ids)
         if fav_ids:
-            bookmark_projects = list(
-                Project.objects
-                .filter(pk__in=fav_ids)
-                .select_related("owner")
-            )
+            bookmark_projects = list(Project.objects.filter(pk__in=fav_ids).select_related("owner"))
             bm_apps = Application.objects.filter(
                 applicant=request.user,
                 project_id__in=fav_ids,
             ).values("project_id", "status")
             bookmark_user_applications = {a["project_id"]: a["status"] for a in bm_apps}
 
-    context.update({
-        "show_recs_tab":              show_recs_tab,
-        "rec_projects":               rec_projects,
-        "rec_reasons":                rec_reasons,
-        "rec_mode":                   rec_mode,
-        "has_interests":              has_interests,
-        "rec_user_applications":      rec_user_applications,
-        "show_bookmarks_tab":         show_bookmarks_tab,
-        "bookmarked_ids":             bookmarked_ids,
-        "bookmark_projects":          bookmark_projects,
-        "bookmark_user_applications": bookmark_user_applications,
-        "show_applications_tab":      show_applications_tab,
-        "my_applications":            my_applications,
-        "app_counts":                 app_counts,
-        "my_initiative_projects":     my_initiative_projects if _is_student else [],
-    })
+    context.update(
+        {
+            "show_recs_tab": show_recs_tab,
+            "rec_projects": rec_projects,
+            "rec_reasons": rec_reasons,
+            "rec_mode": rec_mode,
+            "has_interests": has_interests,
+            "rec_user_applications": rec_user_applications,
+            "show_bookmarks_tab": show_bookmarks_tab,
+            "bookmarked_ids": bookmarked_ids,
+            "bookmark_projects": bookmark_projects,
+            "bookmark_user_applications": bookmark_user_applications,
+            "show_applications_tab": show_applications_tab,
+            "my_applications": my_applications,
+            "app_counts": app_counts,
+            "my_initiative_projects": my_initiative_projects if _is_student else [],
+        }
+    )
 
     if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "projects-section":
         return render(request, "frontend/partials/projects_grid.html", context)
@@ -258,8 +257,8 @@ def _get_recommendations(request):
     if interests:
         try:
             mode, items = recommend_projects(interests, limit=RECOMMENDED_COUNT)
-            projects  = [item["project"] for item in items]
-            reasons   = {item["project"].pk: item["reason"] for item in items}
+            projects = [item["project"] for item in items]
+            reasons = {item["project"].pk: item["reason"] for item in items}
             return projects, reasons, mode
         except Exception:
             logger.warning("recs.service failed, falling back to latest projects", exc_info=True)
@@ -275,42 +274,45 @@ def _get_recommendations(request):
 
 def _customer_project_list(request):
     """Customer-specific view: all their own projects, all statuses."""
-    page_number   = request.GET.get("page", 1)
+    page_number = request.GET.get("page", 1)
     status_filter = request.GET.get("status", "").strip()
 
-    queryset = (
-        Project.objects
-        .filter(owner=request.user)
-        .order_by("-created_at")
-    )
+    queryset = Project.objects.filter(owner=request.user).order_by("-created_at")
 
     if status_filter:
         queryset = queryset.filter(status=status_filter)
 
     statuses = [
-        ProjectStatus.DRAFT, ProjectStatus.ON_MODERATION,
-        ProjectStatus.PUBLISHED, ProjectStatus.STAFFED, ProjectStatus.REJECTED,
+        ProjectStatus.DRAFT,
+        ProjectStatus.ON_MODERATION,
+        ProjectStatus.PUBLISHED,
+        ProjectStatus.STAFFED,
+        ProjectStatus.REJECTED,
     ]
     base_qs = Project.objects.filter(owner=request.user)
-    counts  = {s: base_qs.filter(status=s).count() for s in statuses}
+    counts = {s: base_qs.filter(status=s).count() for s in statuses}
 
     paginator = Paginator(queryset, PAGE_SIZE)
-    page_obj  = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
     articles = _get_sample_articles()
     graph_nodes, graph_edges = _build_graph_data(articles)
 
-    return render(request, "frontend/my_projects.html", {
-        "page_obj":      page_obj,
-        "status_filter": status_filter,
-        "ProjectStatus": ProjectStatus,
-        "counts":        counts,
-        "total_count":   base_qs.count(),
-        "sample_articles": articles,
-        "sample_staff":    _get_sample_staff(),
-        "graph_nodes_json": json.dumps(graph_nodes, ensure_ascii=False),
-        "graph_edges_json": json.dumps(graph_edges, ensure_ascii=False),
-    })
+    return render(
+        request,
+        "frontend/my_projects.html",
+        {
+            "page_obj": page_obj,
+            "status_filter": status_filter,
+            "ProjectStatus": ProjectStatus,
+            "counts": counts,
+            "total_count": base_qs.count(),
+            "sample_articles": articles,
+            "sample_staff": _get_sample_staff(),
+            "graph_nodes_json": json.dumps(graph_nodes, ensure_ascii=False),
+            "graph_edges_json": json.dumps(graph_edges, ensure_ascii=False),
+        },
+    )
 
 
 def _get_sample_articles():
@@ -325,48 +327,48 @@ def _get_sample_articles():
     """
     return [
         {
-            "title":     "Recommender Systems for Project-Student Matching in Higher Education",
-            "authors":   ["Иванов А. В.", "Смирнова Е. Н."],
-            "venue":     "Educational Data Mining. 2023. Vol. 15. P. 112–128",
-            "year":      2023,
-            "doi_url":   "https://doi.org/10.5555/example1",
-            "keywords":  ["recommender systems", "higher education", "student matching"],
+            "title": "Recommender Systems for Project-Student Matching in Higher Education",
+            "authors": ["Иванов А. В.", "Смирнова Е. Н."],
+            "venue": "Educational Data Mining. 2023. Vol. 15. P. 112–128",
+            "year": 2023,
+            "doi_url": "https://doi.org/10.5555/example1",
+            "keywords": ["recommender systems", "higher education", "student matching"],
             "direction": "Компьютерные науки",
         },
         {
-            "title":     "Graph-Based Knowledge Representation for Academic Collaboration Networks",
-            "authors":   ["Петров И. С."],
-            "venue":     "Journal of Information Science. 2022. Vol. 48. No. 3. P. 341–359",
-            "year":      2022,
-            "doi_url":   "https://doi.org/10.5555/example2",
-            "keywords":  ["knowledge graphs", "Neo4j", "academic networks"],
+            "title": "Graph-Based Knowledge Representation for Academic Collaboration Networks",
+            "authors": ["Петров И. С."],
+            "venue": "Journal of Information Science. 2022. Vol. 48. No. 3. P. 341–359",
+            "year": 2022,
+            "doi_url": "https://doi.org/10.5555/example2",
+            "keywords": ["knowledge graphs", "Neo4j", "academic networks"],
             "direction": "Информационные системы",
         },
         {
-            "title":     "Machine Learning Approaches to Automated Project Supervision Assignment",
-            "authors":   ["Козлова М. Д.", "Фёдоров П. А.", "Белов С. Г."],
-            "venue":     "Artificial Intelligence in Education. 2023. Vol. 9. P. 78–94",
-            "year":      2023,
-            "doi_url":   "https://doi.org/10.5555/example3",
-            "keywords":  ["machine learning", "project supervision", "automation"],
+            "title": "Machine Learning Approaches to Automated Project Supervision Assignment",
+            "authors": ["Козлова М. Д.", "Фёдоров П. А.", "Белов С. Г."],
+            "venue": "Artificial Intelligence in Education. 2023. Vol. 9. P. 78–94",
+            "year": 2023,
+            "doi_url": "https://doi.org/10.5555/example3",
+            "keywords": ["machine learning", "project supervision", "automation"],
             "direction": "Компьютерные науки",
         },
         {
-            "title":     "Модели компетентностного подхода в управлении студенческими проектами",
-            "authors":   ["Волкова Т. И."],
-            "venue":     "Вопросы образования. 2022. № 2. С. 88–109",
-            "year":      2022,
-            "doi_url":   "https://doi.org/10.5555/example4",
-            "keywords":  ["компетентностный подход", "студенческие проекты", "управление"],
+            "title": "Модели компетентностного подхода в управлении студенческими проектами",
+            "authors": ["Волкова Т. И."],
+            "venue": "Вопросы образования. 2022. № 2. С. 88–109",
+            "year": 2022,
+            "doi_url": "https://doi.org/10.5555/example4",
+            "keywords": ["компетентностный подход", "студенческие проекты", "управление"],
             "direction": "Педагогика",
         },
         {
-            "title":     "Natural Language Processing for Research Topic Extraction in University Repositories",
-            "authors":   ["Морозов Д. К.", "Новикова А. Л."],
-            "venue":     "Information Processing Letters. 2021. Vol. 168. P. 106–119",
-            "year":      2021,
-            "doi_url":   "https://doi.org/10.5555/example5",
-            "keywords":  ["NLP", "topic extraction", "university repositories"],
+            "title": "Natural Language Processing for Research Topic Extraction in University Repositories",  # noqa: E501
+            "authors": ["Морозов Д. К.", "Новикова А. Л."],
+            "venue": "Information Processing Letters. 2021. Vol. 168. P. 106–119",
+            "year": 2021,
+            "doi_url": "https://doi.org/10.5555/example5",
+            "keywords": ["NLP", "topic extraction", "university repositories"],
             "direction": "Компьютерные науки",
         },
     ]
@@ -384,36 +386,36 @@ def _get_sample_staff():
     """
     return [
         {
-            "name":           "Иванов Александр Викторович",
-            "position":       "Профессор",
-            "department":     "Факультет компьютерных наук",
+            "name": "Иванов Александр Викторович",
+            "position": "Профессор",
+            "department": "Факультет компьютерных наук",
             "research_areas": ["Machine Learning", "Recommender Systems"],
-            "works_count":    58,
-            "profile_url":    "https://www.hse.ru/org/persons/",
+            "works_count": 58,
+            "profile_url": "https://www.hse.ru/org/persons/",
         },
         {
-            "name":           "Смирнова Елена Николаевна",
-            "position":       "Доцент",
-            "department":     "Школа анализа данных",
+            "name": "Смирнова Елена Николаевна",
+            "position": "Доцент",
+            "department": "Школа анализа данных",
             "research_areas": ["Natural Language Processing", "Text Mining"],
-            "works_count":    34,
-            "profile_url":    "https://www.hse.ru/org/persons/",
+            "works_count": 34,
+            "profile_url": "https://www.hse.ru/org/persons/",
         },
         {
-            "name":           "Петров Игорь Сергеевич",
-            "position":       "Старший научный сотрудник",
-            "department":     "Институт проблем передачи информации",
+            "name": "Петров Игорь Сергеевич",
+            "position": "Старший научный сотрудник",
+            "department": "Институт проблем передачи информации",
             "research_areas": ["Knowledge Graphs", "Graph Databases", "Neo4j"],
-            "works_count":    27,
-            "profile_url":    "https://www.hse.ru/org/persons/",
+            "works_count": 27,
+            "profile_url": "https://www.hse.ru/org/persons/",
         },
         {
-            "name":           "Козлова Мария Дмитриевна",
-            "position":       "Доцент",
-            "department":     "Департамент больших данных и информационного поиска",
+            "name": "Козлова Мария Дмитриевна",
+            "position": "Доцент",
+            "department": "Департамент больших данных и информационного поиска",
             "research_areas": ["Deep Learning", "Computer Vision"],
-            "works_count":    41,
-            "profile_url":    "https://www.hse.ru/org/persons/",
+            "works_count": 41,
+            "profile_url": "https://www.hse.ru/org/persons/",
         },
     ]
 
@@ -445,12 +447,14 @@ def _build_graph_data(articles):
     author_index: dict[str, int] = {}
     for i, (author, titles) in enumerate(author_articles.items()):
         author_index[author] = i
-        nodes.append({
-            "id":    i,
-            "label": author,
-            "value": len(titles),          # drives node size in Vis.js
-            "title": f"{author}<br/>Публикаций в выборке: {len(titles)}",
-        })
+        nodes.append(
+            {
+                "id": i,
+                "label": author,
+                "value": len(titles),  # drives node size in Vis.js
+                "title": f"{author}<br/>Публикаций в выборке: {len(titles)}",
+            }
+        )
 
     # Edges — unique pairs of co-authors per article
     edge_set: set[tuple[int, int]] = set()
@@ -465,11 +469,13 @@ def _build_graph_data(articles):
                 if key not in edge_set:
                     edge_set.add(key)
                     title = article.get("title", "")
-                    edges.append({
-                        "from":  a,
-                        "to":    b,
-                        "title": title[:60] + ("…" if len(title) > 60 else ""),
-                    })
+                    edges.append(
+                        {
+                            "from": a,
+                            "to": b,
+                            "title": title[:60] + ("…" if len(title) > 60 else ""),
+                        }
+                    )
 
     return nodes, edges
 
@@ -477,6 +483,7 @@ def _build_graph_data(articles):
 # ---------------------------------------------------------------------------
 # Project Detail
 # ---------------------------------------------------------------------------
+
 
 @login_required(login_url="/auth/")
 def project_detail(request, pk):
@@ -487,7 +494,7 @@ def project_detail(request, pk):
     """
     project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)
 
-    is_owner  = request.user.is_authenticated and project.owner == request.user
+    is_owner = request.user.is_authenticated and project.owner == request.user
     is_public = project.status in ProjectStatus.catalog_values()
 
     if not is_public and not is_owner and not request.user.is_staff:
@@ -503,12 +510,12 @@ def project_detail(request, pk):
     spots_left = max(0, project.team_size - project.accepted_participants_count)
 
     context = {
-        "project":           project,
-        "application":       application,
-        "is_owner":          is_owner,
-        "spots_left":        spots_left,
+        "project": project,
+        "application": application,
+        "is_owner": is_owner,
+        "spots_left": spots_left,
         "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
+        "ProjectStatus": ProjectStatus,
     }
     return render(request, "frontend/project_detail.html", context)
 
@@ -516,6 +523,7 @@ def project_detail(request, pk):
 # ---------------------------------------------------------------------------
 # Project Create
 # ---------------------------------------------------------------------------
+
 
 @login_required(login_url="/auth/")
 def project_create(request):
@@ -543,16 +551,21 @@ def project_create(request):
     else:
         form = ProjectFrontendForm()
 
-    return render(request, "frontend/project_form.html", {
-        "form":        form,
-        "is_create":   True,
-        "tags_initial": "",
-    })
+    return render(
+        request,
+        "frontend/project_form.html",
+        {
+            "form": form,
+            "is_create": True,
+            "tags_initial": "",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
 # Project Edit
 # ---------------------------------------------------------------------------
+
 
 @login_required(login_url="/auth/")
 def project_edit(request, pk):
@@ -562,46 +575,59 @@ def project_edit(request, pk):
         raise Http404
 
     if project.status in _LOCKED_STATUSES:
-        messages.error(request, f"Редактирование недоступно — проект имеет статус «{project.get_status_display()}».")
+        messages.error(
+            request,
+            f"Редактирование недоступно — проект имеет статус «{project.get_status_display()}».",
+        )
         return redirect("frontend:project_detail", pk=project.pk)
 
     if request.method == "POST":
         form = ProjectFrontendForm(request.POST)
         if form.is_valid():
-            project.title       = form.cleaned_data["title"]
+            project.title = form.cleaned_data["title"]
             project.description = form.cleaned_data["description"]
-            project.tech_tags   = form.cleaned_data["tech_tags_raw"]
-            project.team_size   = form.cleaned_data["team_size"]
-            project.save(update_fields=["title", "description", "tech_tags", "team_size", "updated_at"])
+            project.tech_tags = form.cleaned_data["tech_tags_raw"]
+            project.team_size = form.cleaned_data["team_size"]
+            project.save(
+                update_fields=["title", "description", "tech_tags", "team_size", "updated_at"]
+            )
             messages.success(request, "Проект сохранён!")
             return redirect("frontend:project_detail", pk=project.pk)
         tags_initial = request.POST.get("tech_tags_raw", "")
     else:
         tags_initial = ", ".join(project.tech_tags) if project.tech_tags else ""
-        form = ProjectFrontendForm(initial={
-            "title":         project.title,
-            "description":   project.description,
-            "tech_tags_raw": tags_initial,
-            "team_size":     project.team_size,
-        })
+        form = ProjectFrontendForm(
+            initial={
+                "title": project.title,
+                "description": project.description,
+                "tech_tags_raw": tags_initial,
+                "team_size": project.team_size,
+            }
+        )
 
-    return render(request, "frontend/project_form.html", {
-        "form":         form,
-        "project":      project,
-        "is_create":    False,
-        "tags_initial": tags_initial,
-    })
+    return render(
+        request,
+        "frontend/project_form.html",
+        {
+            "form": form,
+            "project": project,
+            "is_create": False,
+            "tags_initial": tags_initial,
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
 # Submit project for moderation
 # ---------------------------------------------------------------------------
 
+
 @require_POST
 @login_required(login_url="/auth/")
 def project_submit_moderation(request, pk):
     from apps.projects.transitions import submit_project_for_moderation
-    from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
+    from rest_framework.exceptions import PermissionDenied
+    from rest_framework.exceptions import ValidationError as DRFValidationError
 
     project = get_object_or_404(Project, pk=pk)
     try:
@@ -616,6 +642,7 @@ def project_submit_moderation(request, pk):
 # Project Delete
 # ---------------------------------------------------------------------------
 
+
 @require_POST
 @login_required(login_url="/auth/")
 def project_delete(request, pk):
@@ -625,7 +652,9 @@ def project_delete(request, pk):
         raise Http404
 
     if project.status not in _DELETABLE_STATUSES:
-        messages.error(request, f"Нельзя удалить проект со статусом «{project.get_status_display()}».")
+        messages.error(
+            request, f"Нельзя удалить проект со статусом «{project.get_status_display()}»."
+        )
         return redirect("frontend:project_detail", pk=project.pk)
 
     title = project.title
@@ -638,10 +667,12 @@ def project_delete(request, pk):
 # Recommendations (student only)
 # ---------------------------------------------------------------------------
 
+
 @login_required(login_url="/auth/")
 def recommendations_view(request):
     """Legacy standalone page — redirect to the Recommendations tab in /projects/."""
     from django.urls import reverse
+
     return redirect(reverse("frontend:project_list") + "?tab=recs")
 
 
@@ -653,10 +684,14 @@ def recommendations_view(request):
 # Initiative Project (student proposes own project)
 # ---------------------------------------------------------------------------
 
+
 class InitiativeProjectForm(dj_forms.Form):
     title = dj_forms.CharField(
         max_length=255,
-        error_messages={"required": "Название обязательно.", "max_length": "Не более 255 символов."},
+        error_messages={
+            "required": "Название обязательно.",
+            "max_length": "Не более 255 символов.",
+        },
     )
     description = dj_forms.CharField(
         widget=dj_forms.Textarea,
@@ -668,8 +703,8 @@ class InitiativeProjectForm(dj_forms.Form):
         max_value=10,
         initial=1,
         error_messages={
-            "required":  "Укажите размер команды.",
-            "invalid":   "Введите целое число.",
+            "required": "Укажите размер команды.",
+            "invalid": "Введите целое число.",
             "min_value": "Минимум 1 участник.",
             "max_value": "Максимум 10 участников.",
         },
@@ -727,10 +762,14 @@ def initiative_project_create(request):
         tags_initial = ""
         form = InitiativeProjectForm()
 
-    return render(request, "frontend/initiative_form.html", {
-        "form":         form,
-        "tags_initial": tags_initial,
-    })
+    return render(
+        request,
+        "frontend/initiative_form.html",
+        {
+            "form": form,
+            "tags_initial": tags_initial,
+        },
+    )
 
 
 @require_POST

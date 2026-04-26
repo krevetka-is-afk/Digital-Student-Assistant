@@ -18,14 +18,15 @@ class IsCpprpOrStaff(permissions.BasePermission):
             and (request.user.is_staff or user_is_moderator(request.user))
         )
 
-from .serializers import (
+
+from .serializers import (  # noqa: E402
     RecommendationReindexRequestSerializer,
     RecommendationReindexResponseSerializer,
     RecommendationRequestSerializer,
     RecommendationResponseSerializer,
     SearchRequestSerializer,
 )
-from .services import recommend_projects, search_projects
+from .services import recommend_projects, search_projects  # noqa: E402
 
 
 def _serialize_items(items, request):
