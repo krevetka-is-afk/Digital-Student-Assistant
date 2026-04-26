@@ -36,6 +36,7 @@ WORKDIR /app
 
 COPY --from=build --chown=appuser:appgroup /opt/venv /opt/venv
 COPY --from=build --chown=appuser:appgroup /build /app/
+RUN mkdir -p /app/staticfiles && chown appuser:appgroup /app/staticfiles
 
 EXPOSE 8000
 

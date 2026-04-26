@@ -57,10 +57,12 @@ services:
     volumes:
       - ${BOOTSTRAP_DATA_HOST_DIR:-../.bootstrap-data}:/app/bootstrap-data:ro
       - bootstrap-state-staging:/var/lib/dsa/bootstrap
+      - staticfiles-staging:/app/staticfiles
     command:
       - sh
       - -ec
       - >
+        python manage.py collectstatic --noinput &&
         python manage.py migrate --noinput &&
         python manage.py bootstrap_epp_if_empty &&
         gunicorn config.wsgi:application
@@ -168,6 +170,7 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/acme:/var/www/certbot:ro
+      - staticfiles-staging:/var/www/staticfiles:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     read_only: true
     tmpfs:
@@ -188,3 +191,4 @@ volumes:
   postgres-staging:
   neo4j-staging:
   bootstrap-state-staging:
+  staticfiles-staging:
