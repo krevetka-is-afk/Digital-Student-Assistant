@@ -426,7 +426,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build and push web image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/web
           push: true
@@ -435,7 +435,7 @@ jobs:
             ${{ steps.meta.outputs.image_prefix }}-web:dev-staging-latest
 
       - name: Build and push ml image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/ml
           push: true
@@ -444,7 +444,7 @@ jobs:
             ${{ steps.meta.outputs.image_prefix }}-ml:dev-staging-latest
 
       - name: Build and push graph image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/graph
           push: true
