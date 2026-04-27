@@ -75,6 +75,22 @@ class Neo4jGraphStore:
                 "CREATE CONSTRAINT tag_name_unique IF NOT EXISTS "
                 "FOR (t:Tag) REQUIRE t.tag_name_normalized IS UNIQUE"
             ),
+            (
+                "CREATE CONSTRAINT faculty_person_source_key_unique IF NOT EXISTS "
+                "FOR (f:FacultyPerson) REQUIRE f.source_key IS UNIQUE"
+            ),
+            (
+                "CREATE CONSTRAINT publication_source_publication_id_unique IF NOT EXISTS "
+                "FOR (p:Publication) REQUIRE p.source_publication_id IS UNIQUE"
+            ),
+            (
+                "CREATE CONSTRAINT course_course_key_unique IF NOT EXISTS "
+                "FOR (c:Course) REQUIRE c.course_key IS UNIQUE"
+            ),
+            (
+                "CREATE CONSTRAINT campus_campus_key_unique IF NOT EXISTS "
+                "FOR (c:Campus) REQUIRE c.campus_key IS UNIQUE"
+            ),
         ]
 
         with self._driver.session() as session:
@@ -97,6 +113,18 @@ class Neo4jGraphStore:
             return
         if aggregate_type == "application":
             self._project_application(event)
+            return
+        if aggregate_type == "faculty_person":
+            self._project_faculty_person(event)
+            return
+        if aggregate_type == "faculty_publication":
+            self._project_faculty_publication(event)
+            return
+        if aggregate_type == "faculty_course":
+            self._project_faculty_course(event)
+            return
+        if aggregate_type == "project_faculty_match":
+            self._project_faculty_match(event)
             return
 
     def get_state_summary(self, *, consumer: str) -> dict[str, Any]:
@@ -122,6 +150,9 @@ class Neo4jGraphStore:
                 "supervisor": _count("MATCH (:Supervisor) RETURN count(*) AS count"),
                 "tag": _count("MATCH (:Tag) RETURN count(*) AS count"),
                 "application": _count("MATCH (:Application) RETURN count(*) AS count"),
+                "faculty_person": _count("MATCH (:FacultyPerson) RETURN count(*) AS count"),
+                "publication": _count("MATCH (:Publication) RETURN count(*) AS count"),
+                "course": _count("MATCH (:Course) RETURN count(*) AS count"),
             },
             "edges": _count("MATCH ()-[r]->() RETURN count(r) AS count"),
             "checkpoint_mirror": {
@@ -129,9 +160,7 @@ class Neo4jGraphStore:
                 "last_acked_event_id": int(
                     checkpoint_record["last_acked_event_id"] if checkpoint_record else 0
                 ),
-                "updated_at": (
-                    str(checkpoint_record["updated_at"]) if checkpoint_record else None
-                ),
+                "updated_at": (str(checkpoint_record["updated_at"]) if checkpoint_record else None),
             },
         }
 
@@ -212,6 +241,190 @@ class Neo4jGraphStore:
 
         with self._driver.session() as session:
             session.run(query, params).consume()
+
+    def _project_faculty_person(self, event: GraphEvent) -> None:
+        payload = event.payload
+        source_key = _clean_string(payload.get("source_key") or event.aggregate_id)
+        if source_key is None:
+            return
+
+        params = {
+            "source_key": source_key,
+            "source_person_id": _clean_string(payload.get("source_person_id")),
+            "profile_url": _clean_string(payload.get("profile_url")),
+            "full_name": _clean_string(payload.get("full_name")),
+            "full_name_normalized": _clean_string(payload.get("full_name_normalized")),
+            "primary_unit": _clean_string(payload.get("primary_unit")),
+            "campus_id": _clean_string(payload.get("campus_id")),
+            "campus_name": _clean_string(payload.get("campus_name")),
+            "publications_total": int(payload.get("publications_total") or 0),
+            "is_stale": bool(payload.get("is_stale") or False),
+            "tags": self._normalize_tags(payload.get("interests") or []),
+            "languages": payload.get("languages") or [],
+            "source_hash": _clean_string(payload.get("source_hash")),
+        }
+
+        query = _cypher("""
+        MERGE (f:FacultyPerson {source_key: $source_key})
+        SET f.source_person_id = coalesce($source_person_id, f.source_person_id),
+            f.profile_url = coalesce($profile_url, f.profile_url),
+            f.full_name = coalesce($full_name, f.full_name),
+            f.full_name_normalized = coalesce($full_name_normalized, f.full_name_normalized),
+            f.primary_unit = coalesce($primary_unit, f.primary_unit),
+            f.publications_total = $publications_total,
+            f.languages = $languages,
+            f.is_stale = $is_stale,
+            f.source_hash = coalesce($source_hash, f.source_hash),
+            f.updated_at = datetime()
+        WITH f
+        OPTIONAL MATCH (f)-[old_location:LOCATED_AT]->(:Campus)
+        DELETE old_location
+        WITH f
+        FOREACH (_ IN CASE WHEN $campus_id IS NULL AND $campus_name IS NULL THEN [] ELSE [1] END |
+            MERGE (c:Campus {campus_key: coalesce($campus_id, $campus_name)})
+            SET c.campus_id = coalesce($campus_id, c.campus_id),
+                c.name = coalesce($campus_name, c.name)
+            MERGE (f)-[:LOCATED_AT]->(c)
+        )
+        WITH f, $tags AS tags
+        OPTIONAL MATCH (f)-[old_interest:HAS_INTEREST]->(:Tag)
+        DELETE old_interest
+        WITH f, tags
+        UNWIND tags AS tag
+        MERGE (t:Tag {tag_name_normalized: tag.normalized})
+        SET t.display_name = tag.display_name
+        MERGE (f)-[:HAS_INTEREST]->(t)
+        """)
+
+        with self._driver.session() as session:
+            session.run(query, params).consume()
+
+    def _project_faculty_publication(self, event: GraphEvent) -> None:
+        payload = event.payload
+        source_publication_id = _clean_string(
+            payload.get("source_publication_id") or event.aggregate_id
+        )
+        if source_publication_id is None:
+            return
+
+        authors = [
+            author
+            for author in (payload.get("authors") or [])
+            if isinstance(author, dict) and author.get("person_source_key")
+        ]
+        params = {
+            "source_publication_id": source_publication_id,
+            "title": _clean_string(payload.get("title")),
+            "type": _clean_string(payload.get("type")),
+            "year": payload.get("year"),
+            "language": _clean_string(payload.get("language")),
+            "url": _clean_string(payload.get("url")),
+            "source_hash": _clean_string(payload.get("source_hash")),
+            "authors": authors,
+        }
+
+        query = _cypher("""
+        MERGE (p:Publication {source_publication_id: $source_publication_id})
+        SET p.title = coalesce($title, p.title),
+            p.type = coalesce($type, p.type),
+            p.year = $year,
+            p.language = coalesce($language, p.language),
+            p.url = coalesce($url, p.url),
+            p.source_hash = coalesce($source_hash, p.source_hash),
+            p.updated_at = datetime()
+        WITH p
+        OPTIONAL MATCH (:FacultyPerson)-[old_author:AUTHORED]->(p)
+        DELETE old_author
+        WITH p, $authors AS authors
+        UNWIND authors AS author
+        MERGE (f:FacultyPerson {source_key: author.person_source_key})
+        MERGE (f)-[r:AUTHORED]->(p)
+        SET r.position = author.position,
+            r.display_name = author.display_name,
+            r.href = author.href
+        """)
+
+        with self._driver.session() as session:
+            session.run(query, params).consume()
+
+    def _project_faculty_course(self, event: GraphEvent) -> None:
+        payload = event.payload
+        course_key = _clean_string(payload.get("course_key") or event.aggregate_id)
+        person_source_key = _clean_string(payload.get("person_source_key"))
+        if course_key is None or person_source_key is None:
+            return
+
+        params = {
+            "course_key": course_key,
+            "person_source_key": person_source_key,
+            "title": _clean_string(payload.get("title")),
+            "url": _clean_string(payload.get("url")),
+            "academic_year": _clean_string(payload.get("academic_year")),
+            "language": _clean_string(payload.get("language")),
+            "level": _clean_string(payload.get("level")),
+            "source_hash": _clean_string(payload.get("source_hash")),
+        }
+        query = _cypher("""
+        MERGE (f:FacultyPerson {source_key: $person_source_key})
+        MERGE (c:Course {course_key: $course_key})
+        SET c.title = coalesce($title, c.title),
+            c.url = coalesce($url, c.url),
+            c.academic_year = coalesce($academic_year, c.academic_year),
+            c.language = coalesce($language, c.language),
+            c.level = coalesce($level, c.level),
+            c.source_hash = coalesce($source_hash, c.source_hash),
+            c.updated_at = datetime()
+        MERGE (f)-[:TEACHES]->(c)
+        """)
+        with self._driver.session() as session:
+            session.run(query, params).consume()
+
+    def _project_faculty_match(self, event: GraphEvent) -> None:
+        payload = event.payload
+        project_id = _clean_string(payload.get("project_id") or event.aggregate_id)
+        faculty_source_key = _clean_string(payload.get("faculty_source_key"))
+        status = _clean_string(payload.get("status"))
+        if project_id is None:
+            return
+
+        with self._driver.session() as session:
+            session.run(
+                _cypher("""
+                MERGE (p:Project {project_id: $project_id})
+                OPTIONAL MATCH (p)-[old_match:SUPERVISED_BY_FACULTY]->(:FacultyPerson)
+                DELETE old_match
+                """),
+                {"project_id": project_id},
+            ).consume()
+
+            if status != "confirmed" or faculty_source_key is None:
+                return
+
+            session.run(
+                _cypher("""
+                MERGE (p:Project {project_id: $project_id})
+                MERGE (f:FacultyPerson {source_key: $faculty_source_key})
+                MERGE (p)-[r:SUPERVISED_BY_FACULTY]->(f)
+                SET r.status = $status,
+                    r.match_strategy = $match_strategy,
+                    r.confidence = $confidence,
+                    r.supervisor_name = $supervisor_name,
+                    r.supervisor_email = $supervisor_email,
+                    r.supervisor_department = $supervisor_department,
+                    r.matched_at = $matched_at
+                """),
+                {
+                    "project_id": project_id,
+                    "faculty_source_key": faculty_source_key,
+                    "status": status,
+                    "match_strategy": _clean_string(payload.get("match_strategy")),
+                    "confidence": float(payload.get("confidence") or 0),
+                    "supervisor_name": _clean_string(payload.get("supervisor_name")),
+                    "supervisor_email": _clean_string(payload.get("supervisor_email")),
+                    "supervisor_department": _clean_string(payload.get("supervisor_department")),
+                    "matched_at": _clean_string(payload.get("matched_at")),
+                },
+            ).consume()
 
     def _delete_project(self, event: GraphEvent) -> None:
         project_id = _clean_string(event.payload.get("pk") or event.aggregate_id)

@@ -7,7 +7,11 @@
     "application.deleted",
     "user_profile.changed",
     "deadline.changed",
+    "faculty.course.changed",
+    "faculty.person.changed",
+    "faculty.publication.changed",
     "import.completed",
+    "project_faculty_match.changed",
     "recs.reindex_requested"
   ],
   "payload_examples": {
@@ -73,12 +77,69 @@
       "created_at": "2026-04-10T09:00:00Z",
       "updated_at": "2026-04-19T08:00:00Z"
     },
+    "faculty.person.changed": {
+      "source_key": "hse:25477",
+      "source_person_id": "25477",
+      "profile_url": "https://www.hse.ru/org/persons/25477",
+      "full_name": "Абанкина Ирина Всеволодовна",
+      "full_name_normalized": "абанкина ирина всеволодовна",
+      "primary_unit": "Институт образования",
+      "primary_unit_normalized": "институт образования",
+      "campus_id": "",
+      "campus_name": "Москва",
+      "publications_total": 181,
+      "interests": ["образование"],
+      "languages": ["английский"],
+      "emails": [],
+      "is_stale": false,
+      "source_hash": "sha256"
+    },
+    "faculty.publication.changed": {
+      "source_publication_id": "pub-1",
+      "title": "Student project supervision",
+      "type": "ARTICLE",
+      "year": 2025,
+      "language": "ru",
+      "url": "https://example.test/publications/pub-1",
+      "created_at_source": "2026-04-19T08:00:00Z",
+      "authors": [
+        {
+          "person_source_key": "hse:25477",
+          "position": 0,
+          "display_name": "Абанкина Ирина Всеволодовна",
+          "href": "https://www.hse.ru/org/persons/25477"
+        }
+      ],
+      "source_hash": "sha256"
+    },
+    "faculty.course.changed": {
+      "course_key": "course-hash",
+      "person_source_key": "hse:25477",
+      "title": "Project seminar",
+      "url": "https://example.test/course",
+      "academic_year": "2025/2026",
+      "language": "ru",
+      "level": "бакалавриат",
+      "source_hash": "sha256"
+    },
     "import.completed": {
       "id": 8,
       "status": "completed",
       "source": "xlsx",
       "started_at": "2026-04-19T07:55:00Z",
       "finished_at": "2026-04-19T08:00:00Z"
+    },
+    "project_faculty_match.changed": {
+      "project_id": "101",
+      "faculty_source_key": "hse:25477",
+      "status": "confirmed",
+      "match_strategy": "name_department",
+      "confidence": 0.85,
+      "supervisor_name": "Абанкина Ирина Всеволодовна",
+      "supervisor_email": "",
+      "supervisor_department": "Институт образования",
+      "candidate_person_ids": ["hse:25477"],
+      "matched_at": "2026-04-19T08:00:00Z"
     },
     "recs.reindex_requested": {
       "requested_by_id": 1,

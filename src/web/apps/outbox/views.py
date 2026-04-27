@@ -1,5 +1,11 @@
 from apps.account.permissions import IsOutboxConsumerOrCpprpOrStaff
 from apps.applications.models import Application
+from apps.faculty.models import (
+    FacultyCourse,
+    FacultyPerson,
+    FacultyPublication,
+    ProjectFacultyMatch,
+)
 from apps.projects.models import Project, ProjectStatus
 from apps.users.models import UserProfile
 from django.utils import timezone
@@ -174,7 +180,15 @@ class OutboxConsumerCheckpointAPIView(APIView):
 
 class OutboxSnapshotAPIView(APIView):
     permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
-    allowed_resources = {"projects", "applications", "user_profiles"}
+    allowed_resources = {
+        "projects",
+        "applications",
+        "user_profiles",
+        "faculty_persons",
+        "faculty_publications",
+        "faculty_courses",
+        "project_faculty_matches",
+    }
 
     @extend_schema(
         parameters=[
@@ -184,7 +198,9 @@ class OutboxSnapshotAPIView(APIView):
                 location=OpenApiParameter.QUERY,
                 description=(
                     "Optional comma-separated snapshot resources. "
-                    "Allowed: projects, applications, user_profiles. Default: all."
+                    "Allowed: projects, applications, user_profiles, faculty_persons, "
+                    "faculty_publications, faculty_courses, project_faculty_matches. "
+                    "Default: core resources."
                 ),
             )
         ],
@@ -203,7 +219,7 @@ class OutboxSnapshotAPIView(APIView):
                 {
                     "resources": [
                         "Unsupported resources: " + ", ".join(invalid) + ". "
-                        "Allowed: projects, applications, user_profiles."
+                        "Allowed: " + ", ".join(sorted(self.allowed_resources)) + "."
                     ]
                 }
             )
@@ -225,6 +241,19 @@ class OutboxSnapshotAPIView(APIView):
             )
         if "user_profiles" in resources:
             payload["user_profiles"] = UserProfile.objects.select_related("user")
+        if "faculty_persons" in resources:
+            payload["faculty_persons"] = FacultyPerson.objects.filter(is_stale=False)
+        if "faculty_publications" in resources:
+            payload["faculty_publications"] = FacultyPublication.objects.prefetch_related(
+                "authorships__person"
+            )
+        if "faculty_courses" in resources:
+            payload["faculty_courses"] = FacultyCourse.objects.select_related("person")
+        if "project_faculty_matches" in resources:
+            payload["project_faculty_matches"] = ProjectFacultyMatch.objects.select_related(
+                "project",
+                "faculty_person",
+            )
 
         serializer = OutboxSnapshotResponseSerializer(payload, context={"request": request})
         return Response(serializer.data)
