@@ -32,6 +32,39 @@ def test_prod_workflow_only_builds_and_pulls_web_image():
     assert 'for service in postgres web nginx; do' in workflow
 
 
+def test_prod_workflow_keeps_public_host_separate_from_ssh_host():
+    workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
+
+    assert 'PROD_PUBLIC_HOST || secrets.PROD_SSH_HOST' in workflow
+    assert 'PROD_PUBLIC_BASE_URL' in workflow
+    assert 'PUBLIC_BASE_URL="http://${PUBLIC_HOST}"' in workflow
+
+
+def test_prod_workflow_regenerates_placeholder_database_url():
+    workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
+    placeholder_regex = (
+        '[[ -z "$value" || "$value" =~ (replace|change-me|placeholder|example\\.com) ]]'
+    )
+
+    assert 'example\\.com' in workflow
+    assert placeholder_regex in workflow
+    assert 'set_env_key "DATABASE_URL" "postgresql+psycopg2://' in workflow
+
+
+def test_prod_workflow_recreates_containers_after_env_changes():
+    workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
+
+    assert '--force-recreate --wait --wait-timeout 240' in workflow
+
+
+def test_prod_workflow_smoke_uses_configured_public_base_url():
+    workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
+
+    assert 'SMOKE_BASE_URL="$PUBLIC_BASE_URL"' in workflow
+    assert 'SMOKE_CURL_OPTS="--resolve ${SMOKE_HOST}:${SMOKE_PORT}:127.0.0.1"' in workflow
+    assert 'SMOKE_CURL_OPTS="$SMOKE_CURL_OPTS -k"' in workflow
+
+
 def test_prod_smoke_script_skips_internal_ml_and_graph_checks():
     smoke = SMOKE_SCRIPT_PATH.read_text(encoding='utf-8')
 
