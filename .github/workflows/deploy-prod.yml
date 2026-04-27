@@ -251,7 +251,7 @@ jobs:
             pull_web_image
 
             WEB_IMAGE="$WEB_IMAGE" \
-            "${compose_cmd[@]}" up -d --no-build --remove-orphans --wait --wait-timeout 240
+            "${compose_cmd[@]}" up -d --no-build --remove-orphans --force-recreate --wait --wait-timeout 240
             docker logout ghcr.io || true
 
             SMOKE_HOST="$(get_env_val DJANGO_ALLOWED_HOSTS | tr "," "\n" | sed "s/^ *//;s/ *$//" | grep -vE "^(localhost|127\.0\.0\.1|web|[0-9.]+)$" | head -n1 || true)"
