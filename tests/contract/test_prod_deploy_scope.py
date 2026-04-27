@@ -56,6 +56,14 @@ def test_prod_workflow_recreates_containers_after_env_changes():
     assert '--force-recreate --wait --wait-timeout 240' in workflow
 
 
+def test_prod_workflow_refuses_to_rotate_credentials_for_existing_volume():
+    workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
+
+    assert 'require_stable_env_for_existing_volume' in workflow
+    assert '"infra_postgres-prod"' in workflow
+    assert 'Refusing to generate a new credential' in workflow
+
+
 def test_prod_workflow_smoke_uses_configured_public_base_url():
     workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
 

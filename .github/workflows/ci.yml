@@ -557,6 +557,23 @@ jobs:
               fi
             }
 
+            require_stable_env_for_existing_volume() {
+              local volume_name="$1"
+              shift
+              if ! docker volume inspect "$volume_name" >/dev/null 2>&1; then
+                return 0
+              fi
+              for key in "$@"; do
+                local current
+                current="$(get_env_val "$key")"
+                if is_placeholder "$current"; then
+                  echo "::error::Existing Docker volume $volume_name found, but $key is missing or still a placeholder in $STAGING_ENV_FILE." >&2
+                  echo "::error::Refusing to generate a new credential because it would not update the existing database role password." >&2
+                  exit 1
+                fi
+              done
+            }
+
             DJ_SECRET="$(python3 - <<'PY'
             import secrets
             print(secrets.token_urlsafe(64))
@@ -564,6 +581,18 @@ jobs:
             )"
             PG_PASS="$(openssl rand -hex 20)"
             NEO4J_PASS="$(openssl rand -hex 20)"
+
+            require_stable_env_for_existing_volume \
+              "infra_postgres-staging" \
+              POSTGRES_DB \
+              POSTGRES_USER \
+              POSTGRES_PASSWORD \
+              DATABASE_URL
+            require_stable_env_for_existing_volume \
+              "infra_neo4j-staging" \
+              NEO4J_AUTH \
+              NEO4J_USER \
+              NEO4J_PASSWORD
 
             replace_if_placeholder "DJANGO_SECRET_KEY" "$DJ_SECRET"
             replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
