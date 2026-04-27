@@ -1,8 +1,11 @@
 import json
 import os
+from importlib.util import find_spec
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
 # `base.py` lives in `web/config/settings/`, so BASE_DIR is four levels up.
@@ -27,6 +30,12 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return int(value.strip())
+
 
 def env_json_map(name: str) -> dict[str, str]:
     value = env_secret(name)
@@ -45,6 +54,7 @@ def env_json_map(name: str) -> dict[str, str]:
         if key_str and token_str:
             normalized[key_str] = token_str
     return normalized
+
 
 def env_secret(name: str) -> str | None:
     """Load secret from NAME or from a mounted file via NAME_FILE."""
@@ -100,7 +110,18 @@ def database_from_env(default_sqlite_name: str = "db.sqlite3") -> dict[str, dict
     raise ValueError(f"Unsupported DATABASE_URL scheme: {parsed.scheme!r}")
 
 
+UNFOLD_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+]
+
+if find_spec("unfold") is None:
+    UNFOLD_APPS = []
+
+
 INSTALLED_APPS = [
+    *UNFOLD_APPS,
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -121,6 +142,7 @@ INSTALLED_APPS = [
     "apps.imports",
     "apps.outbox",
     "apps.recs",
+    "apps.faculty",
     "apps.frontend",
     # healthchecks
     "health_check",  # core
@@ -199,6 +221,86 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+UNFOLD = {
+    "SITE_TITLE": "DSA Admin",
+    "SITE_HEADER": "Digital Student Assistant",
+    "SITE_SUBHEADER": _("Administration panel"),
+    "SITE_SYMBOL": "school",
+    "SITE_URL": "/",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "BORDER_RADIUS": "0.5rem",
+    "COLORS": {
+        "primary": {
+            "50": "238 242 255",
+            "100": "224 231 255",
+            "200": "199 210 254",
+            "300": "165 180 252",
+            "400": "129 140 248",
+            "500": "99 102 241",
+            "600": "79 70 229",
+            "700": "67 56 202",
+            "800": "55 48 163",
+            "900": "49 46 129",
+            "950": "30 27 75",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": _("Core"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Projects"),
+                        "icon": "work",
+                        "link": reverse_lazy("admin:projects_project_changelist"),
+                    },
+                    {
+                        "title": _("EPP imports"),
+                        "icon": "dataset",
+                        "link": reverse_lazy("admin:projects_epp_changelist"),
+                    },
+                    {
+                        "title": _("Applications"),
+                        "icon": "assignment",
+                        "link": reverse_lazy("admin:applications_application_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Users"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Django users"),
+                        "icon": "person",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
+                    },
+                    {
+                        "title": _("Groups"),
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                    {
+                        "title": _("Profiles"),
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:users_userprofile_changelist"),
+                    },
+                    {
+                        "title": _("Email verification"),
+                        "icon": "mark_email_read",
+                        "link": reverse_lazy("admin:users_emailverificationcode_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -213,6 +315,32 @@ REST_FRAMEWORK = {
 }
 
 OUTBOX_SERVICE_TOKENS = env_json_map("OUTBOX_SERVICE_TOKENS")
+AUTH_ENABLE_LOCAL_TOKEN_FALLBACK = env_bool("AUTH_ENABLE_LOCAL_TOKEN_FALLBACK", True)
+FACULTY_SERVICE_URL = (env_secret("FACULTY_SERVICE_URL") or "").rstrip("/")
+FACULTY_SERVICE_TIMEOUT = float(os.getenv("FACULTY_SERVICE_TIMEOUT", "10"))
+
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+).strip()
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "no-reply@digital-student-assistant.local",
+).strip()
+EMAIL_HOST = os.getenv("EMAIL_HOST", "").strip()
+EMAIL_PORT = env_int("EMAIL_PORT", 25)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = env_secret("EMAIL_HOST_PASSWORD") or ""
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = env_int("EMAIL_TIMEOUT", 10)
+
+EMAIL_VERIFICATION_CODE_TTL_SECONDS = env_int("EMAIL_VERIFICATION_CODE_TTL_SECONDS", 900)
+EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = env_int(
+    "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
+    60,
+)
+EMAIL_VERIFICATION_MAX_ATTEMPTS = env_int("EMAIL_VERIFICATION_MAX_ATTEMPTS", 5)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Digital Student Assistant API",

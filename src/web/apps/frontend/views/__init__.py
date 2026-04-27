@@ -8,7 +8,14 @@ from .applications import (
     review_application_view,
     submit_application,
 )
-from .auth import auth_view, error_404, error_500, logout_view
+from .auth import (
+    auth_view,
+    error_404,
+    error_500,
+    logout_view,
+    resend_email_code_view,
+    verify_email_view,
+)
 from .moderation import moderate_project_decide, moderation_list
 from .profile import profile_view
 from .projects import (
@@ -23,6 +30,8 @@ from .projects import (
 __all__ = [
     # auth
     "auth_view",
+    "verify_email_view",
+    "resend_email_code_view",
     "logout_view",
     "error_404",
     "error_500",

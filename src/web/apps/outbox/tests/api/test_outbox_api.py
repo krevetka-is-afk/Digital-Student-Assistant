@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from apps.faculty.models import FacultyAuthorship, FacultyPerson, FacultyPublication
 from apps.outbox.models import OutboxConsumerCheckpoint, OutboxEvent
 from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
@@ -234,3 +235,46 @@ def test_snapshot_endpoint_returns_watermark_and_selected_resources():
     assert "projects" in body
     assert "user_profiles" in body
     assert "applications" not in body
+
+
+@override_settings(OUTBOX_SERVICE_TOKENS={"ml": "ml-secret-token"})
+def test_snapshot_endpoint_includes_faculty_publication_authorships():
+    client = _service_client("ml-secret-token")
+    token = uuid4().hex[:8]
+    person = FacultyPerson.objects.create(
+        source_key=f"hse:{token}",
+        source_person_id=token,
+        source_profile_url=f"https://www.hse.ru/org/persons/{token}",
+        full_name="Иванов Иван Иванович",
+        full_name_normalized="иванов иван иванович",
+        source_hash="person-hash",
+    )
+    publication = FacultyPublication.objects.create(
+        source_publication_id=f"pub-{token}",
+        title="Graph enrichment",
+        source_hash="publication-hash",
+    )
+    FacultyAuthorship.objects.create(
+        publication=publication,
+        person=person,
+        position=1,
+        display_name=person.full_name,
+    )
+
+    response = client.get(
+        reverse("api-v1-outbox-snapshot"),
+        data={"resources": "faculty_publications"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["resources"] == ["faculty_publications"]
+    assert body["faculty_publications"][0]["source_publication_id"] == f"pub-{token}"
+    assert body["faculty_publications"][0]["authors"] == [
+        {
+            "person_source_key": f"hse:{token}",
+            "position": 1,
+            "display_name": person.full_name,
+            "href": "",
+        }
+    ]

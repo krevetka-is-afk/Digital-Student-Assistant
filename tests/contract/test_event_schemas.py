@@ -22,7 +22,10 @@ def _collect_emitted_event_types() -> set[str]:
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
-            if not isinstance(node.func, ast.Name) or node.func.id != "emit_event":
+            if not isinstance(node.func, ast.Name) or node.func.id not in {
+                "emit_event",
+                "_schedule_event",
+            }:
                 continue
 
             for keyword in node.keywords:
@@ -63,3 +66,35 @@ def test_event_contract_examples_include_lineage_fields():
 
     for field in lineage_policy["import_events"]:
         assert field in examples["import.completed"]
+
+
+def test_faculty_event_contract_examples_are_graph_projectable():
+    examples = _load_event_contract()["payload_examples"]
+
+    assert {
+        "source_key",
+        "full_name",
+        "full_name_normalized",
+        "interests",
+        "source_hash",
+    } <= examples["faculty.person.changed"].keys()
+    assert isinstance(examples["faculty.person.changed"]["interests"], list)
+
+    assert {"source_publication_id", "title", "authors", "source_hash"} <= examples[
+        "faculty.publication.changed"
+    ].keys()
+    assert {"person_source_key", "position"} <= examples["faculty.publication.changed"]["authors"][
+        0
+    ].keys()
+
+    assert {"course_key", "person_source_key", "title", "source_hash"} <= examples[
+        "faculty.course.changed"
+    ].keys()
+
+    assert {
+        "project_id",
+        "faculty_source_key",
+        "status",
+        "match_strategy",
+        "confidence",
+    } <= examples["project_faculty_match.changed"].keys()

@@ -1,9 +1,13 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from apps.base.admin_unfold import UnfoldModelAdmin
 from apps.projects.admin import ProjectAdmin, ProjectAdminForm
 from apps.projects.models import Project, ProjectStatus
+from apps.users.admin import EmailVerificationCodeAdmin, GroupAdmin, UserAdmin, UserProfileAdmin
+from apps.users.models import EmailVerificationCode, UserProfile
 from django.contrib import admin
+from django.contrib.auth.models import Group, User
 
 
 def _project_admin() -> ProjectAdmin:
@@ -13,6 +17,21 @@ def _project_admin() -> ProjectAdmin:
 def test_project_registered_in_admin():
     assert Project in admin.site._registry
     assert isinstance(_project_admin(), ProjectAdmin)
+    assert isinstance(_project_admin(), UnfoldModelAdmin)
+
+
+def test_dsa_admins_use_unfold_base():
+    assert isinstance(admin.site._registry[UserProfile], UserProfileAdmin)
+    assert isinstance(admin.site._registry[EmailVerificationCode], EmailVerificationCodeAdmin)
+    assert isinstance(admin.site._registry[UserProfile], UnfoldModelAdmin)
+    assert isinstance(admin.site._registry[EmailVerificationCode], UnfoldModelAdmin)
+
+
+def test_standard_auth_admins_are_restyled():
+    assert isinstance(admin.site._registry[User], UserAdmin)
+    assert isinstance(admin.site._registry[Group], GroupAdmin)
+    assert isinstance(admin.site._registry[User], UnfoldModelAdmin)
+    assert isinstance(admin.site._registry[Group], UnfoldModelAdmin)
 
 
 def test_project_admin_list_and_filter_config():

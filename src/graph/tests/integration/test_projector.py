@@ -14,12 +14,20 @@ class FakeGraphStore:
         self.supervisors: set[str] = set()
         self.tags: set[str] = set()
         self.applications: set[str] = set()
+        self.faculty_persons: set[str] = set()
+        self.publications: set[str] = set()
+        self.courses: set[str] = set()
 
         self.project_supervisor_edges: set[tuple[str, str]] = set()
+        self.project_faculty_edges: set[tuple[str, str]] = set()
         self.project_tag_edges: set[tuple[str, str]] = set()
         self.student_interest_edges: set[tuple[str, str]] = set()
         self.student_application_edges: set[tuple[str, str]] = set()
         self.application_project_edges: set[tuple[str, str]] = set()
+        self.faculty_interest_edges: set[tuple[str, str]] = set()
+        self.faculty_publication_edges: set[tuple[str, str]] = set()
+        self.faculty_course_edges: set[tuple[str, str]] = set()
+        self.faculty_location_edges: set[tuple[str, str]] = set()
 
         self._project_supervisor_map: dict[str, str | None] = {}
         self._project_tags_map: dict[str, set[str]] = {}
@@ -49,13 +57,21 @@ class FakeGraphStore:
                 "supervisor": len(self.supervisors),
                 "tag": len(self.tags),
                 "application": len(self.applications),
+                "faculty_person": len(self.faculty_persons),
+                "publication": len(self.publications),
+                "course": len(self.courses),
             },
             "edges": (
                 len(self.project_supervisor_edges)
+                + len(self.project_faculty_edges)
                 + len(self.project_tag_edges)
                 + len(self.student_interest_edges)
                 + len(self.student_application_edges)
                 + len(self.application_project_edges)
+                + len(self.faculty_interest_edges)
+                + len(self.faculty_publication_edges)
+                + len(self.faculty_course_edges)
+                + len(self.faculty_location_edges)
             ),
             "checkpoint_mirror": {
                 "consumer": consumer,
@@ -79,6 +95,9 @@ class FakeGraphStore:
             }
             self.application_project_edges = {
                 edge for edge in self.application_project_edges if edge[1] != project_id
+            }
+            self.project_faculty_edges = {
+                edge for edge in self.project_faculty_edges if edge[0] != project_id
             }
             self._project_supervisor_map.pop(project_id, None)
             self._project_tags_map.pop(project_id, None)
@@ -114,9 +133,7 @@ class FakeGraphStore:
                 self.project_supervisor_edges.add((project_id, supervisor_key))
 
             new_tags = {
-                str(tag).strip().lower()
-                for tag in payload.get("tech_tags", [])
-                if str(tag).strip()
+                str(tag).strip().lower() for tag in payload.get("tech_tags", []) if str(tag).strip()
             }
             for old_tag in self._project_tags_map.get(project_id, set()):
                 self.project_tag_edges.discard((project_id, old_tag))
@@ -131,9 +148,7 @@ class FakeGraphStore:
             self.students.add(student_id)
 
             new_tags = {
-                str(tag).strip().lower()
-                for tag in payload.get("interests", [])
-                if str(tag).strip()
+                str(tag).strip().lower() for tag in payload.get("interests", []) if str(tag).strip()
             }
             for old_tag in self._student_tags_map.get(student_id, set()):
                 self.student_interest_edges.discard((student_id, old_tag))
@@ -174,6 +189,58 @@ class FakeGraphStore:
                 self.application_project_edges.add((application_id, normalized_project_id))
             else:
                 self._application_target_map[application_id] = None
+            return
+
+        if aggregate_type == "faculty_person":
+            source_key = str(payload.get("source_key") or event.aggregate_id)
+            self.faculty_persons.add(source_key)
+            for old_edge in {edge for edge in self.faculty_interest_edges if edge[0] == source_key}:
+                self.faculty_interest_edges.discard(old_edge)
+            for old_edge in {edge for edge in self.faculty_location_edges if edge[0] == source_key}:
+                self.faculty_location_edges.discard(old_edge)
+            campus = payload.get("campus_id") or payload.get("campus_name")
+            if campus:
+                self.faculty_location_edges.add((source_key, str(campus)))
+            for interest in payload.get("interests", []):
+                tag = str(interest).strip().lower()
+                if not tag:
+                    continue
+                self.tags.add(tag)
+                self.faculty_interest_edges.add((source_key, tag))
+            return
+
+        if aggregate_type == "faculty_publication":
+            publication_id = str(payload.get("source_publication_id") or event.aggregate_id)
+            self.publications.add(publication_id)
+            self.faculty_publication_edges = {
+                edge for edge in self.faculty_publication_edges if edge[1] != publication_id
+            }
+            for author in payload.get("authors", []):
+                source_key = author.get("person_source_key")
+                if source_key:
+                    self.faculty_persons.add(str(source_key))
+                    self.faculty_publication_edges.add((str(source_key), publication_id))
+            return
+
+        if aggregate_type == "faculty_course":
+            course_key = str(payload.get("course_key") or event.aggregate_id)
+            source_key = payload.get("person_source_key")
+            self.courses.add(course_key)
+            if source_key:
+                self.faculty_persons.add(str(source_key))
+                self.faculty_course_edges.add((str(source_key), course_key))
+            return
+
+        if aggregate_type == "project_faculty_match":
+            project_id = str(payload.get("project_id") or event.aggregate_id)
+            self.project_faculty_edges = {
+                edge for edge in self.project_faculty_edges if edge[0] != project_id
+            }
+            source_key = payload.get("faculty_source_key")
+            if payload.get("status") == "confirmed" and source_key:
+                self.projects.add(project_id)
+                self.faculty_persons.add(str(source_key))
+                self.project_faculty_edges.add((project_id, str(source_key)))
 
 
 class _CheckpointState(TypedDict):
@@ -237,13 +304,11 @@ class FakeOutboxClient:
         }
 
 
-
 def _make_client(app_factory, *, events: list[GraphEvent], initial_checkpoint: int = 0):
     graph_store = FakeGraphStore()
     outbox_client = FakeOutboxClient(events=events, initial_checkpoint=initial_checkpoint)
     app = app_factory(graph_store=graph_store, outbox_client=outbox_client)
     return TestClient(app), graph_store, outbox_client
-
 
 
 def test_health_ok(app_factory):
@@ -253,7 +318,6 @@ def test_health_ok(app_factory):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "service": "graph"}
-
 
 
 def test_projector_supports_canonical_nodes_and_relationships(app_factory):
@@ -302,16 +366,111 @@ def test_projector_supports_canonical_nodes_and_relationships(app_factory):
 
     assert state.status_code == 200
     payload = state.json()
-    assert payload["nodes"] == {
-        "student": 1,
-        "project": 1,
-        "supervisor": 1,
-        "tag": 3,
-        "application": 1,
-    }
+    assert payload["nodes"]["student"] == 1
+    assert payload["nodes"]["project"] == 1
+    assert payload["nodes"]["supervisor"] == 1
+    assert payload["nodes"]["tag"] == 3
+    assert payload["nodes"]["application"] == 1
     assert payload["edges"] == 7
     assert payload["checkpoint_mirror"]["last_acked_event_id"] == 0
 
+
+def test_projector_supports_faculty_enrichment_events(app_factory):
+    events = [
+        GraphEvent(
+            id=1,
+            event_type="faculty.person.changed",
+            aggregate_type="faculty_person",
+            aggregate_id="hse:25477",
+            payload={
+                "source_key": "hse:25477",
+                "full_name": "Абанкина Ирина Всеволодовна",
+                "interests": ["education", "analytics"],
+            },
+        ),
+        GraphEvent(
+            id=2,
+            event_type="faculty.publication.changed",
+            aggregate_type="faculty_publication",
+            aggregate_id="pub-1",
+            payload={
+                "source_publication_id": "pub-1",
+                "title": "Student projects",
+                "authors": [{"person_source_key": "hse:25477", "position": 0}],
+            },
+        ),
+        GraphEvent(
+            id=3,
+            event_type="faculty.course.changed",
+            aggregate_type="faculty_course",
+            aggregate_id="course-1",
+            payload={
+                "course_key": "course-1",
+                "person_source_key": "hse:25477",
+                "title": "Project seminar",
+            },
+        ),
+        GraphEvent(
+            id=4,
+            event_type="project_faculty_match.changed",
+            aggregate_type="project_faculty_match",
+            aggregate_id="101",
+            payload={
+                "project_id": "101",
+                "faculty_source_key": "hse:25477",
+                "status": "confirmed",
+                "match_strategy": "name_department",
+                "confidence": 0.85,
+            },
+        ),
+    ]
+
+    client, graph_store, _ = _make_client(app_factory, events=[])
+    with client:
+        response = client.post(
+            "/project",
+            json={"events": [event.model_dump(mode="json") for event in events]},
+        )
+        state = client.get("/state")
+
+    assert response.status_code == 200
+    assert graph_store.project_faculty_edges == {("101", "hse:25477")}
+    assert graph_store.faculty_publication_edges == {("hse:25477", "pub-1")}
+    assert graph_store.faculty_course_edges == {("hse:25477", "course-1")}
+
+    payload = state.json()
+    assert payload["nodes"]["faculty_person"] == 1
+    assert payload["nodes"]["publication"] == 1
+    assert payload["nodes"]["course"] == 1
+
+
+def test_projector_replaces_faculty_location_edges(app_factory):
+    events = [
+        GraphEvent(
+            id=1,
+            event_type="faculty.person.changed",
+            aggregate_type="faculty_person",
+            aggregate_id="hse:25477",
+            payload={"source_key": "hse:25477", "campus_id": "msk"},
+        ),
+        GraphEvent(
+            id=2,
+            event_type="faculty.person.changed",
+            aggregate_type="faculty_person",
+            aggregate_id="hse:25477",
+            payload={"source_key": "hse:25477", "campus_id": "spb"},
+        ),
+    ]
+
+    client, graph_store, _ = _make_client(app_factory, events=[])
+    with client:
+        response = client.post(
+            "/project",
+            json={"events": [event.model_dump(mode="json") for event in events]},
+        )
+
+    assert response.status_code == 200
+    assert graph_store.faculty_location_edges == {("hse:25477", "spb")}
 
 
 def test_sync_uses_outbox_poll_and_updates_checkpoint(app_factory):
@@ -349,7 +508,6 @@ def test_sync_uses_outbox_poll_and_updates_checkpoint(app_factory):
     payload = state.json()
     assert payload["checkpoint"]["last_acked_event_id"] == 12
     assert payload["checkpoint_mirror"]["last_acked_event_id"] == 12
-
 
 
 def test_replay_mode_reprocesses_from_offset_and_acks(app_factory):
@@ -392,7 +550,6 @@ def test_replay_mode_reprocesses_from_offset_and_acks(app_factory):
     assert outbox_client.calls[-1]["replay_from_id"] == 2
 
 
-
 def test_checkpoint_recovery_starts_from_existing_acked_offset(app_factory):
     events = [
         GraphEvent(
@@ -424,7 +581,6 @@ def test_checkpoint_recovery_starts_from_existing_acked_offset(app_factory):
     sync_payload = sync.json()
     assert sync_payload["processed"] == 1
     assert sync_payload["last_event_id"] == 8
-
 
 
 def test_replay_requires_offset_when_direct_events_are_not_given(app_factory):

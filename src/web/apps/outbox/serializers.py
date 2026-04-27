@@ -1,4 +1,10 @@
 from apps.applications.serializers import ApplicationSerializer
+from apps.faculty.serializers import (
+    FacultyCourseSerializer,
+    FacultyPersonSerializer,
+    FacultyPublicationSerializer,
+    ProjectFacultyMatchSerializer,
+)
 from apps.projects.serializers import PrimaryProjectSerializer
 from apps.users.serializers import UserProfileSerializer
 from rest_framework import serializers
@@ -68,8 +74,22 @@ class OutboxSnapshotResponseSerializer(serializers.Serializer):
     watermark = serializers.IntegerField(min_value=0)
     generated_at = serializers.DateTimeField()
     resources = serializers.ListField(
-        child=serializers.ChoiceField(choices=["projects", "applications", "user_profiles"])
+        child=serializers.ChoiceField(
+            choices=[
+                "projects",
+                "applications",
+                "user_profiles",
+                "faculty_persons",
+                "faculty_publications",
+                "faculty_courses",
+                "project_faculty_matches",
+            ]
+        )
     )
     projects = PrimaryProjectSerializer(many=True, required=False)
     applications = ApplicationSerializer(many=True, required=False)
     user_profiles = UserProfileSerializer(many=True, required=False)
+    faculty_persons = FacultyPersonSerializer(many=True, required=False)
+    faculty_publications = FacultyPublicationSerializer(many=True, required=False)
+    faculty_courses = FacultyCourseSerializer(many=True, required=False)
+    project_faculty_matches = ProjectFacultyMatchSerializer(many=True, required=False)
