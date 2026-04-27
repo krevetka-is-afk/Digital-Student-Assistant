@@ -1,8 +1,11 @@
 import json
 import os
+from importlib.util import find_spec
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
 # `base.py` lives in `web/config/settings/`, so BASE_DIR is four levels up.
@@ -107,7 +110,18 @@ def database_from_env(default_sqlite_name: str = "db.sqlite3") -> dict[str, dict
     raise ValueError(f"Unsupported DATABASE_URL scheme: {parsed.scheme!r}")
 
 
+UNFOLD_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+]
+
+if find_spec("unfold") is None:
+    UNFOLD_APPS = []
+
+
 INSTALLED_APPS = [
+    *UNFOLD_APPS,
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -207,6 +221,86 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+UNFOLD = {
+    "SITE_TITLE": "DSA Admin",
+    "SITE_HEADER": "Digital Student Assistant",
+    "SITE_SUBHEADER": _("Administration panel"),
+    "SITE_SYMBOL": "school",
+    "SITE_URL": "/",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "BORDER_RADIUS": "0.5rem",
+    "COLORS": {
+        "primary": {
+            "50": "238 242 255",
+            "100": "224 231 255",
+            "200": "199 210 254",
+            "300": "165 180 252",
+            "400": "129 140 248",
+            "500": "99 102 241",
+            "600": "79 70 229",
+            "700": "67 56 202",
+            "800": "55 48 163",
+            "900": "49 46 129",
+            "950": "30 27 75",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": _("Core"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Projects"),
+                        "icon": "work",
+                        "link": reverse_lazy("admin:projects_project_changelist"),
+                    },
+                    {
+                        "title": _("EPP imports"),
+                        "icon": "dataset",
+                        "link": reverse_lazy("admin:projects_epp_changelist"),
+                    },
+                    {
+                        "title": _("Applications"),
+                        "icon": "assignment",
+                        "link": reverse_lazy("admin:applications_application_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Users"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Django users"),
+                        "icon": "person",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
+                    },
+                    {
+                        "title": _("Groups"),
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                    {
+                        "title": _("Profiles"),
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:users_userprofile_changelist"),
+                    },
+                    {
+                        "title": _("Email verification"),
+                        "icon": "mark_email_read",
+                        "link": reverse_lazy("admin:users_emailverificationcode_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

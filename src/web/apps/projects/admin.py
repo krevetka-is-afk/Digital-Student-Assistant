@@ -1,3 +1,4 @@
+from apps.base.admin_unfold import UnfoldModelAdmin
 from django import forms
 from django.contrib import admin
 
@@ -16,7 +17,7 @@ class ProjectAdminForm(forms.ModelForm):
 
 
 @admin.register(Project)
-class ProjectAdmin(admin.ModelAdmin):
+class ProjectAdmin(UnfoldModelAdmin):
     form = ProjectAdminForm
     list_display = ("id", "title", "status", "owner", "updated_at", "source_type", "created_at")
     list_filter = ("status", "owner", "source_type", "created_at")
@@ -69,7 +70,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
 
 @admin.register(EPP)
-class EPPAdmin(admin.ModelAdmin):
+class EPPAdmin(UnfoldModelAdmin):
     list_display = ("id", "source_ref", "title", "campaign_title", "status_raw", "updated_at")
     search_fields = ("source_ref", "title", "campaign_title", "supervisor_email")
     readonly_fields = ("created_at", "updated_at")
