@@ -81,7 +81,7 @@ jobs:
 
     steps:
       - name: Deploy and smoke-check on server
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}

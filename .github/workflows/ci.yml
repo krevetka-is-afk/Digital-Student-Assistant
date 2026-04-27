@@ -473,7 +473,7 @@ jobs:
       STAGING_URL: "${{ vars.STAGING_URL || 'https://staging.example' }}"
     steps:
       - name: Deploy to staging over SSH + smoke-check
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.STAGING_SSH_HOST }}
           username: ${{ secrets.STAGING_SSH_USER }}
