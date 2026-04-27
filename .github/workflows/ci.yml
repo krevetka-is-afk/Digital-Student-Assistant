@@ -534,7 +534,7 @@ jobs:
 
             is_placeholder() {
               local value="${1:-}"
-              [[ -z "$value" || "$value" =~ ^(replace|change-me|placeholder) ]]
+              [[ -z "$value" || "$value" =~ (replace|change-me|placeholder|example\.com|staging\.example) ]]
             }
 
             set_env_key() {
@@ -636,7 +636,7 @@ jobs:
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \
             GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" up -d --no-build --remove-orphans --wait --wait-timeout 240
+            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" up -d --no-build --remove-orphans --force-recreate --wait --wait-timeout 240
             docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" restart nginx
             docker logout ghcr.io || true
 
