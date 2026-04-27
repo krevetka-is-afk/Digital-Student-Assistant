@@ -45,7 +45,6 @@ def test_prod_workflow_regenerates_placeholder_database_url():
     placeholder_regex = (
         '[[ -z "$value" || "$value" =~ (replace|change-me|placeholder|example\\.com) ]]'
     )
-
     assert 'example\\.com' in workflow
     assert placeholder_regex in workflow
     assert 'set_env_key "DATABASE_URL" "postgresql+psycopg2://' in workflow
