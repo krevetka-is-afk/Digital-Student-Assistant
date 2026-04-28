@@ -1,6 +1,6 @@
 # Project Structure (Actual State)
 
-Updated: 2026-03-29
+Updated: 2026-04-28
 
 ```txt
 Digital-Student-Assistant/
@@ -62,6 +62,10 @@ Digital-Student-Assistant/
 │  │  │  │     ├─ api/
 │  │  │  │     ├─ integration/
 │  │  │  │     └─ unit/
+│  │  │  ├─ faculty/
+│  │  │  │  └─ tests/
+│  │  │  │     └─ unit/
+│  │  │  ├─ frontend/
 │  │  │  ├─ imports/
 │  │  │  │  └─ tests/
 │  │  │  │     └─ api/
@@ -123,6 +127,8 @@ Digital-Student-Assistant/
 - `base`: authentication, permissions, shared API endpoints, health endpoint.
 - `projects`: main project domain (models, serializers, validators, viewsets).
 - `applications`: application workflow domain.
+- `frontend`: Django templates frontend, auth/profile/catalog/project/application views.
+- `faculty`: HSE faculty mirror, publications/courses, and project-supervisor matching.
 - `search`: search endpoints/domain.
 - `tags`: tags domain scaffold.
 - `imports`: import pipeline and tracked import runs.
@@ -140,6 +146,6 @@ Digital-Student-Assistant/
 ## Notes
 
 - `src/graph/` and `src/ml/` keep service-local tests, which is consistent for multi-package services. In cross-team terms, they can be treated as reference connector implementations for external ML/graph teams.
-- `docs/architecture/contracts/` is the canonical location for API and event contracts; they are validated against generated OpenAPI and current `emit_event(...)` calls.
+- `docs/architecture/contracts/` is the canonical location for API, event, and outbox delivery contracts; they are validated against generated OpenAPI and current `emit_event(...)` calls.
 - `docs/architecture/adr/` keeps architectural decisions next to the rest of the architecture assets.
 - `infra/compose/test/docker-compose.yml` holds the integration test environment definition.

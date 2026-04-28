@@ -1,6 +1,6 @@
 # Digital-Student-Assistant
 
-Цифровой Ассистент Студента - это платформа подбора и сопровождения студенческих проектов. Текущий runtime состоит из Django + DRF backend с role-based личными кабинетами (`student`, `customer`, `cpprp`), отдельного ML-сервиса для поиска/рекомендаций и graph сервиса, который строит связи между студентами, научными руководителями, тегами и заявками из outbox-событий. Этот backend выступает как эволюционный дубликат существующего контура.
+Цифровой Ассистент Студента - это платформа подбора и сопровождения студенческих проектов. Текущий runtime состоит из Django + DRF backend, Django templates frontend, role-based личных кабинетов (`student`, `customer`, `cpprp`), email/password аутентификации с подтверждением email, reference ML-сервиса для поиска/рекомендаций и graph сервиса, который строит связи между студентами, научными руководителями, тегами и заявками из outbox-событий. `web` остается source of truth для пользователей, проектов, заявок, дедлайнов, импортов и модерационных статусов.
 
 ![CI](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/ci.yml/badge.svg) [![Deploy Production](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml/badge.svg)](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml)
 
@@ -63,11 +63,11 @@ uv run python manage.py runserver --settings=config.settings.dev
 
 - Канонический release surface фиксируется в `docs/architecture/contracts/api_contract.json` и проверяется против generated OpenAPI.
 - Канонический event surface фиксируется в `docs/architecture/contracts/event_contract.json` и проверяется против фактических `emit_event(...)` вызовов в `src/web/apps/*`.
-- Канонический runtime backend сейчас строится вокруг Django API, role-based `account` кабинетов и recommendation flow через `recs` + outbox для downstream `ml`/`graph`.
+- Канонический runtime сейчас строится вокруг Django API, Django templates frontend, role-based `account` кабинетов и recommendation flow через `recs` + outbox для downstream `ml`/`graph`/`faculty`.
 - `EPP` хранится в `projects` как родительская сущность.
 - `Project` представляет vacancy/topic строку из файла и остается основным объектом модерации и заявок.
 - `account` предоставляет отдельные role-based кабинеты, но не заменяет существующие `/api/v1/projects/` и `/api/v1/applications/`.
-- `SSR` и вузовский `SSO` не реализуются в этой итерации.
+- Frontend реализован на Django templates. Основной режим аутентификации текущей итерации - локальная регистрация/login с email verification.
 
 ## Import
 
@@ -91,12 +91,12 @@ Current release surface includes:
 - `account/me`, `account/student/overview`, `account/customer/*`, `account/cpprp/*` for role-based personal cabinets
 - `users/me` and `users/me/favorites*` for profile and student bookmarks
 - `recs/search`, `recs/recommendations`, `recs/reindex` for recommendation/search integration
-- `imports/epp` and outbox delivery endpoints (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`) for safe downstream graph/ML synchronization
+- `faculty/persons*` for HSE faculty mirror data and project-supervisor matching
+- `imports/epp` and outbox delivery endpoints (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`, `outbox/snapshot`) for safe downstream graph/ML/faculty synchronization
 
-Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `docs/deployment_runbook.md`.
-Admin login and CSRF topology runbook: `docs/ops/admin-login-http-https.md`.
-VM sizing load-test
-Executable `k6` scenarios for that runbook live in `perf/k6/`.
+Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, and `scripts/restore-postgres.sh`.
+Admin login and CSRF topology runbook: `docs/issues/admin-login-http-https.md`.
+Executable `k6` scenarios for VM sizing live in `perf/k6/`.
 
 ## Django settings profiles
 
@@ -110,6 +110,7 @@ python manage.py check --deploy --settings=config.settings.prod
 ## Структура проекта
 
 - `src/web/` - Django + DRF сервис
+- `src/web/apps/frontend/` - Django templates frontend
 - `src/web/apps/*/tests/{api,unit}/` - локальные тесты web-доменов
 - `src/ml/` - FastAPI ML сервис
 - `src/graph/` – Neo4J

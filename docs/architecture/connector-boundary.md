@@ -1,13 +1,13 @@
-# External connector boundary for ML and Graph
+# External connector boundary for ML, Graph and Faculty
 
-Updated: 2026-04-19
+Updated: 2026-04-28
 
 ## Positioning
 
-For team collaboration, `ml` and `graph` should be treated as **external downstream connectors/consumers**, not as owners of the core domain model.
+For team collaboration, `ml`, `graph` and faculty-related integrations should be treated as **external downstream connectors/consumers**, not as owners of the core domain model.
 
-- `web` is the **source of truth** for users, projects, applications, deadlines, and moderation state.
-- `ml` and `graph` are **consumers of web-owned contracts**.
+- `web` is the **source of truth** for users, projects, applications, deadlines, faculty mirror data, project-faculty matches and moderation state.
+- `ml`, `graph` and faculty integration jobs are **consumers of web-owned contracts**.
 - The local `src/ml` and `src/graph` packages in this repository should be presented as **reference consumer implementations / integration harnesses**, not as mandatory production implementations for every team.
 
 This lets another team build their own ML service while still integrating safely with the platform.
@@ -31,6 +31,7 @@ Outbox delivery API:
 - `GET /api/v1/outbox/events/`
 - `POST /api/v1/outbox/events/ack/`
 - `GET /api/v1/outbox/consumers/<consumer>/checkpoint/`
+- `GET /api/v1/outbox/snapshot/`
 
 Semantics are fixed by:
 
@@ -47,10 +48,10 @@ Downstream consumers authenticate with bearer service tokens configured in:
 Example:
 
 ```json
-{"ml":"ml-secret-token","graph":"graph-secret-token"}
+{"ml":"ml-secret-token","graph":"graph-secret-token","faculty":"faculty-secret-token"}
 ```
 
-## What we expect from ML / Graph teams
+## What we expect from ML / Graph / Faculty teams
 
 ### ML team
 
@@ -83,6 +84,20 @@ Should align on:
 - node/edge ownership assumptions;
 - graph refresh/rebuild procedure;
 - delete/tombstone semantics.
+
+### Faculty integration
+
+Must support:
+
+- synchronization through `sync_faculty` or an equivalent import job;
+- stable `source_key` values for faculty persons;
+- idempotent writes for persons, publications, courses and project-faculty matches.
+
+Should align on:
+
+- external faculty API availability and timeout behavior;
+- stale-record handling;
+- supervisor matching rules and confidence/status semantics.
 
 ## Recommended collaboration model
 

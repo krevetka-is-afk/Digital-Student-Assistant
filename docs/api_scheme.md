@@ -1,6 +1,6 @@
 # API Scheme (Canonical v1)
 
-Updated: 2026-04-06
+Updated: 2026-04-28
 
 ## API Entry Points
 
@@ -62,6 +62,9 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | PUT | `/api/v1/users/me/favorites/` | yes | Replace bookmarked project ids |
 | POST | `/api/v1/users/me/favorites/` | yes | Append bookmarked project ids |
 | DELETE | `/api/v1/users/me/favorites/<id>/` | yes | Remove bookmarked project |
+| GET | `/api/v1/faculty/persons/` | optional | List non-stale HSE faculty persons (`q`, `interest`) |
+| GET | `/api/v1/faculty/persons/<source_key>/` | optional | Get one faculty person mirror record |
+| GET | `/api/v1/faculty/persons/<source_key>/projects/` | optional | List confirmed public project matches for one faculty person |
 | GET | `/api/v1/recs/search/?q=<text>` | no | Search proxy for recommendation stack |
 | GET | `/api/v1/recs/recommendations/` | yes | Personalized recommendations by interests/profile |
 | POST | `/api/v1/recs/reindex/` | cpprp/staff | Emit `recs.reindex_requested` event |
@@ -70,7 +73,7 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | GET | `/api/v1/outbox/events/` | cpprp/staff or machine consumer token | Read outbox feed with `consumer` checkpoint semantics (`mode=poll|replay`,`since_id`,`replay_from_id`) |
 | POST | `/api/v1/outbox/events/ack/` | cpprp/staff or machine consumer token | Monotonic ack for consumer checkpoint (`consumer`, `event_id`) |
 | GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff or machine consumer token | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
-| GET | `/api/v1/outbox/snapshot/` | cpprp/staff or machine consumer token | Bootstrap snapshot for downstream consumers (`watermark`, `projects`, `applications`, `user_profiles`) |
+| GET | `/api/v1/outbox/snapshot/` | cpprp/staff or machine consumer token | Bootstrap snapshot for downstream consumers (`watermark`, `projects`, `applications`, `user_profiles`, optional faculty resources) |
 
 ## Legacy Web Endpoints
 
@@ -93,6 +96,7 @@ They are not part of the canonical API contract and should not be used for new i
 
 - Required canonical paths, operations, and OpenAPI schema components live in `docs/architecture/contracts/api_contract.json`.
 - Required domain event types live in `docs/architecture/contracts/event_contract.json`.
+- Outbox delivery and snapshot semantics live in `docs/architecture/contracts/outbox_delivery_contract.json`.
 - `tests/contract/test_openapi_sync.py` validates these requirements against generated `/api/schema/`.
 - `tests/contract/test_event_schemas.py` validates the event contract against current `emit_event(...)` calls in the backend.
 
@@ -121,9 +125,19 @@ They are not part of the canonical API contract and should not be used for new i
 
 ## Outbox Consumer Machine Auth
 
-- Outbox endpoints support bearer machine tokens for downstream consumers such as `ml` and `graph`.
+- Outbox endpoints support bearer machine tokens for downstream consumers such as `ml`, `graph`, and faculty-related integration jobs.
 - Tokens are configured in `OUTBOX_SERVICE_TOKENS` as a JSON object: `{"ml":"...","graph":"..."}`.
 - Human users may still access outbox endpoints via existing `cpprp/staff` permissions.
+
+## Faculty Mirror API
+
+`/api/v1/faculty/*` exposes a read-only mirror of HSE faculty data and the resolved project-supervisor matches currently stored by `apps.faculty`.
+
+- `GET /api/v1/faculty/persons/?q=<text>&interest=<text>` lists active faculty records.
+- `GET /api/v1/faculty/persons/<source_key>/` returns one faculty record.
+- `GET /api/v1/faculty/persons/<source_key>/projects/` returns confirmed project matches whose projects are visible in the catalog.
+
+Faculty data also participates in outbox snapshots through optional resources: `faculty_persons`, `faculty_publications`, `faculty_courses`, and `project_faculty_matches`.
 
 ## ML Integration Readiness Policy
 

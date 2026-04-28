@@ -29,6 +29,9 @@
     "/api/v1/users/me/",
     "/api/v1/users/me/favorites/",
     "/api/v1/users/me/favorites/{id}/",
+    "/api/v1/faculty/persons/",
+    "/api/v1/faculty/persons/{source_key}/",
+    "/api/v1/faculty/persons/{source_key}/projects/",
     "/api/v1/recs/search/",
     "/api/v1/recs/recommendations/",
     "/api/v1/recs/reindex/",
@@ -138,6 +141,15 @@
     "/api/v1/users/me/favorites/{id}/": [
       "delete"
     ],
+    "/api/v1/faculty/persons/": [
+      "get"
+    ],
+    "/api/v1/faculty/persons/{source_key}/": [
+      "get"
+    ],
+    "/api/v1/faculty/persons/{source_key}/projects/": [
+      "get"
+    ],
     "/api/v1/recs/search/": [
       "get"
     ],
@@ -179,6 +191,10 @@
     "PatchedUserProfile",
     "FavoriteProjectsUpdate",
     "FavoriteProjectsResponse",
+    "FacultyPerson",
+    "PaginatedFacultyPersonList",
+    "ProjectFacultyMatchPublic",
+    "PaginatedProjectFacultyMatchPublicList",
     "AccountOverview",
     "StudentOverview",
     "AccountProject",

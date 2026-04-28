@@ -35,6 +35,11 @@
       "resume": "read checkpoint endpoint, then poll with consumer=graph",
       "replay": "poll with mode=replay and replay_from_id; projector applies events idempotently",
       "idempotency_rule": "deduplicate by idempotency_key and graph upsert keys"
+    },
+    "faculty": {
+      "resume": "read checkpoint endpoint, then poll with consumer=faculty when running as downstream consumer",
+      "replay": "poll with mode=replay and replay_from_id; apply person/publication/course/match updates idempotently",
+      "idempotency_rule": "deduplicate by idempotency_key and stable source keys"
     }
   },
   "auth": {
@@ -45,7 +50,7 @@
   "snapshot_endpoint": "/api/v1/outbox/snapshot/",
   "snapshot_contract": {
     "watermark": "highest outbox event id visible at snapshot generation time",
-    "resources_query": "optional comma-separated resources: projects, applications, user_profiles",
+    "resources_query": "optional comma-separated resources: projects, applications, user_profiles, faculty_persons, faculty_publications, faculty_courses, project_faculty_matches",
     "default_resources": [
       "projects",
       "applications",

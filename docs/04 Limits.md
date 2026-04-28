@@ -1,18 +1,28 @@
 # 4. Технические ограничения и инфраструктура
 
-1. **Где будет развёртываться система?** На серверах вуза дополнительные ограничения неизвестны.
+Актуализировано: 2026-04-28.
 
-2. **Какие технологии уже используются в вузе / доступны в инфраструктуре?** На данный момент нет такой информации.
+## Runtime constraints
 
-3. **Какие ресурсы есть в команде и сколько человек вовлечены?**
-   1. 4 человека:
-      1. MLops + backend
-      2. ML + models
-      3. data scrapper + data prepare
-      4. front client (jango?)
+- Основной backend/frontend runtime: Django + DRF + Django templates в `src/web`.
+- ML и graph реализованы отдельными FastAPI reference services.
+- Production-target БД: PostgreSQL.
+- Локальные тесты и release gate могут использовать SQLite, кроме graph projection сценариев.
+- Graph projection использует Neo4j.
+- Контейнеризация: Docker Compose; основные compose-файлы лежат в `infra/`.
 
-4. **Какой срок разработки и какие этапы важны?**
-   1. Примерные сроки на 2026 год (сегодня 4 декабря 2025) всего доступно 15 недель
-      1. Январь 2026 ~ минимум 1
-      2. Февраль 2026 ~ минимум 2 + часть минимум 3
-      3. Март 2026 ~ минимум 3 + минимум 4
+## Integration constraints
+
+- `web` является source of truth; downstream-сервисы не должны читать внутреннюю БД напрямую.
+- Синхронизация ML/graph/faculty consumers идет через outbox API, snapshot, ack/checkpoint/replay.
+- External ML считается usable только при валидном `mode=semantic`; иначе используется keyword fallback.
+
+## Auth constraints
+
+- Основной текущий режим: локальная аутентификация с email verification.
+- Service-to-service доступ к outbox endpoints выполняется через bearer machine tokens.
+
+## Deployment constraints
+
+- Production/staging topology задается compose-файлами и deployment scripts в инфраструктурном контуре.
+- Автоматический backup покрывает PostgreSQL.
