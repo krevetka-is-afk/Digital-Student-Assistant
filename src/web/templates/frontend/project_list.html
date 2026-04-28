@@ -530,7 +530,18 @@
             {{ proj.title }}
           </a>
         </div>
-        <span class="flex-shrink-0 text-xs text-gray-400">{{ proj.created_at|date:"d.m.Y" }}</span>
+        <div class="flex-shrink-0 flex items-center gap-3">
+          {% if proj.status != "published" and proj.status != "staffed" and proj.status != "archived" %}
+          <a href="{% url 'frontend:project_edit' proj.pk %}"
+             class="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-blue-600 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Изменить
+          </a>
+          {% endif %}
+          <span class="text-xs text-gray-400">{{ proj.created_at|date:"d.m.Y" }}</span>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -641,6 +652,13 @@
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
             {% if app.status == ApplicationStatus.SUBMITTED %}
+            <a href="{% url 'frontend:edit_application' app.pk %}"
+               class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:border-blue-300 hover:text-blue-600 transition-colors">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+              Изменить
+            </a>
             <form method="post" action="{% url 'frontend:withdraw_application' app.pk %}"
                   onsubmit="return confirm('Отозвать заявку на проект «{{ app.project.title|escapejs }}»?')">
               {% csrf_token %}
@@ -713,6 +731,7 @@
     </div>
 
     <form id="shared-apply-form" style="padding:1rem 1.5rem 1.5rem;">
+      {% csrf_token %}
       <div style="margin-bottom:1rem;">
         <label for="modal-motivation" class="block text-sm font-medium text-gray-700 mb-1">
           Мотивация <span class="text-gray-400 font-normal">(необязательно)</span>
@@ -783,16 +802,10 @@
     spinner.style.display    = 'inline-block';
     submitText.style.display = 'none';
 
-    var csrf = '';
-    document.cookie.split(';').forEach(function(c) {
-      var p = c.trim();
-      if (p.startsWith('csrftoken=')) csrf = p.slice('csrftoken='.length);
-    });
-
     var body = new FormData();
     body.append('motivation', motivation);
     body.append('source', 'card');
-    body.append('csrfmiddlewaretoken', csrf);
+    body.append('csrfmiddlewaretoken', _getCsrf());
 
     fetch('/projects/' + pk + '/submit-application/', { method: 'POST', body: body })
     .then(function(res) {
@@ -865,6 +878,11 @@
 
   /* ── Bookmark toggle ──────────────────────────────────────────── */
   function _getCsrf() {
+    /* Primary: read from any rendered {% csrf_token %} hidden input on the page.
+       This works even when CSRF_COOKIE_HTTPONLY=True (production).
+       Fallback: cookie (dev, where HttpOnly is off). */
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
     var csrf = '';
     document.cookie.split(';').forEach(function(c) {
       var p = c.trim();

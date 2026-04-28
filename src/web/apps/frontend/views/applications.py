@@ -248,3 +248,39 @@ def withdraw_application(request, pk):
     application.delete()
     messages.success(request, f"Заявка на проект «{project_title}» отозвана.")
     return redirect("frontend:project_list")
+
+
+# ---------------------------------------------------------------------------
+# Edit Application (student updates motivation on their own SUBMITTED application)
+# ---------------------------------------------------------------------------
+
+@login_required(login_url="/auth/")
+def edit_application(request, pk):
+    """Student updates motivation text on their own submitted application."""
+    application = get_object_or_404(
+        Application.objects.select_related("project"),
+        pk=pk,
+    )
+
+    if application.applicant != request.user:
+        raise PermissionDenied
+
+    if application.status != ApplicationStatus.SUBMITTED:
+        messages.error(request, "Редактировать можно только заявку со статусом «На рассмотрении».")
+        return redirect("frontend:project_list")
+
+    if request.method == "POST":
+        motivation = request.POST.get("motivation", "").strip()
+        application.motivation = motivation
+        application.save(update_fields=["motivation"])
+        messages.success(request, "Мотивация обновлена.")
+        return redirect("frontend:project_list")
+
+    return render(
+        request,
+        "frontend/edit_application.html",
+        {
+            "application": application,
+            "project": application.project,
+        },
+    )

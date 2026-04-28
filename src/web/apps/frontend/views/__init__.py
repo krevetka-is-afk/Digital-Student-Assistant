@@ -4,6 +4,7 @@
 from .applications import (
     application_list,
     apply_to_project,
+    edit_application,
     project_applications,
     review_application_view,
     submit_application,
@@ -56,6 +57,7 @@ __all__ = [
     "project_applications",
     "review_application_view",
     "withdraw_application",
+    "edit_application",
     # moderation
     "moderation_list",
     "moderate_project_decide",
