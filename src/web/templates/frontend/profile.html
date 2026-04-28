@@ -386,7 +386,17 @@ function renderInterestChips() {
   _interests.forEach(function(tag, idx) {
     var chip = document.createElement('span');
     chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 10px;background:#eff6ff;color:#1d4ed8;border-radius:9999px;font-size:0.75rem;font-weight:500;white-space:nowrap;';
-    chip.innerHTML = tag + '<button type="button" onclick="removeInterestTag(' + idx + ')" style="color:#93c5fd;font-size:0.9rem;line-height:1;background:none;border:none;cursor:pointer;padding:0;">×</button>';
+    chip.appendChild(document.createTextNode(tag));
+
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '×';
+    removeBtn.style.cssText = 'color:#93c5fd;font-size:0.9rem;line-height:1;background:none;border:none;cursor:pointer;padding:0;';
+    removeBtn.addEventListener('click', function() {
+      removeInterestTag(idx);
+    });
+
+    chip.appendChild(removeBtn);
     container.appendChild(chip);
   });
   syncInterests();
