@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import metrics
 from .graph_store import GraphStore
 from .models import GraphEvent
 from .outbox_client import OutboxClient
@@ -44,21 +45,26 @@ class GraphProjector:
         batch_size: int,
         replay_from_id: int | None = None,
     ) -> dict[str, Any]:
-        events = await self._outbox_client.fetch_events(
-            mode=mode,
-            batch_size=batch_size,
-            replay_from_id=replay_from_id,
-        )
-        projection = self.project_events(events)
-        last_event_id = projection["last_event_id"]
-        ack_payload: dict[str, Any] | None = None
-        if last_event_id is not None:
-            ack_payload = await self._outbox_client.ack_event(event_id=last_event_id)
-            self._graph_store.set_checkpoint_mirror(
-                consumer=self._consumer,
-                last_acked_event_id=int(last_event_id),
+        try:
+            events = await self._outbox_client.fetch_events(
+                mode=mode,
+                batch_size=batch_size,
+                replay_from_id=replay_from_id,
             )
+            projection = self.project_events(events)
+            last_event_id = projection["last_event_id"]
+            ack_payload: dict[str, Any] | None = None
+            if last_event_id is not None:
+                ack_payload = await self._outbox_client.ack_event(event_id=last_event_id)
+                self._graph_store.set_checkpoint_mirror(
+                    consumer=self._consumer,
+                    last_acked_event_id=int(last_event_id),
+                )
+        except Exception:
+            metrics.record_sync(mode=mode, processed=0, success=False)
+            raise
 
+        metrics.record_sync(mode=mode, processed=int(projection["processed"] or 0), success=True)
         return {
             "mode": mode,
             "processed": projection["processed"],

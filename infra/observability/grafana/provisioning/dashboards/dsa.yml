@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Digital Student Assistant
+    orgId: 1
+    folder: Digital Student Assistant
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

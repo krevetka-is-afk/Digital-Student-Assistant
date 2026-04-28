@@ -24,6 +24,14 @@ def test_ready_root_ok():
     assert r.json() == {"status": "ok", "checks": {"database": "up"}}
 
 
+def test_metrics_root_ok():
+    c = Client()
+    r = c.get(reverse("metrics-root"))
+    assert r.status_code == 200
+    assert "text/plain" in r["Content-Type"]
+    assert b"dsa_web_http_requests_total" in r.content
+
+
 def test_api_v1_health_ok():
     c = Client()
     r = c.get(reverse("api-v1-health"))
@@ -120,6 +128,7 @@ def test_api_schema_hides_non_public_helper_routes():
     assert "/base/v2/projects/" not in paths
     assert "/health/" not in paths
     assert "/ready/" not in paths
+    assert "/metrics/" not in paths
 
 
 def test_api_docs_page_ok():

@@ -10,7 +10,8 @@ RUN pip install --no-cache-dir \
     uvicorn==0.38.0 \
     pydantic \
     "neo4j>=5.28.2" \
-    "httpx>=0.28.1"
+    "httpx>=0.28.1" \
+    "prometheus-client>=0.23.1"
 
 COPY . .
 

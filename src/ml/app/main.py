@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 
+from . import metrics
 from .index_store import RecommendationIndexStore
 from .models import (
     OutboxEvent,
@@ -35,14 +36,15 @@ async def _poll_forever(app: FastAPI) -> None:
     while not stop_event.is_set():
         try:
             await projector.sync_from_outbox(mode="poll", batch_size=settings.default_batch_size)
+            metrics.record_poller_cycle(success=True)
         except Exception:
+            metrics.record_poller_cycle(success=False)
             logger.exception("Background ML poll cycle failed.")
 
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=settings.poll_interval_sec)
         except TimeoutError:
             continue
-
 
 
 def _resolve_projector(request: Request) -> MLProjector:
@@ -52,13 +54,16 @@ def _resolve_projector(request: Request) -> MLProjector:
     return projector
 
 
-
 def _resolve_index_store(request: Request) -> RecommendationIndexStore:
     index_store = getattr(request.app.state, "index_store", None)
     if index_store is None:
         raise HTTPException(status_code=503, detail="ML index store is not initialized.")
     return index_store
 
+
+def _collect_state_metrics(request: Request) -> None:
+    projector = _resolve_projector(request)
+    metrics.update_state_metrics(projector.state_summary())
 
 
 def _resolve_projects(
@@ -69,7 +74,6 @@ def _resolve_projects(
     if index_store.has_indexed_projects():
         return index_store.list_projects(), "outbox"
     return request_projects, "request"
-
 
 
 def _rank_from_query(
@@ -88,7 +92,6 @@ def _rank_from_query(
     return RankedResponse(mode=mode, items=ranked)
 
 
-
 def _parse_embedded_events(events: list[dict[str, Any]]) -> list[OutboxEvent]:
     parsed: list[OutboxEvent] = []
     for raw_event in events:
@@ -97,7 +100,6 @@ def _parse_embedded_events(events: list[dict[str, Any]]) -> list[OutboxEvent]:
         except Exception:
             continue
     return parsed
-
 
 
 def create_app(
@@ -144,6 +146,7 @@ def create_app(
                 await poller_task
 
     app = FastAPI(title="Digital Student Assistant ML Service", lifespan=lifespan)
+    metrics.add_metrics(app, collect_state_metrics=_collect_state_metrics)
 
     @app.get("/")
     async def read_root() -> dict[str, str]:
@@ -166,7 +169,9 @@ def create_app(
             outbox_status = f"error:{exc.__class__.__name__}"
 
         summary = index_store.get_state_summary(consumer=request.app.state.settings.outbox_consumer)
+        metrics.update_state_metrics(summary)
         status = "ok" if outbox_status == "ok" else "degraded"
+        metrics.record_readiness(check="outbox", healthy=outbox_status == "ok")
         return {
             "status": status,
             "service": "ml",
@@ -187,6 +192,7 @@ def create_app(
             checkpoint = await projector.read_checkpoint()
         except Exception:
             checkpoint = None
+        metrics.update_state_metrics(summary)
         return {
             **summary,
             "checkpoint": checkpoint,
@@ -208,6 +214,7 @@ def create_app(
         projector = _resolve_projector(request)
         batch_size = payload.batch_size or request.app.state.settings.default_batch_size
         result = await projector.sync_from_outbox(mode="poll", batch_size=batch_size)
+        metrics.update_state_metrics(projector.state_summary())
         return {
             "status": "accepted",
             **result,
@@ -285,6 +292,9 @@ def create_app(
         if direct_events:
             projector = _resolve_projector(request)
             projector.project_events(direct_events)
+        metrics.update_state_metrics(
+            index_store.get_state_summary(consumer=request.app.state.settings.outbox_consumer)
+        )
         return ReindexResponse(reindex_requests=manual_count, status="accepted")
 
     return app

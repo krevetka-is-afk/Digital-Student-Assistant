@@ -1,4 +1,5 @@
 # from django.http import JsonResponse
+from apps.base.metrics import metrics_response, set_readiness_check
 from apps.projects.serializers import PrimaryProjectSerializer
 from django.db import connections
 from django.db.utils import Error as DatabaseError
@@ -47,12 +48,20 @@ def readiness(request, *args, **kwargs):
             cursor.execute("SELECT 1")
             cursor.fetchone()
     except DatabaseError:
+        set_readiness_check(check="database", healthy=False)
         return Response(
             {"status": "degraded", "checks": {"database": "down"}},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
+    set_readiness_check(check="database", healthy=True)
     return Response({"status": "ok", "checks": {"database": "up"}})
+
+
+@extend_schema(exclude=True)
+@api_view(["GET"])
+def metrics(request, *args, **kwargs):
+    return metrics_response()
 
 
 def home_page(request, *args, **kwargs):
