@@ -47,6 +47,11 @@ urlpatterns = [
         views.withdraw_application,
         name="withdraw_application",
     ),
+    path(
+        "applications/<int:pk>/edit/",
+        views.edit_application,
+        name="edit_application",
+    ),
 
     # Project applications (customer view)
     path(
