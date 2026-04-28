@@ -232,6 +232,14 @@
     }
   });
 
+  textEl.addEventListener('paste', function(e) {
+    e.preventDefault();
+    var pasted = (e.clipboardData || window.clipboardData).getData('text');
+    pasted.split(',').forEach(function(part) {
+      if (part.trim()) addTag(part);
+    });
+  });
+
   textEl.addEventListener('blur', function() {
     if (textEl.value.trim()) addTag(textEl.value);
   });
