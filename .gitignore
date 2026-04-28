@@ -211,4 +211,6 @@ docs/issues/*
 data_source/
 .xlsx
 
-scripts/
+scripts/*
+!scripts/backup-stack.sh
+!scripts/install-backup-timer.sh
