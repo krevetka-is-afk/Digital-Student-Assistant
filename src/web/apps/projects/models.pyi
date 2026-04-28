@@ -5,6 +5,47 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+class TechnologyStatus(models.TextChoices):
+    APPROVED: ClassVar[str]
+    PENDING: ClassVar[str]
+    REJECTED: ClassVar[str]
+    values: ClassVar[list[str]]
+
+
+class TechnologyQuerySet(models.QuerySet[Technology]):
+    def approved(self) -> TechnologyQuerySet: ...
+
+
+class TechnologyManager(models.Manager[Technology]):
+    def get_queryset(self) -> TechnologyQuerySet: ...
+    def approved(self) -> TechnologyQuerySet: ...
+    def get_or_create_by_name(
+        self,
+        name: object,
+        *,
+        status: str = TechnologyStatus.PENDING,
+        created_by: Any | None = None,
+    ) -> tuple[Technology, bool]: ...
+
+
+class Technology(models.Model):
+    objects: ClassVar[TechnologyManager]
+    _meta: ClassVar[Any]
+
+    id: int
+    pk: int | None
+    name: str
+    normalized_name: str
+    status: str
+    created_by_id: int | None
+    created_by: Any | None
+    created_at: datetime
+    updated_at: datetime
+
+    def __str__(self) -> str: ...
+    def save(self, *args: Any, **kwargs: Any) -> None: ...
+
+
 class ProjectStatus(models.TextChoices):
     CREATED: ClassVar[str]
     DRAFT: ClassVar[str]
@@ -73,6 +114,7 @@ class Project(models.Model):
     title: str
     description: str
     tech_tags: list[str]
+    technologies: Any
     epp_id: int | None
     epp: EPP | None
     owner_id: int | None
@@ -109,6 +151,7 @@ class Project(models.Model):
     def save(self, *args: Any, **kwargs: Any) -> None: ...
     def build_source_description(self) -> str: ...
     def build_tech_tags(self) -> list[str]: ...
+    def sync_technologies(self) -> None: ...
     def is_public(self) -> bool: ...
     def get_tags_list(self) -> list[str]: ...
 

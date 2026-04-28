@@ -7,6 +7,7 @@ from typing import cast
 from apps.applications.models import Application, ApplicationStatus
 from apps.frontend.decorators import customer_required, student_required
 from apps.projects.models import Project, ProjectSourceType, ProjectStatus
+from apps.projects.normalization import normalize_technology_tag, normalize_technology_tags
 from apps.projects.utils import collect_all_tags
 from apps.users.models import UserRole
 from django import forms as dj_forms
@@ -70,10 +71,7 @@ class ProjectFrontendForm(dj_forms.Form):
         raw = self.cleaned_data.get("tech_tags_raw", "")
         if not raw.strip():
             return []
-        tags = [t.strip().lower() for t in raw.split(",") if t.strip()]
-        # Deduplicate while preserving order
-        seen: set[str] = set()
-        tags = [t for t in tags if not (t in seen or seen.add(t))]  # type: ignore[func-returns-value]
+        tags = normalize_technology_tags(raw.split(","))
         if len(tags) > _TAGS_MAX:
             raise dj_forms.ValidationError(f"Максимум {_TAGS_MAX} тегов.")
         invalid = [t for t in tags if len(t) > 50 or not _TAG_RE.match(t)]
@@ -121,8 +119,12 @@ def project_list(request):
         queryset = queryset.filter(Q(title__icontains=q) | Q(description__icontains=q))
 
     for tag in tech_tags_filter:
-        if tag:
-            queryset = queryset.filter(tech_tags__contains=[tag])
+        normalized_tag = normalize_technology_tag(tag)
+        if normalized_tag:
+            queryset = queryset.filter(
+                Q(technologies__normalized_name=normalized_tag)
+                | Q(tech_tags__contains=[normalized_tag])
+            ).distinct()
 
     if team_size_filter:
         try:
@@ -160,7 +162,7 @@ def project_list(request):
     user_interests: list[str] = []
     if _is_student:
         try:
-            user_interests = list(request.user.profile.interests or [])
+            user_interests = normalize_technology_tags(request.user.profile.interests or [])
         except Exception:
             pass
 
@@ -926,10 +928,7 @@ class InitiativeProjectForm(dj_forms.Form):
         raw = self.cleaned_data.get("tech_tags_raw", "")
         if not raw.strip():
             return []
-        tags = [t.strip().lower() for t in raw.split(",") if t.strip()]
-        # Deduplicate while preserving order
-        seen: set[str] = set()
-        tags = [t for t in tags if not (t in seen or seen.add(t))]  # type: ignore[func-returns-value]
+        tags = normalize_technology_tags(raw.split(","))
         if len(tags) > _TAGS_MAX:
             raise dj_forms.ValidationError(f"Максимум {_TAGS_MAX} тегов.")
         invalid = [t for t in tags if len(t) > 50 or not _TAG_RE.match(t)]

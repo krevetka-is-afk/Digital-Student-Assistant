@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from .initiative_models import InitiativeProposal, InitiativeProposalSubmission
+from .normalization import normalize_technology_tags
 from .serializers import ProjectInlineSerializer
 
 
@@ -100,7 +101,9 @@ class InitiativeProposalSerializer(serializers.ModelSerializer):
     def validate_tech_tags(self, value):
         if value is None:
             return []
-        return value
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Expected a list of technology tags.")
+        return normalize_technology_tags(value)
 
     def validate_participants(self, value):
         if value is None:

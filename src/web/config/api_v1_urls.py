@@ -18,6 +18,7 @@ from apps.projects.views import (
     ProjectSubmitForModerationAPIView,
     project_list_create_view,
     project_rud_view,
+    technology_list_view,
 )
 from apps.recs.views import (
     RecommendationListAPIView,
@@ -74,6 +75,7 @@ urlpatterns = [
         name="api-v1-initiative-proposal-detail",
     ),
     path("projects/", project_list_create_view, name="api-v1-project-list"),
+    path("technologies/", technology_list_view, name="api-v1-technology-list"),
     path(
         "projects/<int:pk>/actions/submit/",
         ProjectSubmitForModerationAPIView.as_view(),

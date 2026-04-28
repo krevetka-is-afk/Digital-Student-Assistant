@@ -320,7 +320,7 @@ def test_profile_update_post_saves_name():
 
     student.profile.refresh_from_db()
     assert student.profile.bio == "Студент МИЭМ"
-    assert "Python" in student.profile.interests
+    assert "python" in student.profile.interests
 
 
 # ---------------------------------------------------------------------------

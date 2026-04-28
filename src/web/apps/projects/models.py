@@ -5,7 +5,110 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from .normalization import normalize_technology_tags
+
 User = settings.AUTH_USER_MODEL
+
+
+class TechnologyStatus(models.TextChoices):
+    APPROVED = "approved", "Approved"
+    PENDING = "pending", "Pending"
+    REJECTED = "rejected", "Rejected"
+
+
+class TechnologyQuerySet(models.QuerySet):
+    def approved(self):
+        return self.filter(status=TechnologyStatus.APPROVED)
+
+
+class TechnologyManager(models.Manager.from_queryset(TechnologyQuerySet)):
+    def get_or_create_by_name(
+        self,
+        name: object,
+        *,
+        status: str = TechnologyStatus.PENDING,
+        created_by=None,
+    ):
+        normalized_name = normalize_technology_tags([name])
+        if not normalized_name:
+            raise ValueError("Technology name cannot be blank.")
+
+        normalized = normalized_name[0]
+        technology, created = self.get_or_create(
+            normalized_name=normalized,
+            defaults={
+                "name": normalized,
+                "status": status,
+                "created_by": created_by,
+            },
+        )
+        if (
+            not created
+            and status == TechnologyStatus.APPROVED
+            and technology.status != TechnologyStatus.APPROVED
+        ):
+            technology.status = TechnologyStatus.APPROVED
+            technology.save(update_fields=["status", "updated_at"])
+        return technology, created
+
+
+class Technology(models.Model):
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Name",
+        help_text="Display technology name. Stored in normalized lowercase form.",
+    )
+    normalized_name = models.CharField(
+        max_length=100,
+        unique=True,
+        db_index=True,
+        verbose_name="Normalized name",
+        help_text="Lowercase canonical technology key used for matching.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=TechnologyStatus.choices,
+        default=TechnologyStatus.PENDING,
+        db_index=True,
+        verbose_name="Status",
+        help_text="Moderation status for user- or customer-submitted technologies.",
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="created_technologies",
+        null=True,
+        blank=True,
+        verbose_name="Created by",
+        help_text="User who first suggested this technology, when known.",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        verbose_name="Created at",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Updated at",
+    )
+
+    objects = TechnologyManager()
+
+    class Meta:
+        ordering = ["normalized_name"]
+        verbose_name = "Technology"
+        verbose_name_plural = "Technologies"
+
+    def __str__(self) -> str:
+        return cast(str, self.normalized_name)
+
+    def save(self, *args, **kwargs):
+        normalized_name = normalize_technology_tags([self.normalized_name or self.name])
+        if not normalized_name:
+            raise ValueError("Technology name cannot be blank.")
+        setattr(self, "normalized_name", normalized_name[0])
+        setattr(self, "name", normalized_name[0])
+        super().save(*args, **kwargs)
 
 
 class ProjectStatus(models.TextChoices):
@@ -170,6 +273,13 @@ class Project(models.Model):
         blank=True,
         verbose_name="Tech tags",
         help_text="Normalized technology tags derived from source fields.",
+    )
+    technologies = models.ManyToManyField(
+        Technology,
+        blank=True,
+        related_name="projects",
+        verbose_name="Technologies",
+        help_text="Canonical technology directory entries linked to this project.",
     )
     epp = models.ForeignKey(
         EPP,
@@ -598,8 +708,11 @@ class Project(models.Model):
 
         if not self.tech_tags:
             setattr(self, "tech_tags", self.build_tech_tags())
+        else:
+            setattr(self, "tech_tags", normalize_technology_tags(self.tech_tags))
 
         super().save(*args, **kwargs)
+        self.sync_technologies()
 
     def build_source_description(self) -> str:
         parts = [
@@ -623,15 +736,25 @@ class Project(models.Model):
                 continue
             pieces = [item.strip() for item in str(raw_value).replace(";", ",").split(",")]
             items.extend(piece for piece in pieces if piece)
-        deduped: list[str] = []
-        seen: set[str] = set()
-        for item in items:
-            marker = item.lower()
-            if marker in seen:
-                continue
-            seen.add(marker)
-            deduped.append(item)
-        return deduped
+        return normalize_technology_tags(items)
+
+    def sync_technologies(self) -> None:
+        if not self.pk:
+            return
+        default_status = (
+            TechnologyStatus.APPROVED
+            if self.source_type == ProjectSourceType.EPP
+            else TechnologyStatus.PENDING
+        )
+        technologies = [
+            Technology.objects.get_or_create_by_name(
+                tag,
+                status=default_status,
+                created_by=self.owner,
+            )[0]
+            for tag in normalize_technology_tags(self.tech_tags)
+        ]
+        getattr(self, "technologies").set(technologies)
 
     def is_public(self) -> bool:
         return self.status in ProjectStatus.catalog_values()

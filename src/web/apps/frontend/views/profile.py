@@ -1,5 +1,6 @@
 from apps.applications.models import Application
 from apps.projects.models import Project, ProjectSourceType, ProjectStatus
+from apps.projects.normalization import normalize_technology_tags
 from apps.users.models import UserRole
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -13,13 +14,8 @@ _INTEREST_ITEM_MAX = 100
 
 
 def _parse_interests(raw: str) -> list[str]:
-    """Split comma-separated interest string, strip whitespace, deduplicate case-insensitively.
-
-    Preserves the original case of the first occurrence of each interest.
-    """
-    items = [t.strip() for t in raw.split(",") if t.strip()]
-    seen: set[str] = set()
-    return [t for t in items if not (t.lower() in seen or seen.add(t.lower()))]  # type: ignore[func-returns-value]
+    """Split comma-separated interests and normalize them to technology tag shape."""
+    return normalize_technology_tags(raw.split(","))
 
 
 @login_required(login_url="/auth/")

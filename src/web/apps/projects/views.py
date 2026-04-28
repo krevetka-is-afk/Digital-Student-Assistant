@@ -10,9 +10,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Project, ProjectStatus
+from .models import Project, ProjectStatus, Technology
+from .normalization import normalize_technology_tag
 from .pagination import ProjectListPagination
-from .serializers import PrimaryProjectSerializer
+from .serializers import PrimaryProjectSerializer, TechnologySerializer
 from .transitions import moderate_project, submit_project_for_moderation
 
 
@@ -85,7 +86,12 @@ def _apply_project_filters(queryset, params):
         )
 
     if tech_tag:
-        queryset = queryset.filter(tech_tags__icontains=f'"{tech_tag.strip()}"')
+        normalized_tech_tag = normalize_technology_tag(tech_tag)
+        if normalized_tech_tag:
+            queryset = queryset.filter(
+                Q(technologies__normalized_name=normalized_tech_tag)
+                | Q(tech_tags__icontains=f'"{normalized_tech_tag}"')
+            ).distinct()
     if staffing_state:
         if staffing_state == "open":
             queryset = queryset.filter(accepted_participants_count__lt=F("team_size"))
@@ -257,6 +263,28 @@ class ProjectListCreateAPIView(generics.ListCreateAPIView):
 
 
 project_list_create_view = ProjectListCreateAPIView.as_view()
+
+
+class TechnologyListAPIView(generics.ListAPIView):
+    serializer_class = TechnologySerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = Technology.objects.approved().order_by("normalized_name")
+        query = self.request.query_params.get("q")
+        if query:
+            normalized_query = normalize_technology_tag(query)
+            if normalized_query:
+                queryset = queryset.filter(normalized_name__icontains=normalized_query)
+        limit_raw = self.request.query_params.get("limit")
+        limit = 20
+        if limit_raw and str(limit_raw).isdigit():
+            limit = max(1, min(int(limit_raw), 50))
+        return queryset[:limit]
+
+
+technology_list_view = TechnologyListAPIView.as_view()
 
 
 class ProjectDetailAPIView(generics.RetrieveAPIView):

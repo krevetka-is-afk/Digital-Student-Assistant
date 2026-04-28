@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 from uuid import uuid4
 
-from apps.projects.models import Project, ProjectStatus
+from apps.projects.models import Project, ProjectStatus, Technology, TechnologyStatus
 from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -77,6 +77,43 @@ def test_create_project_normalizes_null_tech_tags():
     project = Project.objects.get(pk=response.json()["pk"])
     assert project.tech_tags == []
     assert response.json()["tech_tags"] == []
+
+
+def test_create_project_normalizes_tech_tags_to_lowercase_unique_values():
+    user = _make_user(role=UserRole.CUSTOMER)
+    client = Client()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("api-v1-project-list"),
+        data=json.dumps(
+            {
+                "title": _title("Project with mixed tech tags"),
+                "tech_tags": [" Python ", "python", "PYTHON", "React  Native"],
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 201
+    project = Project.objects.get(pk=response.json()["pk"])
+    assert project.tech_tags == ["python", "react native"]
+    assert response.json()["tech_tags"] == ["python", "react native"]
+
+
+def test_technology_list_returns_approved_autocomplete_matches():
+    suffix = uuid4().hex[:8]
+    Technology.objects.create(name=f"Auto {suffix} Python", status=TechnologyStatus.APPROVED)
+    Technology.objects.create(name=f"Auto {suffix} Torch", status=TechnologyStatus.APPROVED)
+    Technology.objects.create(name=f"Auto {suffix} Pending", status=TechnologyStatus.PENDING)
+    client = Client()
+
+    response = client.get(reverse("api-v1-technology-list"), {"q": f"auto {suffix}", "limit": 10})
+
+    assert response.status_code == 200
+    payload = response.json()
+    names = [item["normalized_name"] for item in payload]
+    assert names == [f"auto {suffix} python", f"auto {suffix} torch"]
 
 
 def test_student_cannot_create_project():

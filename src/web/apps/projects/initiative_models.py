@@ -3,6 +3,9 @@ from typing import cast
 from django.conf import settings
 from django.db import models
 
+from .models import Technology
+from .normalization import normalize_technology_tags
+
 User = settings.AUTH_USER_MODEL
 
 
@@ -36,6 +39,13 @@ class InitiativeProposal(models.Model):
         blank=True,
         verbose_name="Tech tags",
         help_text="Technology tags specified by the proposal author.",
+    )
+    technologies = models.ManyToManyField(
+        Technology,
+        blank=True,
+        related_name="initiative_proposals",
+        verbose_name="Technologies",
+        help_text="Canonical technology directory entries linked to this proposal.",
     )
     team_size = models.PositiveIntegerField(
         default=1,
@@ -143,6 +153,20 @@ class InitiativeProposal(models.Model):
 
     def __str__(self) -> str:
         return cast(str, self.title)
+
+    def save(self, *args, **kwargs):
+        setattr(self, "tech_tags", normalize_technology_tags(self.tech_tags))
+        super().save(*args, **kwargs)
+        self.sync_technologies()
+
+    def sync_technologies(self) -> None:
+        if not self.pk:
+            return
+        technologies = [
+            Technology.objects.get_or_create_by_name(tag, created_by=self.owner)[0]
+            for tag in normalize_technology_tags(self.tech_tags)
+        ]
+        getattr(self, "technologies").set(technologies)
 
     def build_submission_snapshot(self) -> dict[str, object]:
         tech_tags = self.tech_tags if isinstance(self.tech_tags, list) else []

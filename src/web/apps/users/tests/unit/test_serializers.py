@@ -99,3 +99,17 @@ def test_user_profile_serializer_allows_non_role_update_for_non_staff():
     )
 
     assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["interests"] == ["python", "ml"]
+
+
+def test_user_profile_serializer_normalizes_interests():
+    profile = _make_profile()
+    serializer = UserProfileSerializer(
+        profile,
+        data={"interests": [" Python ", "python", "PYTHON", "React  Native"]},
+        partial=True,
+        context={"request": SimpleNamespace(user=SimpleNamespace(is_staff=False))},
+    )
+
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["interests"] == ["python", "react native"]

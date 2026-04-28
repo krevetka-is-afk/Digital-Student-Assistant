@@ -1,6 +1,9 @@
 from datetime import timedelta
+from uuid import uuid4
 
+from apps.projects.models import Technology
 from apps.users.models import EmailVerificationCode, UserProfile, UserRole
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 
@@ -11,6 +14,26 @@ def test_user_profile_defaults():
     assert profile.interests == []
     assert profile.favorite_project_ids == []
     assert profile.email_verified_at is None
+
+
+def test_user_profile_save_links_interest_technologies():
+    user = get_user_model().objects.create_user(
+        username=f"interest-user-{uuid4().hex[:8]}",
+        password="placeholder",
+    )
+    profile = UserProfile.objects.create(
+        user=user,
+        interests=[" Python ", "python", "Machine  Learning"],
+    )
+
+    assert profile.interests == ["python", "machine learning"]
+    assert list(
+        profile.interest_technologies.order_by("normalized_name").values_list(
+            "normalized_name",
+            flat=True,
+        )
+    ) == ["machine learning", "python"]
+    assert Technology.objects.filter(normalized_name="python").exists()
 
 
 def test_user_profile_mark_email_verified_sets_timestamp():
