@@ -145,6 +145,23 @@ def test_user_can_update_interests_and_favorite_project_ids_via_me_endpoint():
     assert user.profile.favorite_project_ids == [project.pk]
 
 
+def test_user_profile_interests_are_normalized_to_lowercase_unique_values():
+    user = _make_user(role=UserRole.STUDENT)
+    client = Client()
+    client.force_login(user)
+
+    response = client.patch(
+        reverse("user-profile-me"),
+        data={"interests": [" Python ", "python", "PYTHON", "Machine  Learning"]},
+        content_type="application/json",
+    )
+
+    user.profile.refresh_from_db()
+    assert response.status_code == 200
+    assert response.json()["interests"] == ["python", "machine learning"]
+    assert user.profile.interests == ["python", "machine learning"]
+
+
 def test_user_can_manage_favorite_projects():
     user = _make_user()
     project = Project.objects.create(title="Favorite me", status=ProjectStatus.PUBLISHED)

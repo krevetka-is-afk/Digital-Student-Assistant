@@ -1,23 +1,28 @@
-# Project Structure (Actual State)
+# Структура проекта (фактическое состояние)
 
-Updated: 2026-03-29
+Актуализировано: 2026-04-29
 
 ```txt
 Digital-Student-Assistant/
 ├─ README.md
 ├─ LICENSE
 ├─ EVIDENCE/
+├─ artifacts/
 ├─ .github/
 │  ├─ workflows/
-│  │  └─ ci.yml
 │  └─ ISSUE_TEMPLATE/
 ├─ docs/
 │  ├─ architecture/
 │  │  ├─ adr/
 │  │  ├─ contracts/
 │  │  └─ permissions.md
+│  ├─ csv/
 │  ├─ issues/
 │  ├─ ops/
+│  ├─ runbook/
+│  ├─ coursework-docs/
+│  ├─ data_source/
+│  ├─ espd/
 │  ├─ technical-specification/
 │  │  └─ technical-specification-3/
 │  ├─ 01 General objectives and context of the project.md
@@ -25,121 +30,96 @@ Digital-Student-Assistant/
 │  ├─ 03 NFR.md
 │  ├─ 04 Limits.md
 │  ├─ 05 Support, development, operation.md
-│  ├─ 10 architectural decision.md
+│  ├─ README.md
+│  ├─ api_scheme.md
+│  ├─ schema_prjects.md
 │  └─ structure_of_project.md
 ├─ infra/
 │  ├─ compose/
 │  │  └─ test/
 │  │     └─ docker-compose.yml
+│  ├─ nginx/
+│  ├─ observability/
 │  ├─ docker-compose.yml
 │  ├─ docker-compose.dev.yml
 │  ├─ docker-compose.prod.yml
-│  └─ nginx/
+│  └─ docker-compose.staging.yml
+├─ perf/
+│  └─ k6/
 ├─ scripts/
 │  ├─ backup-postgres.sh
+│  ├─ backup-stack.sh
+│  ├─ deploy-prod-vm.sh
+│  ├─ import-epp-to-vm.sh
+│  ├─ install-backup-timer.sh
 │  ├─ restore-postgres.sh
-│  └─ uv-linters.sh
+│  ├─ run-release-gate.sh
+│  ├─ smoke-prod.sh
+│  ├─ upload-and-deploy-vm.sh
+│  ├─ uv-linters.sh
+│  └─ uv-typecheck.sh
 ├─ security/
 │  ├─ seccomp/
 │  └─ semgrep/
 ├─ src/
 │  ├─ web/                         # Django + DRF
-│  │  ├─ Dockerfile
-│  │  ├─ pyproject.toml
-│  │  ├─ uv.lock
-│  │  ├─ manage.py
 │  │  ├─ config/
 │  │  ├─ apps/
-│  │  │  ├─ account/
-│  │  │  │  └─ tests/
-│  │  │  │     └─ api/
-│  │  │  ├─ applications/
-│  │  │  │  └─ tests/
-│  │  │  │     ├─ api/
-│  │  │  │     └─ unit/
-│  │  │  ├─ base/
-│  │  │  │  └─ tests/
-│  │  │  │     ├─ api/
-│  │  │  │     ├─ integration/
-│  │  │  │     └─ unit/
-│  │  │  ├─ imports/
-│  │  │  │  └─ tests/
-│  │  │  │     └─ api/
-│  │  │  ├─ outbox/
-│  │  │  │  └─ tests/
-│  │  │  │     └─ api/
-│  │  │  ├─ projects/
-│  │  │  │  └─ tests/
-│  │  │  │     ├─ api/
-│  │  │  │     └─ unit/
-│  │  │  ├─ recs/
-│  │  │  │  └─ tests/
-│  │  │  │     └─ api/
-│  │  │  ├─ search/
-│  │  │  │  └─ tests/
-│  │  │  │     └─ api/
-│  │  │  ├─ tags/
-│  │  │  │  └─ tests/
-│  │  │  │     └─ api/
-│  │  │  └─ users/
-│  │  │     └─ tests/
-│  │  │        ├─ api/
-│  │  │        └─ unit/
 │  │  ├─ client/
 │  │  ├─ templates/
-│  │  └─ tests/                    # shared web-level suites
-│  │     ├─ api/
-│  │     ├─ contract/
-│  │     ├─ integration/
-│  │     └─ unit/
+│  │  └─ tests/
 │  ├─ ml/                          # FastAPI ML service
-│  │  ├─ Dockerfile
-│  │  ├─ pyproject.toml
-│  │  ├─ uv.lock
 │  │  ├─ app/
 │  │  └─ tests/
-│  │     ├─ api/
-│  │     ├─ contract/
-│  │     ├─ integration/
-│  │     └─ unit/
 │  └─ graph/                       # graph projector service
-│     ├─ Dockerfile
-│     ├─ pyproject.toml
 │     ├─ app/
 │     └─ tests/
-│        ├─ integration/
-│        └─ unit/
 ├─ tests/                          # repository-level tests
 │  ├─ contract/
 │  ├─ e2e/
 │  └─ integration/
-│     └─ conftest.py
 ├─ pyproject.toml
 └─ uv.lock
 ```
 
-## Web Domain Apps (`src/web/apps`)
+## Основные каталоги
 
-- `base`: authentication, permissions, shared API endpoints, health endpoint.
-- `projects`: main project domain (models, serializers, validators, viewsets).
-- `applications`: application workflow domain.
-- `search`: search endpoints/domain.
-- `tags`: tags domain scaffold.
-- `imports`: import pipeline and tracked import runs.
-- `outbox`: event feed read model.
-- `account`: role-scoped account and CPPRP operations endpoints.
-- `api`: top-level DRF API wiring.
+- `docs/` - комплект проектной, архитектурной и учебной документации.
+- `src/web/` - основной веб-сервис на Django + DRF.
+- `src/ml/` - ML-сервис для поиска и рекомендаций.
+- `src/graph/` - сервис проекции данных в графовую модель.
+- `tests/` - межсервисные контрактные, интеграционные и e2e-проверки.
+- `infra/` - описания окружений, compose-файлы, Nginx и наблюдаемость.
+- `scripts/` - эксплуатационные и проверочные сценарии.
+- `security/` - конфигурация инструментов анализа безопасности.
+- `perf/k6/` - нагрузочные сценарии.
 
-## Web Test Layout
+## Django-приложения (`src/web/apps`)
 
-- `src/web/apps/<app>/tests/api/`: endpoint and permission behavior for one Django app.
-- `src/web/apps/<app>/tests/unit/`: model, admin, importer, and other isolated app tests.
-- `src/web/tests/`: shared web-level suites that span several Django apps.
-- `tests/`: repository-level contract, integration, and e2e suites across services.
+- `account`: ролевые кабинеты и операционные методы API.
+- `applications`: домен заявок на проекты.
+- `base`: аутентификация, базовые представления, общие разрешения и служебные методы.
+- `faculty`: зеркало данных о преподавателях и сопоставление с проектами.
+- `frontend`: HTML-интерфейс на Django templates.
+- `imports`: импорт входных данных и журнал импортов.
+- `outbox`: выдача событий и контрольные точки потребителей.
+- `projects`: основной домен проектов и инициативных тем.
+- `recs`: шлюз поиска и рекомендаций.
+- `search`: поисковые методы.
+- `tags`: справочник и обработка тегов.
+- `users`: профиль пользователя, интересы и избранное.
 
-## Notes
+## Тестовая структура
 
-- `src/graph/` and `src/ml/` keep service-local tests, which is consistent for multi-package services. In cross-team terms, they can be treated as reference connector implementations for external ML/graph teams.
-- `docs/architecture/contracts/` is the canonical location for API and event contracts; they are validated against generated OpenAPI and current `emit_event(...)` calls.
-- `docs/architecture/adr/` keeps architectural decisions next to the rest of the architecture assets.
-- `infra/compose/test/docker-compose.yml` holds the integration test environment definition.
+- `src/web/apps/<app>/tests/api/` - проверки методов и прав доступа в рамках одного Django-приложения.
+- `src/web/apps/<app>/tests/unit/` - изолированные модульные проверки.
+- `src/web/tests/` - общие тесты веб-сервиса, затрагивающие несколько приложений.
+- `src/ml/tests/` и `src/graph/tests/` - локальные тесты сервисов рекомендаций и графовой проекции.
+- `tests/` - проверки на уровне репозитория, включая контракты, интеграцию и e2e.
+
+## Примечания
+
+- `docs/architecture/contracts/` - каноническое место хранения контрактов API, событий и правил доставки outbox.
+- `docs/architecture/adr/` - архитектурные решения, принятые по проекту.
+- `infra/compose/test/docker-compose.yml` - описание тестового интеграционного контура.
+- Подкаталог `docs/technical-specification/technical-specification-3/` хранится как отдельный git-submodule с шаблонами технических заданий.

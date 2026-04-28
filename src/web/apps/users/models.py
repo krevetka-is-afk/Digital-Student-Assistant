@@ -1,3 +1,5 @@
+from apps.projects.models import Technology
+from apps.projects.normalization import normalize_technology_tags
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -39,6 +41,13 @@ class UserProfile(models.Model):
         verbose_name="Interests",
         help_text="Student interests used by search and recommendations.",
     )
+    interest_technologies = models.ManyToManyField(
+        Technology,
+        blank=True,
+        related_name="interested_profiles",
+        verbose_name="Interest technologies",
+        help_text="Canonical technology directory entries selected as student interests.",
+    )
     favorite_project_ids = models.JSONField(
         default=list,
         blank=True,
@@ -74,6 +83,20 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} ({self.role})"
+
+    def save(self, *args, **kwargs):
+        setattr(self, "interests", normalize_technology_tags(self.interests))
+        super().save(*args, **kwargs)
+        self.sync_interest_technologies()
+
+    def sync_interest_technologies(self) -> None:
+        if not self.pk:
+            return
+        technologies = [
+            Technology.objects.get_or_create_by_name(tag, created_by=self.user)[0]
+            for tag in normalize_technology_tags(self.interests)
+        ]
+        getattr(self, "interest_technologies").set(technologies)
 
     @property
     def email_verified(self) -> bool:

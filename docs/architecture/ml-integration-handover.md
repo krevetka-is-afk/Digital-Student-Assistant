@@ -1,55 +1,55 @@
-# ML integration handover
+# Передача интеграции ML-сервису
 
-Updated: 2026-04-19
+Актуализировано: 2026-04-29
 
-## 1. Bootstrap / snapshot contract
+## 1. Начальный импорт по снимку состояния
 
-External ML should first call `GET /api/v1/outbox/snapshot/` with a machine bearer token.
+Перед началом синхронизации внешний ML-сервис должен обратиться к `GET /api/v1/outbox/snapshot/`, используя служебный токен доступа.
 
-Response includes:
+Ответ содержит:
 
-- `watermark`: highest visible outbox id at snapshot time;
-- `projects`: published/staffed catalog projects;
-- `applications`: current applications;
-- `user_profiles`: current user profiles.
+- `watermark` - наибольший видимый идентификатор outbox-события на момент формирования снимка;
+- `projects` - опубликованные и укомплектованные проекты каталога;
+- `applications` - актуальные заявки;
+- `user_profiles` - актуальные пользовательские профили.
 
-Recommended cutover:
+Рекомендуемый порядок переключения:
 
-1. fetch snapshot;
-2. build local ML index from snapshot payload;
-3. store `watermark`;
-4. start `replay/poll` from that watermark via outbox endpoints.
+1. получить снимок состояния;
+2. построить локальный индекс ML по полезной нагрузке снимка;
+3. сохранить значение `watermark`;
+4. начать `replay/poll` от этого значения через outbox-методы.
 
-## 2. Tombstone / delete events
+## 2. События удаления
 
-The backend now emits:
+Backend публикует события:
 
 - `project.deleted`
 - `application.deleted`
 
-Consumers must treat them as tombstones and remove corresponding entities from local indices/read models.
+Потребители должны трактовать их как маркеры удаления и исключать соответствующие сущности из локальных индексов и моделей чтения.
 
-## 3. Event payload examples
+## 3. Примеры полезной нагрузки событий
 
-Canonical examples live in `docs/architecture/contracts/event_contract.json` under `payload_examples`.
+Канонические примеры находятся в `docs/architecture/contracts/event_contract.json` в разделе `payload_examples`.
 
-## 4. External ML team checklist
+## 4. Контрольный список для внешней ML-команды
 
-- implement `POST /search` and `POST /recommendations` using the thin-gateway request shape;
-- authenticate to outbox using configured machine token;
-- support bootstrap snapshot ingestion;
-- support `poll`, `replay`, `checkpoint`, `ack`;
-- process delete tombstones idempotently;
-- keep local index independent from `web` database internals;
-- return `mode=semantic` only when semantic ranking is actually usable.
+- реализовать `POST /search` и `POST /recommendations` в соответствии с формой запроса шлюза;
+- использовать настроенный служебный токен для доступа к outbox;
+- поддерживать начальный импорт по снимку состояния;
+- поддерживать `poll`, `replay`, `checkpoint`, `ack`;
+- обрабатывать события удаления идемпотентно;
+- сохранять независимость локального индекса от внутренних деталей базы данных `web`;
+- возвращать `mode=semantic` только тогда, когда семантическое ранжирование действительно доступно.
 
-## 5. Health / readiness policy
+## 5. Политика доступности и готовности
 
-`web` considers ML usable only when ML returns:
+`web` считает ML-сервис пригодным для использования только в том случае, если он возвращает:
 
 - HTTP 2xx;
-- valid JSON body;
+- корректное JSON-тело;
 - `mode=semantic`;
-- valid `items` array with `project_id`, `score`, `reason`.
+- корректный массив `items` с полями `project_id`, `score`, `reason`.
 
-Otherwise `web` falls back to local keyword ranking for that request.
+Во всех остальных случаях `web` использует локальное ранжирование по ключевым словам для текущего запроса.

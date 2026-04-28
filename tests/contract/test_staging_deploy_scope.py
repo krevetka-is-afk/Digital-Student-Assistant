@@ -3,6 +3,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CI_WORKFLOW_PATH = ROOT_DIR / '.github' / 'workflows' / 'ci.yml'
 STAGING_COMPOSE_PATH = ROOT_DIR / 'infra' / 'docker-compose.staging.yml'
+STAGING_OBSERVABILITY_COMPOSE_PATH = (
+    ROOT_DIR / 'infra' / 'observability' / 'docker-compose.observability.yml'
+)
 STAGING_ENV_PATH = ROOT_DIR / 'infra' / '.env.staging.example'
 
 
@@ -27,13 +30,18 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     workflow = CI_WORKFLOW_PATH.read_text(encoding='utf-8')
 
     assert 'infra/docker-compose.staging.yml' in workflow
+    assert 'infra/observability/docker-compose.observability.yml' in workflow
     assert 'infra/.env.staging' in workflow
+    assert '--profile observability' in workflow
     assert 'pull web ml graph' in workflow
+    assert 'prometheus grafana' in workflow
     assert 'infra/docker-compose.prod.yml \
         --env-file infra/.env.prod pull web ml graph' not in workflow
     assert 'replace_if_placeholder "DJANGO_SECRET_KEY"' in workflow
     assert 'replace_if_placeholder "NEO4J_AUTH"' in workflow
+    assert 'replace_if_placeholder "GRAFANA_ADMIN_PASSWORD"' in workflow
     assert 'Staging deploy failed; collecting docker compose diagnostics...' in workflow
+    assert 'Staging observability stack is healthy.' in workflow
     assert 'STAGING_BASE_URL=' in workflow
     assert 'STAGING_URL_RAW=' in workflow
     assert 'STAGING_SCHEME=' in workflow
@@ -60,6 +68,17 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert 'Refusing to generate a new credential' in workflow
 
 
+def test_staging_observability_compose_exposes_grafana_and_prometheus():
+    compose = STAGING_OBSERVABILITY_COMPOSE_PATH.read_text(encoding='utf-8')
+
+    assert '\n  prometheus:\n' in compose
+    assert '\n  grafana:\n' in compose
+    assert 'profiles: ["observability"]' in compose
+    assert '- "3000:3000"' in compose
+    assert '- "9090:9090"' in compose
+    assert 'GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}' in compose
+
+
 def test_staging_env_example_exists_for_full_stack():
     env_example = STAGING_ENV_PATH.read_text(encoding='utf-8')
 
@@ -67,3 +86,5 @@ def test_staging_env_example_exists_for_full_stack():
     assert 'NEO4J_AUTH=' in env_example
     assert 'ML_ENABLE_BACKGROUND_POLLER=false' in env_example
     assert 'GRAPH_ENABLE_BACKGROUND_POLLER=false' in env_example
+    assert 'GRAFANA_ADMIN_USER=admin' in env_example
+    assert 'GRAFANA_ADMIN_PASSWORD=replace-with-staging-grafana-password' in env_example

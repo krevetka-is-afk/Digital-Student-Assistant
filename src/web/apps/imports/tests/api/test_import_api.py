@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
-from apps.imports import views as import_views
+from apps.imports import services as import_services
 from apps.projects.tests.helpers import (
     EXPECTED_HEADERS,
     _build_xlsx,
@@ -68,7 +68,7 @@ def test_import_uses_safe_temp_suffix_and_sanitized_source_name(tmp_path, monkey
             warnings=0,
         )
 
-    monkeypatch.setattr(import_views, "import_epp_xlsx", _fake_import)
+    monkeypatch.setattr(import_services, "import_epp_xlsx", _fake_import)
 
     upload = SimpleUploadedFile(
         "../../nested/unsafe-name.xlsm",

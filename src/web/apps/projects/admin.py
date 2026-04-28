@@ -2,7 +2,7 @@ from apps.base.admin_unfold import UnfoldModelAdmin
 from django import forms
 from django.contrib import admin
 
-from .models import EPP, Project, ProjectStatus
+from .models import EPP, Project, ProjectStatus, Technology, TechnologyStatus
 
 
 class ProjectAdminForm(forms.ModelForm):
@@ -67,6 +67,31 @@ class ProjectAdmin(UnfoldModelAdmin):
             status=ProjectStatus.ARCHIVED
         )
         self.message_user(request, f"Archived {updated} project(s).")
+
+
+@admin.register(Technology)
+class TechnologyAdmin(UnfoldModelAdmin):
+    list_display = ("id", "normalized_name", "status", "created_by", "updated_at")
+    list_filter = ("status", "created_at", "updated_at")
+    search_fields = ("name", "normalized_name", "created_by__username", "created_by__email")
+    list_select_related = ("created_by",)
+    autocomplete_fields = ("created_by",)
+    readonly_fields = ("created_at", "updated_at")
+    actions = ("approve_selected", "reject_selected")
+
+    @admin.action(description="Approve selected technologies")
+    def approve_selected(self, request, queryset):
+        updated = queryset.exclude(status=TechnologyStatus.APPROVED).update(
+            status=TechnologyStatus.APPROVED
+        )
+        self.message_user(request, f"Approved {updated} technology(s).")
+
+    @admin.action(description="Reject selected technologies")
+    def reject_selected(self, request, queryset):
+        updated = queryset.exclude(status=TechnologyStatus.REJECTED).update(
+            status=TechnologyStatus.REJECTED
+        )
+        self.message_user(request, f"Rejected {updated} technology(s).")
 
 
 @admin.register(EPP)

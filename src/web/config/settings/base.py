@@ -262,9 +262,19 @@ UNFOLD = {
                         "link": reverse_lazy("admin:projects_project_changelist"),
                     },
                     {
-                        "title": _("EPP imports"),
+                        "title": _("EPP catalog"),
                         "icon": "dataset",
                         "link": reverse_lazy("admin:projects_epp_changelist"),
+                    },
+                    {
+                        "title": _("Upload EPP XLSX"),
+                        "icon": "upload_file",
+                        "link": reverse_lazy("admin:imports_importrun_epp_upload"),
+                    },
+                    {
+                        "title": _("Import runs"),
+                        "icon": "history",
+                        "link": reverse_lazy("admin:imports_importrun_changelist"),
                     },
                     {
                         "title": _("Applications"),

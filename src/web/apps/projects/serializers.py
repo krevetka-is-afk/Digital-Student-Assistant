@@ -4,7 +4,8 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from . import validators
-from .models import EPP, Project
+from .models import EPP, Project, Technology
+from .normalization import normalize_technology_tags
 
 
 class ProjectInlineSerializer(serializers.Serializer):
@@ -16,6 +17,13 @@ class EPPSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = EPP
         fields = ["id", "source_ref", "title", "campaign_title", "status_raw"]
+
+
+class TechnologySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Technology
+        fields = ["id", "name", "normalized_name", "status"]
+        read_only_fields = fields
 
 
 class PrimaryProjectSerializer(serializers.ModelSerializer):
@@ -146,7 +154,9 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
     def validate_tech_tags(self, value):
         if value is None:
             return []
-        return value
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Expected a list of technology tags.")
+        return normalize_technology_tags(value)
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)

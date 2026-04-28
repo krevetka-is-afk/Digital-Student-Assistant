@@ -1,109 +1,124 @@
-# External connector boundary for ML and Graph
+# Границы внешних интеграций для ML, graph и faculty
 
-Updated: 2026-04-19
+Актуализировано: 2026-04-29
 
-## Positioning
+## Позиционирование
 
-For team collaboration, `ml` and `graph` should be treated as **external downstream connectors/consumers**, not as owners of the core domain model.
+Для командной работы `ml`, `graph` и интеграции, связанные с `faculty`, следует рассматривать как внешних потребителей данных, а не как владельцев основной доменной модели.
 
-- `web` is the **source of truth** for users, projects, applications, deadlines, and moderation state.
-- `ml` and `graph` are **consumers of web-owned contracts**.
-- The local `src/ml` and `src/graph` packages in this repository should be presented as **reference consumer implementations / integration harnesses**, not as mandatory production implementations for every team.
+- `web` остается источником данных о пользователях, проектах, заявках, сроках, зеркале данных преподавателей, сопоставлениях проектов с преподавателями и состоянии модерации.
+- `ml`, `graph` и интеграционные задания `faculty` выступают потребителями контрактов, которыми владеет `web`.
+- Локальные пакеты `src/ml` и `src/graph` в этом репозитории следует рассматривать как эталонные реализации потребителей и стенды интеграции, а не как обязательные рабочие реализации для всех команд.
 
-This lets another team build their own ML service while still integrating safely with the platform.
+Такой подход позволяет другой команде разрабатывать собственный ML-сервис и при этом безопасно интегрироваться с платформой.
 
-## What `web` offers to connector teams
+## Что `web` предоставляет интеграционным командам
 
-### 1. Synchronous contract (`web -> ML`)
+### 1. Синхронный контракт (`web -> ML`)
 
-Thin gateway request/response over REST:
+REST-шлюз с простым запросом и ответом:
 
 - `POST /search`
 - `POST /recommendations`
 - `POST /reindex`
 
-The gateway now sends only query intent (`query`, `interests`, `limit`).
+Шлюз передает только намерение запроса: `query`, `interests`, `limit`.
 
-### 2. Asynchronous contract (`web -> downstream consumers`)
+### 2. Асинхронный контракт (`web -> внешние потребители`)
 
-Outbox delivery API:
+Outbox API доставки событий:
 
 - `GET /api/v1/outbox/events/`
 - `POST /api/v1/outbox/events/ack/`
 - `GET /api/v1/outbox/consumers/<consumer>/checkpoint/`
+- `GET /api/v1/outbox/snapshot/`
 
-Semantics are fixed by:
+Семантика зафиксирована в документах:
 
 - `docs/architecture/contracts/event_contract.json`
 - `docs/architecture/contracts/outbox_delivery_contract.json`
 - `docs/api_scheme.md`
 
-### 3. Machine authentication
+### 3. Машинная аутентификация
 
-Downstream consumers authenticate with bearer service tokens configured in:
+Внешние потребители проходят аутентификацию с помощью служебных токенов, заданных в:
 
 - `OUTBOX_SERVICE_TOKENS`
 
-Example:
+Пример:
 
 ```json
-{"ml":"ml-secret-token","graph":"graph-secret-token"}
+{"ml":"ml-secret-token","graph":"graph-secret-token","faculty":"faculty-secret-token"}
 ```
 
-## What we expect from ML / Graph teams
+## Что ожидается от команд ML, graph и faculty
 
-### ML team
+### Команда ML
 
-Must support:
+Должна поддерживать:
 
-- thin-gateway REST contract for ranking/search;
-- local indexed/read-model ownership on their side;
-- idempotent outbox consumption;
-- replay from offset;
-- monotonic ack after successful processing.
+- REST-контракт шлюза для ранжирования и поиска;
+- владение локальным индексом и собственной моделью чтения на своей стороне;
+- идемпотентное чтение outbox-событий;
+- повторное чтение с нужного смещения;
+- монотонное подтверждение после успешной обработки.
 
-Should align on:
+Следует согласовать:
 
-- ranking response shape (`project_id`, `score`, `reason`, `mode`);
-- timeout/error behavior;
-- bootstrap/snapshot import process;
-- delete/tombstone handling.
+- формат ответа ранжирования (`project_id`, `score`, `reason`, `mode`);
+- поведение при тайм-аутах и ошибках;
+- порядок начального импорта по снимку состояния;
+- обработку событий удаления.
 
-### Graph team
+### Команда graph
 
-Must support:
+Должна поддерживать:
 
-- idempotent projection from outbox events;
-- replay from offset;
-- monotonic ack;
-- local graph schema evolution independent from `web` internals.
+- идемпотентную проекцию из outbox-событий;
+- повторное чтение с нужного смещения;
+- монотонное подтверждение;
+- развитие локальной схемы графа независимо от внутренних деталей `web`.
 
-Should align on:
+Следует согласовать:
 
-- node/edge ownership assumptions;
-- graph refresh/rebuild procedure;
-- delete/tombstone semantics.
+- допущения о владении узлами и ребрами;
+- порядок обновления и полной перестройки графа;
+- семантику обработки событий удаления.
 
-## Recommended collaboration model
+### Интеграция faculty
 
-### Contract ownership
+Должна поддерживать:
 
-- `web` team owns the published API/event schemas.
-- connector teams own internal implementation behind those schemas.
-- breaking changes require versioning or additive rollout.
+- синхронизацию через `sync_faculty` или эквивалентное задание импорта;
+- стабильные значения `source_key` для записей о преподавателях;
+- идемпотентную запись преподавателей, публикаций, курсов и сопоставлений проектов с преподавателями.
 
-### Review artifacts for cross-team agreement
+Следует согласовать:
 
-Before connector work starts, align on:
+- доступность внешнего API преподавателей и поведение при тайм-аутах;
+- обработку устаревших записей;
+- правила сопоставления научных руководителей и семантику полей уверенности и статуса.
 
-1. OpenAPI / JSON contract files.
-2. Example payloads for every required event type.
-3. Auth mechanism (service token rotation/ownership).
-4. Replay/bootstrap procedure.
-5. Error handling and SLA assumptions.
+## Рекомендуемая модель взаимодействия
 
-### Change policy
+### Владение контрактами
 
-- Prefer additive fields.
-- Do not reuse event types with changed meaning.
-- When semantics change materially, create a new versioned contract or a new event type.
+- команда `web` владеет опубликованными схемами API и событий;
+- интеграционные команды владеют внутренней реализацией за пределами этих схем;
+- ломающие изменения требуют версионирования или поэтапного добавления нового поведения.
+
+### Материалы для согласования между командами
+
+Перед началом интеграционной работы следует согласовать:
+
+1. файлы OpenAPI- и JSON-контрактов;
+2. примеры полезной нагрузки для каждого необходимого типа событий;
+3. механизм аутентификации и порядок ротации служебных токенов;
+4. порядок начального импорта и повторного чтения;
+5. правила обработки ошибок и предположения о SLA.
+
+### Политика изменений
+
+- Следует отдавать предпочтение добавлению новых полей.
+- Нельзя повторно использовать типы событий с измененным смыслом.
+- Если семантика меняется существенно, нужно вводить новую версию контракта или новый тип события.
