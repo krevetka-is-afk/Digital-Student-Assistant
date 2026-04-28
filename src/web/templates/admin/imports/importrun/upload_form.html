@@ -1,0 +1,136 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .epp-upload-panel {
+      max-width: 760px;
+    }
+
+    .epp-upload-dropzone {
+      align-items: center;
+      background: var(--body-bg, #fff);
+      border: 2px dashed var(--border-color, #c8c8c8);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+      min-height: 220px;
+      padding: 32px;
+      text-align: center;
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+
+    .epp-upload-dropzone.is-dragover {
+      background: rgba(79, 70, 229, 0.08);
+      border-color: rgb(79, 70, 229);
+    }
+
+    .epp-upload-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .epp-upload-meta {
+      color: var(--body-quiet-color, #666);
+      margin: 0;
+    }
+
+    .epp-upload-file input {
+      inline-size: min(100%, 420px);
+    }
+
+    .epp-upload-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .epp-upload-file-name {
+      font-weight: 600;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate "Home" %}</a>
+    &rsaquo; <a href="{{ changelist_url }}">Import runs</a>
+    &rsaquo; {{ title }}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main" class="epp-upload-panel">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="epp-upload-dropzone" data-epp-dropzone>
+        <p class="epp-upload-title">Drop epp.xlsx here</p>
+        <p class="epp-upload-meta">or choose the file from Finder / Explorer</p>
+        <div class="epp-upload-file">
+          {{ form.file }}
+          {{ form.file.errors }}
+        </div>
+        <p class="epp-upload-file-name" data-epp-file-name>No file selected</p>
+        <p class="epp-upload-meta">{{ form.file.help_text }}</p>
+      </div>
+
+      <div class="submit-row epp-upload-actions">
+        <input type="submit" value="Run import" class="default" data-epp-submit disabled>
+        <a href="{{ changelist_url }}" class="button cancel-link">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      var dropzone = document.querySelector("[data-epp-dropzone]");
+      var input = document.getElementById("{{ form.file.id_for_label }}");
+      var fileName = document.querySelector("[data-epp-file-name]");
+      var submit = document.querySelector("[data-epp-submit]");
+
+      if (!dropzone || !input || !fileName || !submit) {
+        return;
+      }
+
+      function updateSelection() {
+        var file = input.files && input.files.length ? input.files[0] : null;
+        fileName.textContent = file ? file.name : "No file selected";
+        submit.disabled = !file;
+      }
+
+      input.addEventListener("change", updateSelection);
+
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          dropzone.classList.add("is-dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach(function (eventName) {
+        dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          dropzone.classList.remove("is-dragover");
+        });
+      });
+
+      dropzone.addEventListener("drop", function (event) {
+        if (event.dataTransfer && event.dataTransfer.files.length) {
+          input.files = event.dataTransfer.files;
+          updateSelection();
+        }
+      });
+
+      updateSelection();
+    }());
+  </script>
+{% endblock %}
