@@ -46,7 +46,8 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../src/web/.env
+      - path: ../src/web/.env
+        required: false
     environment:
       - PYTHONUNBUFFERED=1
       - DJANGO_SETTINGS_MODULE=config.settings.dev
@@ -82,7 +83,8 @@ services:
     ports:
       - "8001:8000"
     env_file:
-      - ../src/ml/.env
+      - path: ../src/ml/.env
+        required: false
     environment:
       - PYTHONUNBUFFERED=1
       - OUTBOX_BASE_URL=${OUTBOX_BASE_URL:-http://web:8000}
@@ -124,7 +126,7 @@ services:
     volumes:
       - neo4j-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "AUTH=\"$NEO4J_AUTH\"; USER=${AUTH%%/*}; PASS=${AUTH#*/}; cypher-shell -a bolt://localhost:7687 -u \"$USER\" -p \"$PASS\" 'RETURN 1' >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "AUTH=\"$${NEO4J_AUTH}\"; USER=$${AUTH%%/*}; PASS=$${AUTH#*/}; cypher-shell -a bolt://localhost:7687 -u \"$${USER}\" -p \"$${PASS}\" 'RETURN 1' >/dev/null 2>&1"]
       interval: 20s
       timeout: 10s
       retries: 5

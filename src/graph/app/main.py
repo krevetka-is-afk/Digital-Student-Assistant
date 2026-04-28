@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 
+from . import metrics
 from .graph_store import GraphStore, Neo4jGraphStore
 from .models import ProjectRequest, ReplayRequest, SyncRequest
 from .outbox_client import HttpOutboxClient, OutboxClient
@@ -24,7 +25,9 @@ async def _poll_forever(app: FastAPI) -> None:
     while not stop_event.is_set():
         try:
             await projector.sync_from_outbox(mode="poll", batch_size=settings.default_batch_size)
+            metrics.record_poller_cycle(success=True)
         except Exception:
+            metrics.record_poller_cycle(success=False)
             logger.exception("Background poll cycle failed.")
 
         try:
@@ -39,6 +42,10 @@ def _resolve_projector(request: Request) -> GraphProjector:
         raise HTTPException(status_code=503, detail="Graph projector is not initialized.")
     return projector
 
+
+def _collect_state_metrics(request: Request) -> None:
+    projector = _resolve_projector(request)
+    metrics.update_state_metrics(projector.state_summary())
 
 
 def create_app(
@@ -89,6 +96,7 @@ def create_app(
             resolved_graph_store.close()
 
     app = FastAPI(title="Digital Student Assistant Graph Projector", lifespan=lifespan)
+    metrics.add_metrics(app, collect_state_metrics=_collect_state_metrics)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -114,6 +122,8 @@ def create_app(
             outbox_status = f"error:{exc.__class__.__name__}"
 
         status = "ok" if neo4j_status == "ok" and outbox_status == "ok" else "degraded"
+        metrics.record_readiness(check="neo4j", healthy=neo4j_status == "ok")
+        metrics.record_readiness(check="outbox", healthy=outbox_status == "ok")
 
         return {
             "status": status,
@@ -134,6 +144,7 @@ def create_app(
             checkpoint = await projector.read_checkpoint()
         except Exception:
             checkpoint = None
+        metrics.update_state_metrics(summary)
 
         return {
             **summary,
@@ -156,6 +167,7 @@ def create_app(
         projector = _resolve_projector(request)
         batch_size = payload.batch_size or request.app.state.settings.default_batch_size
         result = await projector.sync_from_outbox(mode="poll", batch_size=batch_size)
+        metrics.update_state_metrics(projector.state_summary())
         return {
             "status": "accepted",
             **result,

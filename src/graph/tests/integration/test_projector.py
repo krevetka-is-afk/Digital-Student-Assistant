@@ -320,6 +320,18 @@ def test_health_ok(app_factory):
     assert response.json() == {"status": "ok", "service": "graph"}
 
 
+def test_metrics_ok(app_factory):
+    client, _, _ = _make_client(app_factory, events=[])
+    with client:
+        client.get("/health")
+        response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+    assert "dsa_graph_http_requests_total" in response.text
+    assert "dsa_graph_edges" in response.text
+
+
 def test_projector_supports_canonical_nodes_and_relationships(app_factory):
     events = [
         GraphEvent(
