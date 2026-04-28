@@ -394,7 +394,7 @@ jobs:
       - release-gate
       - package-and-artifacts-web
       - package-and-artifacts-ml
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/dev-staging' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -462,7 +462,7 @@ jobs:
       - package-and-artifacts-ml
       - publish-staging-images
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev-staging'
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/dev-staging' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     environment:
       name: staging
       url: ${{ vars.STAGING_URL || 'https://staging.example' }}
@@ -524,7 +524,9 @@ jobs:
               chmod 600 "$STAGING_ENV_FILE"
             fi
 
-            STAGING_BASE_URL="${{ vars.STAGING_URL || 'https://staging.example' }}"
+            STAGING_URL_RAW="${{ vars.STAGING_URL || 'https://staging.example' }}"
+            STAGING_BASE_URL="$(printf '%s' "$STAGING_URL_RAW" | sed -E 's#/*$##')"
+            STAGING_SCHEME="$(printf '%s' "$STAGING_BASE_URL" | sed -E 's#^(https?)://.*#\1#')"
             STAGING_HOST="$(printf '%s' "$STAGING_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
 
             get_env_val() {
@@ -630,14 +632,16 @@ jobs:
             fi
 
             set_env_key "ML_SERVICE_URL" "http://ml:8000"
-            DJANGO_ALLOWED_HOSTS_VAL="$(get_env_val DJANGO_ALLOWED_HOSTS)"
-            if is_placeholder "$DJANGO_ALLOWED_HOSTS_VAL" || [[ "$DJANGO_ALLOWED_HOSTS_VAL" == *"staging.example"* ]]; then
-              set_env_key "DJANGO_ALLOWED_HOSTS" "${STAGING_HOST},localhost,127.0.0.1,web"
-            fi
-
-            DJANGO_CSRF_TRUSTED_ORIGINS_VAL="$(get_env_val DJANGO_CSRF_TRUSTED_ORIGINS)"
-            if is_placeholder "$DJANGO_CSRF_TRUSTED_ORIGINS_VAL" || [[ "$DJANGO_CSRF_TRUSTED_ORIGINS_VAL" == *"staging.example"* ]]; then
-              set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "${STAGING_BASE_URL},http://${STAGING_HOST}"
+            set_env_key "DJANGO_ALLOWED_HOSTS" "${STAGING_HOST},localhost,127.0.0.1,web"
+            set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "${STAGING_BASE_URL},http://${STAGING_HOST},http://localhost,http://127.0.0.1"
+            if [ "$STAGING_SCHEME" = "https" ]; then
+              set_env_key "DJANGO_SECURE_SSL_REDIRECT" "true"
+              set_env_key "DJANGO_SESSION_COOKIE_SECURE" "true"
+              set_env_key "DJANGO_CSRF_COOKIE_SECURE" "true"
+            else
+              set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"
+              set_env_key "DJANGO_SESSION_COOKIE_SECURE" "false"
+              set_env_key "DJANGO_CSRF_COOKIE_SECURE" "false"
             fi
 
             dump_compose_diagnostics() {
@@ -656,6 +660,84 @@ jobs:
             }
             trap 'dump_compose_diagnostics $?' EXIT
 
+            if [ "$STAGING_SCHEME" = "https" ]; then
+              if ! sudo -n test -r "/etc/letsencrypt/live/${STAGING_HOST}/fullchain.pem" ||
+                ! sudo -n test -r "/etc/letsencrypt/live/${STAGING_HOST}/privkey.pem"; then
+                echo "::error::Missing TLS certificate for ${STAGING_HOST}." >&2
+                echo "::error::Run certbot on the staging VM before deploying HTTPS." >&2
+                exit 1
+              fi
+              cat > infra/nginx/default.conf <<EOF2
+            server {
+                listen 80;
+                server_name ${STAGING_HOST};
+                server_tokens off;
+
+                location /.well-known/acme-challenge/ {
+                    root /var/www/certbot;
+                }
+
+                location / {
+                    return 301 https://\$host\$request_uri;
+                }
+            }
+
+            server {
+                listen 443 ssl;
+                server_name ${STAGING_HOST};
+                server_tokens off;
+
+                ssl_certificate /etc/letsencrypt/live/${STAGING_HOST}/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/${STAGING_HOST}/privkey.pem;
+
+                client_max_body_size 25m;
+
+                location /static/ {
+                    alias /var/www/staticfiles/;
+                    access_log off;
+                    expires 30d;
+                    add_header Cache-Control "public";
+                }
+
+                location / {
+                    proxy_pass http://web:8000;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Host \$host;
+                    proxy_set_header X-Forwarded-Port \$server_port;
+                    proxy_set_header X-Forwarded-Proto https;
+                    proxy_http_version 1.1;
+                }
+            }
+            EOF2
+            else
+              cat > infra/nginx/default.conf <<EOF2
+            server {
+                listen 80;
+                server_name ${STAGING_HOST};
+                server_tokens off;
+
+                location /.well-known/acme-challenge/ {
+                    root /var/www/certbot;
+                }
+
+                client_max_body_size 25m;
+
+                location / {
+                    proxy_pass http://web:8000;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Host \$host;
+                    proxy_set_header X-Forwarded-Port \$server_port;
+                    proxy_set_header X-Forwarded-Proto http;
+                    proxy_http_version 1.1;
+                }
+            }
+            EOF2
+            fi
+
             echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \
@@ -669,10 +751,7 @@ jobs:
             docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" restart nginx
             docker logout ghcr.io || true
 
-            PUBLIC_BASE_URL="$(grep '^DJANGO_CSRF_TRUSTED_ORIGINS=' "$STAGING_ENV_FILE" | cut -d= -f2 | cut -d, -f1)"
-            if [ -z "$PUBLIC_BASE_URL" ]; then
-              PUBLIC_BASE_URL="${{ vars.STAGING_URL || 'https://staging.example' }}"
-            fi
+            PUBLIC_BASE_URL="$STAGING_BASE_URL"
 
             PUBLIC_SCHEME="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^(https?)://.*#\1#')"
             PUBLIC_HOST="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
@@ -698,12 +777,13 @@ jobs:
 
       - name: Health check staging URL
         run: |
+          base_url="${STAGING_URL%/}"
           for i in {1..20}; do
-            if curl -fsS "$STAGING_URL/api/v1/ready/" >/dev/null; then
-              echo "Staging is healthy: $STAGING_URL"
+            if curl -fsS "$base_url/api/v1/ready/" >/dev/null; then
+              echo "Staging is healthy: $base_url"
               exit 0
             fi
             sleep 5
           done
-          echo "Staging health check failed for $STAGING_URL" >&2
+          echo "Staging health check failed for $base_url" >&2
           exit 1

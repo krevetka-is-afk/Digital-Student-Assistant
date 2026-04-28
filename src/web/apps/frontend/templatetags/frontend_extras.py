@@ -26,7 +26,7 @@ def user_role(user):
 def role_label(role):
     """Human-readable role label in Russian."""
     return {
-        "student":  "Студент",
+        "student": "Студент",
         "customer": "Заказчик",
-        "cpprp":    "Модератор",
+        "cpprp": "Модератор",
     }.get(role, role)

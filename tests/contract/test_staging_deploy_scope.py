@@ -35,9 +35,23 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert 'replace_if_placeholder "NEO4J_AUTH"' in workflow
     assert 'Staging deploy failed; collecting docker compose diagnostics...' in workflow
     assert 'STAGING_BASE_URL=' in workflow
+    assert 'STAGING_URL_RAW=' in workflow
+    assert 'STAGING_SCHEME=' in workflow
     assert 'DJANGO_CSRF_TRUSTED_ORIGINS' in workflow
+    allowed_hosts_line = (
+        'set_env_key "DJANGO_ALLOWED_HOSTS" "${STAGING_HOST},localhost,127.0.0.1,web"'
+    )
+    assert allowed_hosts_line in workflow
+    assert 'set_env_key "DJANGO_SECURE_SSL_REDIRECT" "true"' in workflow
+    assert 'set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"' in workflow
+    assert 'server_name ${STAGING_HOST};' in workflow
+    assert 'ssl_certificate /etc/letsencrypt/live/${STAGING_HOST}/fullchain.pem;' in workflow
+    assert 'sudo -n test -r "/etc/letsencrypt/live/${STAGING_HOST}/fullchain.pem"' in workflow
+    assert 'Missing TLS certificate for ${STAGING_HOST}' in workflow
     assert 'restart nginx' in workflow
     assert 'PUBLIC_CURL_OPTS=' in workflow
+    assert 'base_url="${STAGING_URL%/}"' in workflow
+    assert '"$base_url/api/v1/ready/"' in workflow
     assert 'staging\\.example' in workflow
     assert '--force-recreate --wait --wait-timeout 240' in workflow
     assert 'require_stable_env_for_existing_volume' in workflow

@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from apps.base.views import health_custom, home_page, readiness
+from apps.base.views import health_custom, home_page, metrics, readiness
 from apps.frontend import views as frontend_views
 from django.conf import settings
 from django.contrib import admin
@@ -29,6 +29,7 @@ urlpatterns = [
     path("", include("apps.frontend.urls", namespace="frontend")),
     path("health/", health_custom, name="health-root"),
     path("ready/", readiness, name="ready-root"),
+    path("metrics/", metrics, name="metrics-root"),
     path("admin/", admin.site.urls),
     path("api/", include("config.api_root_urls")),
     path("base/search", include("apps.search.urls")),

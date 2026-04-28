@@ -385,9 +385,9 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/52/e3/86c7d882260549cb9c9310bc6f343988816aab66d56b22e031cd04d426d8/django_unfold-0.90.0.tar.gz", hash = "sha256:e1627e8a0c8d16311b6e43736eaed449204a2f6cb6c323b63e583a07517f4fcd" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/e3/86c7d882260549cb9c9310bc6f343988816aab66d56b22e031cd04d426d8/django_unfold-0.90.0.tar.gz", hash = "sha256:e1627e8a0c8d16311b6e43736eaed449204a2f6cb6c323b63e583a07517f4fcd", size = 1120050, upload-time = "2026-04-16T13:03:10.177Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/96/5291b8da29254409d9658044837b0a21a5424103534bb472027562c36a73/django_unfold-0.90.0-py3-none-any.whl", hash = "sha256:f921804427a705cfaadca941a8ab32da033735acfb4c43de27f39db5a7467001" },
+    { url = "https://files.pythonhosted.org/packages/67/96/5291b8da29254409d9658044837b0a21a5424103534bb472027562c36a73/django_unfold-0.90.0-py3-none-any.whl", hash = "sha256:f921804427a705cfaadca941a8ab32da033735acfb4c43de27f39db5a7467001", size = 1242469, upload-time = "2026-04-16T13:03:08.312Z" },
 ]
 
 [[package]]
@@ -483,6 +483,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "neo4j" },
+    { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "uvicorn" },
 ]
@@ -498,6 +499,7 @@ requires-dist = [
     { name = "fastapi", specifier = "==0.127.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "neo4j", specifier = ">=5.28.2" },
+    { name = "prometheus-client", specifier = ">=0.23.1" },
     { name = "pydantic" },
     { name = "uvicorn", specifier = "==0.38.0" },
 ]
@@ -658,6 +660,7 @@ source = { editable = "src/ml" }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
@@ -675,6 +678,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = "==0.127.1" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "prometheus-client", specifier = ">=0.23.1" },
     { name = "pydantic" },
     { name = "python-multipart", specifier = ">=0.0.26" },
     { name = "sqlalchemy" },
@@ -757,6 +761,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f4/9b/6a4ffb4ed980519da959e1cf3122fc6cb41211daa58dbae1c73c0e519a37/pre_commit-4.5.0.tar.gz", hash = "sha256:dc5a065e932b19fc1d4c653c6939068fe54325af8e741e74e88db4d28a4dd66b", size = 198428, upload-time = "2025-11-22T21:02:42.304Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/c4/b2d28e9d2edf4f1713eb3c29307f1a63f3d67cf09bdda29715a36a68921a/pre_commit-4.5.0-py2.py3-none-any.whl", hash = "sha256:25e2ce09595174d9c97860a95609f9f852c0614ba602de3561e267547f2335e1", size = 226429, upload-time = "2025-11-22T21:02:40.836Z" },
+]
+
+[[package]]
+name = "prometheus-client"
+version = "0.25.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/fb/d9aa83ffe43ce1f19e557c0971d04b90561b0cfd50762aafb01968285553/prometheus_client-0.25.0.tar.gz", hash = "sha256:5e373b75c31afb3c86f1a52fa1ad470c9aace18082d39ec0d2f918d11cc9ba28", size = 86035, upload-time = "2026-04-09T19:53:42.359Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/9b/d4b1e644385499c8346fa9b622a3f030dce14cd6ef8a1871c221a17a67e7/prometheus_client-0.25.0-py3-none-any.whl", hash = "sha256:d5aec89e349a6ec230805d0df882f3807f74fd6c1a2fa86864e3c2279059fed1", size = 64154, upload-time = "2026-04-09T19:53:41.324Z" },
 ]
 
 [[package]]
@@ -1309,6 +1322,7 @@ dependencies = [
     { name = "drf-spectacular" },
     { name = "gunicorn" },
     { name = "passlib" },
+    { name = "prometheus-client" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
     { name = "python-jose" },
@@ -1334,6 +1348,7 @@ requires-dist = [
     { name = "drf-spectacular", specifier = ">=0.29.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "passlib" },
+    { name = "prometheus-client", specifier = ">=0.23.1" },
     { name = "psycopg2-binary", specifier = "==2.9.11" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "python-jose" },

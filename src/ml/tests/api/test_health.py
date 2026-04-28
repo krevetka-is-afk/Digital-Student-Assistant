@@ -10,7 +10,6 @@ def test_health_ok(client):
     assert r.json() == {"status": "ok", "service": "ml"}
 
 
-
 def test_ready_ok(client):
     r = client.get("/ready")
     assert r.status_code == 200
@@ -19,6 +18,14 @@ def test_ready_ok(client):
     assert payload["service"] == "ml"
     assert payload["projects_indexed"] == 0
 
+
+def test_metrics_ok(client):
+    client.get("/health")
+    r = client.get("/metrics")
+    assert r.status_code == 200
+    assert "text/plain" in r.headers["content-type"]
+    assert "dsa_ml_http_requests_total" in r.text
+    assert "dsa_ml_projects_indexed" in r.text
 
 
 def test_search_returns_ranked_projects_from_request_payload(client):
@@ -46,7 +53,6 @@ def test_search_returns_ranked_projects_from_request_payload(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["items"][0]["project_id"] == 1
-
 
 
 def test_search_prefers_local_index_when_outbox_state_exists(app_factory):
@@ -89,7 +95,6 @@ def test_search_prefers_local_index_when_outbox_state_exists(app_factory):
     assert payload["items"][0]["project_id"] == 11
 
 
-
 def test_recommendations_use_interest_overlap(client):
     response = client.post(
         "/recommendations",
@@ -114,7 +119,6 @@ def test_recommendations_use_interest_overlap(client):
 
     assert response.status_code == 200
     assert response.json()["items"][0]["project_id"] == 1
-
 
 
 def test_reindex_accepts_requests(client):

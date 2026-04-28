@@ -53,6 +53,9 @@
           </div>
 
           <div class="flex items-center gap-2">
+            {% if user.is_authenticated %}
+              {% include "frontend/partials/bookmark_button.html" with pk=project.pk %}
+            {% endif %}
             <a href="/projects/{{ project.pk }}/"
                class="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
               Подробнее

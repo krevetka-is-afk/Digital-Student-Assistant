@@ -122,13 +122,40 @@
           {% elif applications_count >= 2 and applications_count <= 4 %}Заявки подано
           {% else %}Заявок подано{% endif %}
         </p>
-        {% if applications_count > 0 %}
-        <a href="{% url 'frontend:application_list' %}"
+        <a href="{% url 'frontend:project_list' %}?tab=applications"
            class="text-xs text-blue-600 hover:underline mt-2 inline-block">
           Мои заявки →
         </a>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ bookmarks_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if bookmarks_count == 1 %}Закладка
+          {% elif bookmarks_count >= 2 and bookmarks_count <= 4 %}Закладки
+          {% else %}Закладок{% endif %}
+        </p>
+        {% if bookmarks_count > 0 %}
+        <a href="{% url 'frontend:project_list' %}?tab=bookmarks"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Закладки →
+        </a>
         {% endif %}
       </div>
+
+      {% if initiative_count %}
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ initiative_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if initiative_count == 1 %}Инициативный проект
+          {% else %}Инициативных проекта{% endif %}
+        </p>
+        <a href="{% url 'frontend:project_list' %}?tab=applications"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Посмотреть →
+        </a>
+      </div>
+      {% endif %}
       {% endif %}
 
       {% if role == 'cpprp' %}
@@ -171,13 +198,20 @@
         {% endif %}
 
         {% if role == 'student' %}
-        <a href="{% url 'frontend:application_list' %}"
+        <a href="{% url 'frontend:project_list' %}?tab=applications"
            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round"
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
           Мои заявки
+        </a>
+        <a href="{% url 'frontend:initiative_project_create' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Предложить проект
         </a>
         <a href="{% url 'frontend:project_list' %}"
            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
@@ -234,9 +268,14 @@
           <input type="text" name="full_name" id="id_full_name"
                  value="{{ profile_user.get_full_name }}"
                  placeholder="Иван Иванов"
-                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
+                 maxlength="100"
+                 class="w-full border {% if profile_errors.full_name %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
                  style="background:#fafafa;">
+          {% if profile_errors.full_name %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_errors.full_name }}</p>
+          {% else %}
           <p class="text-xs text-gray-400 mt-1">Отображается в профиле и в шапке</p>
+          {% endif %}
         </div>
 
         <!-- Bio -->
@@ -247,8 +286,14 @@
           </label>
           <textarea name="bio" id="id_bio" rows="4"
                     placeholder="Расскажите кратко о себе, своём опыте и целях..."
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition resize-none"
+                    maxlength="500"
+                    class="w-full border {% if profile_errors.bio %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition resize-none"
                     style="background:#fafafa;">{{ profile.bio|default:"" }}</textarea>
+          {% if profile_errors.bio %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_errors.bio }}</p>
+          {% else %}
+          <p class="text-xs text-gray-400 mt-1">Максимум 500 символов</p>
+          {% endif %}
         </div>
 
         <!-- Interests (students only) -->
@@ -260,7 +305,7 @@
           <input type="hidden" name="interests_raw" id="interests_raw_input"
                  value="{{ interests_initial }}">
           <div id="interests-chip-container"
-               class="border border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition cursor-text"
+               class="border {% if profile_errors.interests %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition cursor-text"
                style="background:#fafafa;min-height:42px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"
                onclick="document.getElementById('interests-input').focus()">
             <div id="interests-chips" style="display:contents;"></div>
@@ -271,7 +316,11 @@
                    onkeydown="handleInterestKey(event)"
                    onblur="addInterestTag()">
           </div>
-          <p class="text-xs text-gray-400 mt-1">Enter или запятая — добавить тег, Backspace — удалить последний</p>
+          {% if profile_errors.interests %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_errors.interests }}</p>
+          {% else %}
+          <p class="text-xs text-gray-400 mt-1">Enter или запятая — добавить тег, Backspace — удалить последний. Максимум 20 интересов.</p>
+          {% endif %}
         </div>
         {% endif %}
 

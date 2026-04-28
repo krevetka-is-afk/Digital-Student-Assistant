@@ -63,6 +63,11 @@
           Ваш проект
         </span>
       {% endif %}
+      {% if project.source_type == "initiative" %}
+        <span class="inline-flex items-center px-2 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200" style="padding-top:3px;padding-bottom:3px;">
+          Инициативный
+        </span>
+      {% endif %}
     </div>
 
     <!-- Title -->
@@ -102,7 +107,9 @@
       <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Технологии</h2>
       <div class="flex flex-wrap gap-2">
         {% for tag in project.tech_tags %}
-          <span class="px-3 py-1 rounded-lg text-sm font-medium bg-gray-100 text-gray-700">{{ tag }}</span>
+          <a href="{% url 'frontend:project_list' %}?tech_tags={{ tag|urlencode }}"
+             class="px-3 py-1 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+             title="Найти проекты с тегом «{{ tag }}»">{{ tag }}</a>
         {% endfor %}
       </div>
     </div>
@@ -159,6 +166,73 @@
             <p class="text-xs text-gray-400 truncate">{{ project.owner.email }}</p>
           </div>
         </div>
+      </div>
+      <hr class="border-gray-100 mb-5">
+      {% endif %}
+
+      <!-- Supervisor (initiative projects) -->
+      {% if project.supervisor_name %}
+      <div class="mb-5">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Желаемый руководитель</p>
+        <p class="text-sm font-medium text-gray-700">{{ project.supervisor_name }}</p>
+      </div>
+      <hr class="border-gray-100 mb-5">
+      {% endif %}
+
+      <!-- EPP fields -->
+      {% if project.application_deadline or project.work_format or project.credits or project.hours_per_week or project.is_paid != None or project.location or project.education_program or project.study_course %}
+      <div class="mb-5 space-y-2">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Детали проекта</p>
+        {% if project.application_deadline %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Дедлайн заявок</span>
+          <span class="text-gray-700 font-medium">{{ project.application_deadline|date:"d.m.Y" }}</span>
+        </div>
+        {% endif %}
+        {% if project.work_format %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Формат работы</span>
+          <span class="text-gray-700 font-medium">{{ project.work_format }}</span>
+        </div>
+        {% endif %}
+        {% if project.location %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Место</span>
+          <span class="text-gray-700 font-medium">{{ project.location }}</span>
+        </div>
+        {% endif %}
+        {% if project.credits %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Кредиты</span>
+          <span class="text-gray-700 font-medium">{{ project.credits }}</span>
+        </div>
+        {% endif %}
+        {% if project.hours_per_week %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Часов в неделю</span>
+          <span class="text-gray-700 font-medium">{{ project.hours_per_week }}</span>
+        </div>
+        {% endif %}
+        {% if project.is_paid != None %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Оплата</span>
+          <span class="font-medium {% if project.is_paid %}text-green-600{% else %}text-gray-500{% endif %}">
+            {% if project.is_paid %}Оплачивается{% else %}Без оплаты{% endif %}
+          </span>
+        </div>
+        {% endif %}
+        {% if project.study_course %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Курс</span>
+          <span class="text-gray-700 font-medium">{{ project.study_course }} курс</span>
+        </div>
+        {% endif %}
+        {% if project.education_program %}
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400">Программа</span>
+          <span class="text-gray-700 font-medium text-right" style="max-width:55%;">{{ project.education_program }}</span>
+        </div>
+        {% endif %}
       </div>
       <hr class="border-gray-100 mb-5">
       {% endif %}

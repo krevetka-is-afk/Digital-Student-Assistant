@@ -19,10 +19,23 @@ from django.contrib.auth import (
 from django.contrib.auth import (
     logout as auth_logout,
 )
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email as _validate_email_fmt
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+
+_NAME_MAX = 100
+_PASSWORD_MIN = 8
+
+
+def _check_email_fmt(email: str) -> bool:
+    try:
+        _validate_email_fmt(email)
+        return True
+    except ValidationError:
+        return False
 
 
 def _safe_redirect_target(request, raw_next_url: str) -> str:
@@ -88,6 +101,8 @@ def auth_view(request):
 
             if not login_email:
                 login_errors["email"] = "Введите email."
+            elif not _check_email_fmt(login_email):
+                login_errors["email"] = "Введите корректный email-адрес."
             if not password:
                 login_errors["password"] = "Введите пароль."
 
@@ -124,10 +139,16 @@ def auth_view(request):
 
             if not reg_email:
                 register_errors["email"] = "Введите email."
+            elif not _check_email_fmt(reg_email):
+                register_errors["email"] = "Введите корректный email-адрес."
             if not password:
                 register_errors["password"] = "Введите пароль."
-            elif len(password) < 8:
-                register_errors["password"] = "Пароль должен содержать не менее 8 символов."
+            elif len(password) < _PASSWORD_MIN:
+                register_errors["password"] = (
+                    f"Пароль должен содержать не менее {_PASSWORD_MIN} символов."
+                )
+            if reg_name and len(reg_name) > _NAME_MAX:
+                register_errors["name"] = f"Имя не может превышать {_NAME_MAX} символов."
             if reg_role not in {UserRole.STUDENT, UserRole.CUSTOMER}:
                 reg_role = UserRole.STUDENT
 

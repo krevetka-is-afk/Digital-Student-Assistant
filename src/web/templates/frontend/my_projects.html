@@ -7,10 +7,8 @@
 <!-- Page header -->
 <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.75rem;">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Мои проекты</h1>
-    <p class="text-sm text-gray-500 mt-1">
-      {{ total_count }} проект{% if total_count == 1 %}{% elif total_count >= 2 and total_count <= 4 %}а{% else %}ов{% endif %} создано
-    </p>
+    <h1 class="text-2xl font-bold text-gray-900">Кабинет преподавателя</h1>
+    <p class="text-sm text-gray-500 mt-1">Управляйте проектами, изучайте публикации и коллег</p>
   </div>
   <a href="{% url 'frontend:project_create' %}"
      class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex-shrink-0">
@@ -21,192 +19,575 @@
   </a>
 </div>
 
-<!-- Status filter tabs -->
-{% if total_count %}
-<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-200 rounded-xl p-1 flex-wrap"
+<!-- Main tab bar -->
+<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-200 rounded-xl p-1"
      style="width:fit-content;">
-  <a href="?status="
-     class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if not status_filter %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Все
-    <span class="ml-1 text-xs {% if not status_filter %}text-gray-500{% else %}text-gray-400{% endif %}">{{ total_count }}</span>
-  </a>
-  {% if counts.draft %}
-  <a href="?status=draft"
-     class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'draft' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Черновики
-    <span class="ml-1 text-xs {% if status_filter == 'draft' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.draft }}</span>
-  </a>
-  {% endif %}
-  {% if counts.on_moderation %}
-  <a href="?status=on_moderation"
-     class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'on_moderation' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    На модерации
-    <span class="ml-1 text-xs {% if status_filter == 'on_moderation' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.on_moderation }}</span>
-  </a>
-  {% endif %}
-  {% if counts.published %}
-  <a href="?status=published"
-     class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'published' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Опубликованные
-    <span class="ml-1 text-xs {% if status_filter == 'published' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.published }}</span>
-  </a>
-  {% endif %}
-  {% if counts.staffed %}
-  <a href="?status=staffed"
-     class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'staffed' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Укомплектованные
-    <span class="ml-1 text-xs {% if status_filter == 'staffed' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.staffed }}</span>
-  </a>
-  {% endif %}
-  {% if counts.rejected %}
-  <a href="?status=rejected"
-     class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'rejected' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Отклонённые
-    <span class="ml-1 text-xs {% if status_filter == 'rejected' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.rejected }}</span>
-  </a>
-  {% endif %}
+  <button id="tab-btn-projects"
+          onclick="switchTab('projects')"
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors font-medium bg-gray-100 text-gray-900">
+    Мои проекты
+    {% if total_count %}<span class="ml-1 text-xs text-gray-500">{{ total_count }}</span>{% endif %}
+  </button>
+  <button id="tab-btn-articles"
+          onclick="switchTab('articles')"
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+    Статьи
+    <span class="ml-1 text-xs text-gray-400">{{ sample_articles|length }}</span>
+  </button>
+  <button id="tab-btn-staff"
+          onclick="switchTab('staff')"
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+    Сотрудники
+    <span class="ml-1 text-xs text-gray-400">{{ sample_staff|length }}</span>
+  </button>
+  <button id="tab-btn-graph"
+          onclick="switchTab('graph')"
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+    Граф соавторства
+  </button>
 </div>
-{% endif %}
 
-<!-- Project list -->
-{% if page_obj.object_list %}
-<div style="display:flex;flex-direction:column;gap:12px;">
+<!-- ================================================================ -->
+<!-- TAB: Мои проекты                                                   -->
+<!-- ================================================================ -->
+<div id="tab-panel-projects">
 
-  {% for project in page_obj %}
-  <a href="{% url 'frontend:project_detail' project.pk %}"
-     class="block bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all"
-     style="text-decoration:none;">
-
-    <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
-
-      <!-- Left: title + meta -->
-      <div style="min-width:0;">
-
-        <!-- Status badge -->
-        <div class="mb-2">
-          {% if project.status == "draft" %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-              <span style="width:5px;height:5px;border-radius:50%;background:#9ca3af;display:inline-block;"></span>
-              Черновик
-            </span>
-          {% elif project.status == "on_moderation" %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-              <span style="width:5px;height:5px;border-radius:50%;background:#eab308;display:inline-block;"></span>
-              На модерации
-            </span>
-          {% elif project.status == "published" %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-              <span style="width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
-              Опубликован
-            </span>
-          {% elif project.status == "staffed" %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-              <span style="width:5px;height:5px;border-radius:50%;background:#3b82f6;display:inline-block;"></span>
-              Укомплектован
-            </span>
-          {% elif project.status == "rejected" %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
-              <span style="width:5px;height:5px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
-              Отклонён
-            </span>
-          {% endif %}
-        </div>
-
-        <h2 class="text-base font-semibold text-gray-900 truncate mb-1">{{ project.title }}</h2>
-
-        {% if project.description %}
-        <p class="text-sm text-gray-500 leading-snug"
-           style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-          {{ project.description }}
-        </p>
-        {% endif %}
-
-        {% if project.tech_tags %}
-        <div class="flex flex-wrap gap-1 mt-2">
-          {% for tag in project.tech_tags|slice:":5" %}
-          <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-md">{{ tag }}</span>
-          {% endfor %}
-          {% if project.tech_tags|length > 5 %}
-          <span class="px-2 py-0.5 text-xs text-gray-400">+{{ project.tech_tags|length|add:"-5" }}</span>
-          {% endif %}
-        </div>
-        {% endif %}
-
-      </div>
-
-      <!-- Right: team + date -->
-      <div style="text-align:right;flex-shrink:0;min-width:90px;">
-        <p class="text-sm font-semibold text-gray-900">
-          {{ project.accepted_participants_count }}&nbsp;/&nbsp;{{ project.team_size }}
-        </p>
-        <p class="text-xs text-gray-400 mt-0.5">участников</p>
-        {% if project.created_at %}
-        <p class="text-xs text-gray-400 mt-2">{{ project.created_at|date:"d.m.Y" }}</p>
-        {% endif %}
-      </div>
-
-    </div>
-
-    {% if project.status == "rejected" and project.moderation_comment %}
-    <div class="mt-3 pt-3 border-t border-gray-100">
-      <p class="text-xs text-red-500 font-medium mb-0.5">Причина отклонения</p>
-      <p class="text-xs text-red-700">{{ project.moderation_comment|truncatechars:200 }}</p>
-    </div>
+  <!-- Status filter -->
+  {% if total_count %}
+  <div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-200 rounded-xl p-1 flex-wrap"
+       style="width:fit-content;">
+    <a href="?status="
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if not status_filter %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Все
+      <span class="ml-1 text-xs {% if not status_filter %}text-gray-500{% else %}text-gray-400{% endif %}">{{ total_count }}</span>
+    </a>
+    {% if counts.draft %}
+    <a href="?status=draft"
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'draft' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Черновики
+      <span class="ml-1 text-xs {% if status_filter == 'draft' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.draft }}</span>
+    </a>
     {% endif %}
-
-  </a>
-  {% endfor %}
-
-</div>
-
-<!-- Pagination -->
-{% if page_obj.has_other_pages %}
-<div class="flex items-center justify-center gap-1 mt-8">
-  {% if page_obj.has_previous %}
-  <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}"
-     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">←</a>
-  {% endif %}
-  {% for num in page_obj.paginator.page_range %}
-    {% if page_obj.number == num %}
-    <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
-    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-    <a href="?status={{ status_filter }}&page={{ num }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+    {% if counts.on_moderation %}
+    <a href="?status=on_moderation"
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'on_moderation' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      На модерации
+      <span class="ml-1 text-xs {% if status_filter == 'on_moderation' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.on_moderation }}</span>
+    </a>
     {% endif %}
-  {% endfor %}
-  {% if page_obj.has_next %}
-  <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}"
-     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">→</a>
-  {% endif %}
-</div>
-{% endif %}
-
-{% elif status_filter %}
-<!-- Filtered empty state -->
-<div class="text-center py-16 bg-white border border-gray-200 rounded-2xl">
-  <p class="text-gray-700 font-medium mb-1">Нет проектов с таким статусом</p>
-  <a href="?" class="text-blue-600 text-sm hover:underline">Показать все</a>
-</div>
-
-{% else %}
-<!-- Full empty state -->
-<div class="text-center py-20 bg-white border border-gray-200 rounded-2xl">
-  <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-    <svg class="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-      <path stroke-linecap="round" stroke-linejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-    </svg>
+    {% if counts.published %}
+    <a href="?status=published"
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'published' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Опубликованные
+      <span class="ml-1 text-xs {% if status_filter == 'published' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.published }}</span>
+    </a>
+    {% endif %}
+    {% if counts.staffed %}
+    <a href="?status=staffed"
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'staffed' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Укомплектованные
+      <span class="ml-1 text-xs {% if status_filter == 'staffed' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.staffed }}</span>
+    </a>
+    {% endif %}
+    {% if counts.rejected %}
+    <a href="?status=rejected"
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'rejected' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Отклонённые
+      <span class="ml-1 text-xs {% if status_filter == 'rejected' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.rejected }}</span>
+    </a>
+    {% endif %}
   </div>
-  <h2 class="text-gray-900 font-semibold text-lg mb-1">Пока нет проектов</h2>
-  <p class="text-gray-400 text-sm mb-6">Создайте первый проект и найдите команду</p>
-  <a href="{% url 'frontend:project_create' %}"
-     class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-    </svg>
-    Создать проект
-  </a>
-</div>
-{% endif %}
+  {% endif %}
+
+  <!-- Project list -->
+  {% if page_obj.object_list %}
+  <div style="display:flex;flex-direction:column;gap:12px;">
+
+    {% for project in page_obj %}
+    <a href="{% url 'frontend:project_detail' project.pk %}"
+       class="block bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all"
+       style="text-decoration:none;">
+
+      <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
+
+        <!-- Left: title + meta -->
+        <div style="min-width:0;">
+          <div class="mb-2">
+            {% if project.status == "draft" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                <span style="width:5px;height:5px;border-radius:50%;background:#9ca3af;display:inline-block;"></span>Черновик
+              </span>
+            {% elif project.status == "created" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                <span style="width:5px;height:5px;border-radius:50%;background:#9ca3af;display:inline-block;"></span>Создан
+              </span>
+            {% elif project.status == "on_moderation" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#eab308;display:inline-block;"></span>На модерации
+              </span>
+            {% elif project.status == "revision_requested" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#f97316;display:inline-block;"></span>Нужны правки
+              </span>
+            {% elif project.status == "supervisor_review" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#a855f7;display:inline-block;"></span>У руководителя
+              </span>
+            {% elif project.status == "published" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block;"></span>Опубликован
+              </span>
+            {% elif project.status == "staffed" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#3b82f6;display:inline-block;"></span>Укомплектован
+              </span>
+            {% elif project.status == "completed" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#14b8a6;display:inline-block;"></span>Завершён
+              </span>
+            {% elif project.status == "cancelled" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                <span style="width:5px;height:5px;border-radius:50%;background:#6b7280;display:inline-block;"></span>Отменён
+              </span>
+            {% elif project.status == "rejected" %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
+                <span style="width:5px;height:5px;border-radius:50%;background:#ef4444;display:inline-block;"></span>Отклонён
+              </span>
+            {% endif %}
+          </div>
+
+          <h2 class="text-base font-semibold text-gray-900 truncate mb-1">{{ project.title }}</h2>
+
+          {% if project.description %}
+          <p class="text-sm text-gray-500 leading-snug"
+             style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+            {{ project.description }}
+          </p>
+          {% endif %}
+
+          {% if project.tech_tags %}
+          <div class="flex flex-wrap gap-1 mt-2">
+            {% for tag in project.tech_tags|slice:":5" %}
+            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-md">{{ tag }}</span>
+            {% endfor %}
+            {% if project.tech_tags|length > 5 %}
+            <span class="px-2 py-0.5 text-xs text-gray-400">+{{ project.tech_tags|length|add:"-5" }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Right: team + date -->
+        <div style="text-align:right;flex-shrink:0;min-width:90px;">
+          <p class="text-sm font-semibold text-gray-900">
+            {{ project.accepted_participants_count }}&nbsp;/&nbsp;{{ project.team_size }}
+          </p>
+          <p class="text-xs text-gray-400 mt-0.5">участников</p>
+          {% if project.created_at %}
+          <p class="text-xs text-gray-400 mt-2">{{ project.created_at|date:"d.m.Y" }}</p>
+          {% endif %}
+        </div>
+
+      </div>
+
+      {% if project.status == "rejected" and project.moderation_comment %}
+      <div class="mt-3 pt-3 border-t border-gray-100">
+        <p class="text-xs text-red-500 font-medium mb-0.5">Причина отклонения</p>
+        <p class="text-xs text-red-700">{{ project.moderation_comment|truncatechars:200 }}</p>
+      </div>
+      {% endif %}
+
+    </a>
+    {% endfor %}
+
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-center gap-1 mt-8">
+    {% if page_obj.has_previous %}
+    <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}"
+       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">←</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+      <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
+      {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+      <a href="?status={{ status_filter }}&page={{ num }}"
+         class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}"
+       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">→</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% elif status_filter %}
+  <div class="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+    <p class="text-gray-700 font-medium mb-1">Нет проектов с таким статусом</p>
+    <a href="?" class="text-blue-600 text-sm hover:underline">Показать все</a>
+  </div>
+
+  {% else %}
+  <div class="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+    <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+      <svg class="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+      </svg>
+    </div>
+    <h2 class="text-gray-900 font-semibold text-lg mb-1">Пока нет проектов</h2>
+    <p class="text-gray-400 text-sm mb-6">Создайте первый проект и найдите команду</p>
+    <a href="{% url 'frontend:project_create' %}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Создать проект
+    </a>
+  </div>
+  {% endif %}
+
+</div><!-- /tab-panel-projects -->
+
+
+<!-- ================================================================ -->
+<!-- TAB: Статьи                                                        -->
+<!-- ================================================================ -->
+<div id="tab-panel-articles" style="display:none;">
+
+  <div class="flex flex-wrap items-center gap-3 mb-5">
+    <p class="text-sm text-gray-500 flex-1 min-w-0">
+      Научные публикации по тематике ваших проектов.
+      <span class="text-gray-400">Данные будут загружены из внешнего источника.</span>
+    </p>
+    {% if article_years or article_directions %}
+    <div class="flex flex-wrap gap-2 flex-shrink-0">
+      {% if article_years %}
+      <select id="article-year-filter" onchange="filterArticles()"
+              class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
+        <option value="">Все годы</option>
+        {% for yr in article_years %}
+        <option value="{{ yr }}">{{ yr }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      {% if article_directions %}
+      <select id="article-dir-filter" onchange="filterArticles()"
+              class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
+        <option value="">Все направления</option>
+        {% for dir in article_directions %}
+        <option value="{{ dir }}">{{ dir }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px;" id="articles-list">
+    {% for article in sample_articles %}
+    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all article-card"
+         data-year="{{ article.year|default:'' }}"
+         data-direction="{{ article.direction|default:'' }}">
+
+      <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
+
+        <div style="min-width:0;">
+
+          <!-- Direction badge -->
+          {% if article.direction %}
+          <div class="mb-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+              {{ article.direction }}
+            </span>
+          </div>
+          {% endif %}
+
+          <!-- Title -->
+          {% if article.doi_url %}
+          <a href="{{ article.doi_url }}" target="_blank" rel="noopener"
+             class="text-base font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug block mb-1">
+            {{ article.title }}
+          </a>
+          {% else %}
+          <h3 class="text-base font-semibold text-gray-900 leading-snug mb-1">{{ article.title }}</h3>
+          {% endif %}
+
+          <!-- Authors -->
+          {% if article.authors %}
+          <p class="text-sm text-gray-600 mb-1">
+            {% for author in article.authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          </p>
+          {% endif %}
+
+          <!-- Venue -->
+          {% if article.venue %}
+          <p class="text-xs text-gray-400 italic mb-2">{{ article.venue }}</p>
+          {% endif %}
+
+          <!-- Keywords -->
+          {% if article.keywords %}
+          <div class="flex flex-wrap gap-1">
+            {% for kw in article.keywords %}
+            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-md">{{ kw }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+        </div>
+
+        <!-- Right: year + link -->
+        <div style="text-align:right;flex-shrink:0;min-width:60px;">
+          {% if article.year %}
+          <p class="text-sm font-semibold text-gray-900">{{ article.year }}</p>
+          {% endif %}
+          {% if article.doi_url %}
+          <a href="{{ article.doi_url }}" target="_blank" rel="noopener"
+             class="inline-block mt-2 text-xs text-blue-600 hover:underline">
+            Открыть →
+          </a>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+      <p class="text-gray-500">Статьи пока не загружены</p>
+    </div>
+    {% endfor %}
+    <!-- Shown by JS when active filters match nothing -->
+    <div id="articles-filter-empty" style="display:none;"
+         class="text-center py-12 bg-white border border-gray-200 rounded-2xl">
+      <p class="text-sm font-medium text-gray-700 mb-1">Нет статей по выбранным критериям</p>
+      <p class="text-xs text-gray-400">Попробуйте изменить год или направление</p>
+    </div>
+  </div>
+
+</div><!-- /tab-panel-articles -->
+
+
+<!-- ================================================================ -->
+<!-- TAB: Сотрудники                                                    -->
+<!-- ================================================================ -->
+<div id="tab-panel-staff" style="display:none;">
+
+  <p class="text-sm text-gray-500 mb-5">
+    Научные сотрудники и преподаватели НИУ ВШЭ.
+    <span class="text-gray-400">Данные будут загружены из внешнего источника.</span>
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+    {% for person in sample_staff %}
+    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all flex flex-col gap-3">
+
+      <!-- Avatar placeholder + name -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <span class="text-sm font-bold text-blue-600">
+            {{ person.name|slice:":1" }}
+          </span>
+        </div>
+        <div style="min-width:0;">
+          <p class="text-sm font-semibold text-gray-900 truncate">{{ person.name }}</p>
+          {% if person.position %}
+          <p class="text-xs text-gray-500 truncate">{{ person.position }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Department -->
+      {% if person.department %}
+      <p class="text-xs text-gray-500 leading-snug">{{ person.department }}</p>
+      {% endif %}
+
+      <!-- Research areas -->
+      {% if person.research_areas %}
+      <div class="flex flex-wrap gap-1">
+        {% for area in person.research_areas %}
+        <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-md">{{ area }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Footer: works count + link -->
+      <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+        {% if person.works_count %}
+        <span class="text-xs text-gray-400">{{ person.works_count }} публикаций</span>
+        {% else %}
+        <span></span>
+        {% endif %}
+        {% if person.profile_url %}
+        <a href="{{ person.profile_url }}" target="_blank" rel="noopener"
+           class="text-xs text-blue-600 hover:underline">Профиль →</a>
+        {% endif %}
+      </div>
+
+    </div>
+    {% empty %}
+    <div class="text-center py-16 bg-white border border-gray-200 rounded-2xl col-span-full">
+      <p class="text-gray-500">Данные о сотрудниках пока не загружены</p>
+    </div>
+    {% endfor %}
+  </div>
+
+</div><!-- /tab-panel-staff -->
+
+
+<!-- ================================================================ -->
+<!-- TAB: Граф соавторства                                           -->
+<!-- ================================================================ -->
+<div id="tab-panel-graph" style="display:none;">
+
+  <p class="text-sm text-gray-500 mb-2">
+    Граф соавторства по научным публикациям.
+    Узел — автор, ребро — совместная публикация.
+    Размер узла пропорционален числу публикаций в выборке.
+  </p>
+  <p class="text-xs text-gray-400 mb-5">
+    Данные демонстрационные. После подключения faculty service граф будет построен по реальным публикациям НИУ ВШЭ.
+  </p>
+
+  <!-- Legend -->
+  <div class="flex items-center gap-4 mb-4 flex-wrap">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-4 h-4 rounded-full bg-blue-200 border-2 border-blue-500"></span>
+      <span class="text-xs text-gray-500">Автор</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-6 border-t-2 border-gray-300"></span>
+      <span class="text-xs text-gray-500">Совместная публикация</span>
+    </div>
+    <span class="text-xs text-gray-400">Наведите на узел или ребро для подсказки</span>
+  </div>
+
+  <!-- Graph canvas -->
+  <div id="vis-graph-container"
+       style="height:500px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;"></div>
+
+  <!-- Stats -->
+  <div class="flex gap-6 mt-4">
+    <div class="text-center">
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-nodes">—</p>
+      <p class="text-xs text-gray-500">авторов</p>
+    </div>
+    <div class="text-center">
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-edges">—</p>
+      <p class="text-xs text-gray-500">связей</p>
+    </div>
+    <div class="text-center">
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-articles">{{ sample_articles|length }}</p>
+      <p class="text-xs text-gray-500">публикаций в выборке</p>
+    </div>
+  </div>
+
+</div><!-- /tab-panel-graph -->
+
+
+<!-- Vis.js Network (CDN) — загружается один раз, используется только при открытии вкладки Граф -->
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
+<!-- Tab switching JS -->
+<script>
+var _graphInitialized = false;
+
+function _initGraph() {
+  if (_graphInitialized) return;
+  _graphInitialized = true;
+
+  var rawNodes = {{ graph_nodes_json|safe }};
+  var rawEdges = {{ graph_edges_json|safe }};
+
+  document.getElementById('graph-stat-nodes').textContent = rawNodes.length;
+  document.getElementById('graph-stat-edges').textContent = rawEdges.length;
+
+  var container = document.getElementById('vis-graph-container');
+  var data = {
+    nodes: new vis.DataSet(rawNodes),
+    edges: new vis.DataSet(rawEdges),
+  };
+  var options = {
+    nodes: {
+      shape: 'dot',
+      scaling: { min: 16, max: 42, label: { enabled: true, min: 11, max: 16 } },
+      font: { size: 12, face: 'Arial', color: '#374151' },
+      borderWidth: 2,
+      color: {
+        background: '#dbeafe',
+        border:     '#3b82f6',
+        highlight:  { background: '#bfdbfe', border: '#1d4ed8' },
+        hover:      { background: '#eff6ff', border: '#2563eb' },
+      },
+    },
+    edges: {
+      color: { color: '#cbd5e1', highlight: '#64748b', hover: '#94a3b8' },
+      smooth: { type: 'continuous' },
+      scaling: { min: 1, max: 6 },
+    },
+    physics: {
+      stabilization: { iterations: 300 },
+      barnesHut: { gravitationalConstant: -6000, springLength: 120 },
+    },
+    interaction: { hover: true, tooltipDelay: 150 },
+  };
+  new vis.Network(container, data, options);
+}
+
+/* ── Article filtering ──────────────────────────────────────────── */
+window.filterArticles = function() {
+  var year = (document.getElementById('article-year-filter') || {}).value || '';
+  var dir  = (document.getElementById('article-dir-filter')  || {}).value || '';
+  var cards = document.querySelectorAll('#articles-list .article-card');
+  var visible = 0;
+  cards.forEach(function(card) {
+    var show = (!year || card.dataset.year === year) &&
+               (!dir  || card.dataset.direction === dir);
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  var empty = document.getElementById('articles-filter-empty');
+  if (empty) empty.style.display = (visible === 0 && cards.length > 0) ? '' : 'none';
+};
+
+function switchTab(tab) {
+  var tabs = ['projects', 'articles', 'staff', 'graph'];
+  tabs.forEach(function(t) {
+    var panel = document.getElementById('tab-panel-' + t);
+    var btn   = document.getElementById('tab-btn-' + t);
+    if (t === tab) {
+      panel.style.display = '';
+      btn.classList.add('bg-gray-100', 'text-gray-900', 'font-medium');
+      btn.classList.remove('text-gray-500', 'hover:text-gray-700');
+    } else {
+      panel.style.display = 'none';
+      btn.classList.remove('bg-gray-100', 'text-gray-900', 'font-medium');
+      btn.classList.add('text-gray-500', 'hover:text-gray-700');
+    }
+  });
+  // Initialize graph on first open
+  if (tab === 'graph') { _initGraph(); }
+
+  // Reflect active tab in URL without reload
+  var url = new URL(window.location);
+  if (tab !== 'projects') {
+    url.searchParams.set('tab', tab);
+  } else {
+    url.searchParams.delete('tab');
+  }
+  history.replaceState(null, '', url);
+}
+
+// Restore active tab from URL on load
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var tab = params.get('tab');
+  if (tab && document.getElementById('tab-panel-' + tab)) {
+    switchTab(tab);
+  }
+})();
+</script>
 
 {% endblock %}
