@@ -12,6 +12,7 @@ from .applications import (
 )
 from .auth import (
     auth_view,
+    error_403,
     error_404,
     error_500,
     logout_view,
@@ -38,6 +39,7 @@ __all__ = [
     "verify_email_view",
     "resend_email_code_view",
     "logout_view",
+    "error_403",
     "error_404",
     "error_500",
     # projects
