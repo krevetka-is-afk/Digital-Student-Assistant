@@ -199,15 +199,22 @@
     tags.forEach(function(tag, i) {
       var chip = document.createElement('span');
       chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:500;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;';
-      chip.innerHTML =
-        tag +
-        '<button type="button" data-i="' + i + '" ' +
-        'style="background:none;border:none;cursor:pointer;color:#60a5fa;font-size:14px;line-height:1;padding:0 0 0 2px;" ' +
-        'title="Удалить">×</button>';
-      chip.querySelector('button').addEventListener('click', function() {
+
+      var tagText = document.createTextNode(tag);
+      chip.appendChild(tagText);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.dataset.i = String(i);
+      removeBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#60a5fa;font-size:14px;line-height:1;padding:0 0 0 2px;';
+      removeBtn.title = 'Удалить';
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', function() {
         tags.splice(parseInt(this.dataset.i), 1);
         render(); sync();
       });
+      chip.appendChild(removeBtn);
+
       chipsEl.appendChild(chip);
     });
   }
