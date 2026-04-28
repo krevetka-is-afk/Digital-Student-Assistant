@@ -1,28 +1,28 @@
 # 4. Технические ограничения и инфраструктура
 
-Актуализировано: 2026-04-28.
+Актуализировано: 2026-04-29.
 
-## Runtime constraints
+## Ограничения контура выполнения
 
-- Основной backend/frontend runtime: Django + DRF + Django templates в `src/web`.
-- ML и graph реализованы отдельными FastAPI reference services.
-- Production-target БД: PostgreSQL.
-- Локальные тесты и release gate могут использовать SQLite, кроме graph projection сценариев.
+- Основной веб-контур: Django + DRF + Django templates в `src/web`.
+- ML и graph реализованы как отдельные эталонные FastAPI-сервисы.
+- Целевая база данных для production: PostgreSQL.
+- Локальные тесты и release gate могут использовать SQLite, кроме сценариев graph projection.
 - Graph projection использует Neo4j.
 - Контейнеризация: Docker Compose; основные compose-файлы лежат в `infra/`.
 
-## Integration constraints
+## Интеграционные ограничения
 
-- `web` является source of truth; downstream-сервисы не должны читать внутреннюю БД напрямую.
-- Синхронизация ML/graph/faculty consumers идет через outbox API, snapshot, ack/checkpoint/replay.
-- External ML считается usable только при валидном `mode=semantic`; иначе используется keyword fallback.
+- `web` является источником правды; внешние сервисы не должны читать внутреннюю базу данных напрямую.
+- Синхронизация ML, graph и faculty-сервисов выполняется через outbox API, snapshot, ack/checkpoint/replay.
+- Внешний ML-сервис считается пригодным для использования только при корректном `mode=semantic`; иначе используется резервный поиск по ключевым словам.
 
-## Auth constraints
+## Ограничения аутентификации
 
-- Основной текущий режим: локальная аутентификация с email verification.
-- Service-to-service доступ к outbox endpoints выполняется через bearer machine tokens.
+- Основной текущий режим: локальная аутентификация с подтверждением адреса электронной почты.
+- Доступ service-to-service к методам outbox выполняется через bearer machine tokens.
 
-## Deployment constraints
+## Ограничения развертывания
 
-- Production/staging topology задается compose-файлами и deployment scripts в инфраструктурном контуре.
-- Автоматический backup покрывает PostgreSQL.
+- Топология production/staging задается compose-файлами и сценариями развертывания в инфраструктурном контуре.
+- Автоматическое резервное копирование покрывает PostgreSQL.
