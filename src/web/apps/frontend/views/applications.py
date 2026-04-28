@@ -7,7 +7,6 @@ from apps.users.models import UserRole
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -39,15 +38,13 @@ def apply_to_project(request, pk):
     if not _project_accepts_applications(project):
         return HttpResponseBadRequest("Project is not accepting applications.")
 
-    try:
-        with transaction.atomic():
-            existing, _ = Application.objects.get_or_create(
-                project=project,
-                applicant=request.user,
-                defaults={"status": ApplicationStatus.SUBMITTED},
-            )
-    except IntegrityError:
-        existing = Application.objects.get(project=project, applicant=request.user)
+    existing = Application.objects.filter(project=project, applicant=request.user).first()
+    if not existing:
+        existing = Application.objects.create(
+            project=project,
+            applicant=request.user,
+            status=ApplicationStatus.SUBMITTED,
+        )
 
     ctx = {
         "project":           project,
@@ -68,21 +65,19 @@ def submit_application(request, pk):
     Submit application with motivation text from project detail modal.
     Returns HTMX partial that replaces the apply action area.
     """
-    try:
-        project_pk = int(pk)
-    except (TypeError, ValueError):
-        return HttpResponseBadRequest("Invalid project id.")
-
     if not request.user.is_authenticated:
         if request.headers.get("HX-Request"):
+            # HTMX: instruct client to redirect
             response = HttpResponse(status=204)
-            response["HX-Redirect"] = f"/auth/?next=/projects/{project_pk}/"
+            response["HX-Redirect"] = f"/auth/?next=/projects/{pk}/"
             return response
-        return redirect(f"/auth/?next=/projects/{project_pk}/")
+        # fetch() call from the shared apply modal — return JSON so JS can handle it cleanly
+        from django.http import JsonResponse
+        return JsonResponse({"error": "unauthenticated", "redirect": "/auth/"}, status=401)
     if not has_any_role(request.user, allowed={UserRole.STUDENT}, allow_staff=False):
         return HttpResponseBadRequest("Подавать заявки могут только студенты.")
 
-    project = get_object_or_404(Project, pk=project_pk)
+    project = get_object_or_404(Project, pk=pk)
 
     if not _project_accepts_applications(project):
         return HttpResponseBadRequest("Project is not accepting applications.")
@@ -98,10 +93,9 @@ def submit_application(request, pk):
         },
     )
 
-    if created:
-        toast_msg = "Заявка успешно отправлена!"
-    else:
-        toast_msg = "Вы уже подавали заявку на этот проект."
+    toast_msg = (
+        "Заявка успешно отправлена!" if created else "Вы уже подавали заявку на этот проект."
+    )
     toast_type = "success" if created else "info"
 
     # source=card   → compact button partial (project list cards)
@@ -136,36 +130,9 @@ def submit_application(request, pk):
 
 @login_required(login_url="/auth/")
 def application_list(request):
-    page_number   = request.GET.get("page", 1)
-    status_filter = request.GET.get("status", "").strip()
-
-    queryset = (
-        Application.objects
-        .filter(applicant=request.user)
-        .select_related("project", "project__owner")
-        .order_by("-created_at")
-    )
-
-    if status_filter:
-        queryset = queryset.filter(status=status_filter)
-
-    paginator = Paginator(queryset, PAGE_SIZE)
-    page_obj  = paginator.get_page(page_number)
-
-    base_qs = Application.objects.filter(applicant=request.user)
-    context = {
-        "page_obj":          page_obj,
-        "status_filter":     status_filter,
-        "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
-        "total_count":       base_qs.count(),
-        "counts": {
-            "submitted": base_qs.filter(status=ApplicationStatus.SUBMITTED).count(),
-            "accepted":  base_qs.filter(status=ApplicationStatus.ACCEPTED).count(),
-            "rejected":  base_qs.filter(status=ApplicationStatus.REJECTED).count(),
-        },
-    }
-    return render(request, "frontend/application_list.html", context)
+    """Legacy standalone page — redirect to the Applications tab in /projects/."""
+    from django.urls import reverse
+    return redirect(reverse("frontend:project_list") + "?tab=applications")
 
 
 # ---------------------------------------------------------------------------
