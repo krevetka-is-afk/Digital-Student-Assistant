@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load frontend_extras %}
+
+{% block title %}Предложить инициативный проект — Digital Student Assistant{% endblock %}
+
+{% block extra_head %}
+<style>
+  .field-error { color: #dc2626; font-size: 0.75rem; margin-top: 4px; }
+  .tag-chip { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#eff6ff;color:#1d4ed8;border-radius:9999px;font-size:0.75rem;font-weight:500;cursor:pointer;border:1px solid #bfdbfe; }
+  .tag-chip:hover { background:#dbeafe; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="mb-6">
+  <a href="{% url 'frontend:project_list' %}"
+     class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Проекты
+  </a>
+</div>
+
+<div class="max-w-2xl">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-xl font-semibold text-gray-900">Инициативный проект</h1>
+    <p class="mt-1 text-sm text-gray-500">
+      Опишите идею своего проекта — что вы хотите сделать и с помощью каких технологий.
+      После отправки он попадёт на проверку к модератору.
+    </p>
+  </div>
+
+  <!-- Info banner -->
+  <div class="flex items-start gap-3 px-4 py-3 bg-blue-50 border border-blue-100 rounded-lg mb-8">
+    <svg class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-blue-700">
+      Модераторы рассматривают заявки и могут одобрить проект или попросить доработать.
+      Руководитель — необязательное поле: если у вас уже есть куратор, укажите его имя.
+    </p>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Title -->
+    <div class="mb-5">
+      <label for="id_title" class="block text-sm font-medium text-gray-700 mb-1">
+        Название проекта <span class="text-red-500">*</span>
+      </label>
+      <input type="text" id="id_title" name="title"
+             value="{{ form.title.value|default:'' }}"
+             placeholder="Например: Система мониторинга качества воздуха"
+             maxlength="255"
+             class="w-full px-3 py-2 text-sm border {% if form.title.errors %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+      {% for error in form.title.errors %}
+        <p class="field-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- Description -->
+    <div class="mb-5">
+      <label for="id_description" class="block text-sm font-medium text-gray-700 mb-1">
+        Описание <span class="text-red-500">*</span>
+      </label>
+      <p class="text-xs text-gray-400 mb-2">Опишите идею, цели проекта и что именно планируете создать</p>
+      <textarea id="id_description" name="description" rows="6"
+                placeholder="Мой проект направлен на… Планирую реализовать… Результатом станет…"
+                class="w-full px-3 py-2 text-sm border {% if form.description.errors %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-colors"
+                style="font-family:inherit;line-height:1.6;min-height:140px;">{{ form.description.value|default:'' }}</textarea>
+      {% for error in form.description.errors %}
+        <p class="field-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- Tech tags -->
+    <div class="mb-5">
+      <label for="id_tech_tags_raw" class="block text-sm font-medium text-gray-700 mb-1">
+        Технологии
+      </label>
+      <p class="text-xs text-gray-400 mb-2">Введите через запятую: Python, Django, React…</p>
+      <input type="text" id="id_tech_tags_raw" name="tech_tags_raw"
+             value="{{ tags_initial }}"
+             placeholder="Python, FastAPI, PostgreSQL"
+             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+             oninput="renderTagPreview(this)">
+      <div id="tag-preview" class="flex flex-wrap gap-1 mt-2"></div>
+    </div>
+
+    <!-- Team size + Supervisor row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+
+      <!-- Team size -->
+      <div>
+        <label for="id_team_size" class="block text-sm font-medium text-gray-700 mb-1">
+          Размер команды <span class="text-red-500">*</span>
+        </label>
+        <p class="text-xs text-gray-400 mb-2">Включая вас</p>
+        <input type="number" id="id_team_size" name="team_size"
+               value="{{ form.team_size.value|default:'1' }}"
+               min="1" max="10"
+               class="w-full px-3 py-2 text-sm border {% if form.team_size.errors %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+        {% for error in form.team_size.errors %}
+          <p class="field-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      <!-- Supervisor -->
+      <div>
+        <label for="id_supervisor_name" class="block text-sm font-medium text-gray-700 mb-1">
+          Желаемый руководитель
+          <span class="text-gray-400 font-normal">(необязательно)</span>
+        </label>
+        <p class="text-xs text-gray-400 mb-2">ФИО научного руководителя, если он уже известен</p>
+        <input type="text" id="id_supervisor_name" name="supervisor_name"
+               value="{{ form.supervisor_name.value|default:'' }}"
+               placeholder="Иванов Иван Иванович"
+               maxlength="255"
+               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+      </div>
+
+    </div>
+
+    <!-- Submit -->
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit"
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+        Отправить на проверку
+      </button>
+      <a href="{% url 'frontend:project_list' %}"
+         class="px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+        Отмена
+      </a>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ── Tag preview chips ────────────────────────────────────────── */
+  function renderTagPreview(input) {
+    var preview = document.getElementById('tag-preview');
+    var raw = input.value;
+    var tags = raw.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+    preview.innerHTML = tags.map(function(t) {
+      return '<span class="tag-chip">' + escapeHtml(t) + '</span>';
+    }).join('');
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* Render initial value on load */
+  var inp = document.getElementById('id_tech_tags_raw');
+  if (inp && inp.value) renderTagPreview(inp);
+</script>
+{% endblock %}

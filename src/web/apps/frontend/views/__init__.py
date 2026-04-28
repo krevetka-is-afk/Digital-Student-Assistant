@@ -19,12 +19,15 @@ from .auth import (
 from .moderation import moderate_project_decide, moderation_list
 from .profile import profile_view
 from .projects import (
+    initiative_project_create,
     project_create,
     project_delete,
     project_detail,
     project_edit,
     project_list,
     project_submit_moderation,
+    recommendations_view,
+    toggle_bookmark,
 )
 
 __all__ = [
@@ -42,6 +45,9 @@ __all__ = [
     "project_edit",
     "project_submit_moderation",
     "project_delete",
+    "recommendations_view",
+    "toggle_bookmark",
+    "initiative_project_create",
     # applications
     "apply_to_project",
     "submit_application",

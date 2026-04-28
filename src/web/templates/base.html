@@ -96,13 +96,7 @@
           </a>
 
           {% if user.is_authenticated %}
-            <!-- STUDENT: Мои заявки -->
-            {% if role == "student" or role == "" %}
-            <a href="{% url 'frontend:application_list' %}"
-               class="px-3 py-1 rounded-md transition-colors {% if request.resolver_match.url_name == 'application_list' %}text-gray-900 bg-gray-100{% else %}text-gray-500 hover:text-gray-900 hover:bg-gray-100{% endif %}">
-              Мои заявки
-            </a>
-            {% endif %}
+            <!-- STUDENT nav items moved into Projects page tabs -->
 
             <!-- CUSTOMER only: Создать проект -->
             {% if role == "customer" %}

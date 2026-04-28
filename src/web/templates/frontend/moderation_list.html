@@ -39,14 +39,27 @@
                class="text-base font-semibold text-gray-900 hover:text-blue-600 transition-colors">
               {{ project.title }}
             </a>
+            {% if project.source_type == "initiative" %}
+            <span class="px-2 py-0.5 text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-full">
+              Инициативный
+            </span>
+            {% endif %}
           </div>
           <div class="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
             <span>
-              Владелец:
+              {% if project.source_type == "initiative" %}Студент{% else %}Владелец{% endif %}:
               <span class="text-gray-600 font-medium">
-                {{ project.owner.get_full_name|default:project.owner.username }}
+                {% if project.owner %}
+                  {{ project.owner.get_full_name|default:project.owner.username }}
+                {% else %}
+                  Не назначен
+                {% endif %}
               </span>
             </span>
+            {% if project.supervisor_name %}
+            <span class="text-gray-200">·</span>
+            <span>Руководитель: <span class="text-gray-600 font-medium">{{ project.supervisor_name }}</span></span>
+            {% endif %}
             <span class="text-gray-200">·</span>
             <span>Команда: <span class="text-gray-600 font-medium">{{ project.team_size }} чел.</span></span>
             <span class="text-gray-200">·</span>

@@ -122,13 +122,40 @@
           {% elif applications_count >= 2 and applications_count <= 4 %}Заявки подано
           {% else %}Заявок подано{% endif %}
         </p>
-        {% if applications_count > 0 %}
-        <a href="{% url 'frontend:application_list' %}"
+        <a href="{% url 'frontend:project_list' %}?tab=applications"
            class="text-xs text-blue-600 hover:underline mt-2 inline-block">
           Мои заявки →
         </a>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ bookmarks_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if bookmarks_count == 1 %}Закладка
+          {% elif bookmarks_count >= 2 and bookmarks_count <= 4 %}Закладки
+          {% else %}Закладок{% endif %}
+        </p>
+        {% if bookmarks_count > 0 %}
+        <a href="{% url 'frontend:project_list' %}?tab=bookmarks"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Закладки →
+        </a>
         {% endif %}
       </div>
+
+      {% if initiative_count %}
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <p class="text-2xl font-bold text-gray-900">{{ initiative_count }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if initiative_count == 1 %}Инициативный проект
+          {% else %}Инициативных проекта{% endif %}
+        </p>
+        <a href="{% url 'frontend:project_list' %}?tab=applications"
+           class="text-xs text-blue-600 hover:underline mt-2 inline-block">
+          Посмотреть →
+        </a>
+      </div>
+      {% endif %}
       {% endif %}
 
       {% if role == 'cpprp' %}
@@ -171,13 +198,20 @@
         {% endif %}
 
         {% if role == 'student' %}
-        <a href="{% url 'frontend:application_list' %}"
+        <a href="{% url 'frontend:project_list' %}?tab=applications"
            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round"
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
           Мои заявки
+        </a>
+        <a href="{% url 'frontend:initiative_project_create' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Предложить проект
         </a>
         <a href="{% url 'frontend:project_list' %}"
            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors">

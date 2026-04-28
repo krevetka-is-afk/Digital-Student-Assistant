@@ -19,174 +19,604 @@
   .scroll-x::-webkit-scrollbar { height: 4px; }
   .scroll-x::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
   .scroll-x::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+
+  /* Tab bar */
+  .proj-tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    color: #6b7280;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .proj-tab:hover { color: #374151; }
+  .proj-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+  /* Bookmark button hover */
+  .bookmark-btn:hover .bm-icon-outline { color: #facc15; }
+
+  /* Application filter buttons */
+  .app-filter-btn { background: #f3f4f6; color: #6b7280; border: none; cursor: pointer; }
+  .app-filter-btn:hover { background: #e5e7eb; color: #374151; }
+  .app-filter-active { background: #eff6ff !important; color: #2563eb !important; }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <!-- Page header -->
-<div class="mb-6">
-  <h1 class="text-xl font-semibold text-gray-900">Проекты</h1>
-  <p class="mt-1 text-sm text-gray-500">Найдите проект и присоединитесь к команде</p>
+<div class="flex items-start justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-xl font-semibold text-gray-900">Проекты</h1>
+    <p class="mt-1 text-sm text-gray-500">Найдите проект и присоединитесь к команде</p>
+  </div>
+  {% if show_recs_tab %}
+  <a href="{% url 'frontend:initiative_project_create' %}"
+     class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    Предложить проект
+  </a>
+  {% endif %}
 </div>
 
-<!-- Search + Filters row -->
-<div class="flex flex-col sm:flex-row gap-3 mb-8">
+<!-- Tab switcher (authenticated users) -->
+{% if show_recs_tab or show_bookmarks_tab %}
+<div style="display:flex;border-bottom:2px solid #e5e7eb;margin-bottom:1.5rem;">
+  <button id="tab-btn-catalog"   class="proj-tab active" onclick="switchProjectTab('catalog')">Все проекты</button>
+  {% if show_recs_tab %}
+  <button id="tab-btn-recs"      class="proj-tab"        onclick="switchProjectTab('recs')">Рекомендации</button>
+  {% endif %}
+  {% if show_bookmarks_tab %}
+  <button id="tab-btn-bookmarks" class="proj-tab"        onclick="switchProjectTab('bookmarks')">
+    Закладки
+    {% if bookmark_projects %}
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:1.1rem;height:1.1rem;border-radius:9999px;background:#2563eb;color:#fff;font-size:0.65rem;font-weight:700;margin-left:4px;">{{ bookmark_projects|length }}</span>
+    {% endif %}
+  </button>
+  {% endif %}
+  {% if show_applications_tab %}
+  <button id="tab-btn-applications" class="proj-tab"    onclick="switchProjectTab('applications')">
+    Мои заявки
+    {% if app_counts.submitted %}
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:1.1rem;height:1.1rem;border-radius:9999px;background:#d97706;color:#fff;font-size:0.65rem;font-weight:700;margin-left:4px;">{{ app_counts.submitted }}</span>
+    {% endif %}
+  </button>
+  {% endif %}
+</div>
+{% endif %}
 
-  <!-- Search input -->
-  <div class="relative flex-1" style="max-width: 32rem;">
-    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-      <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 5.5 5.5a7.5 7.5 0 0 0 10.65 10.65z" />
-      </svg>
-    </div>
-    <input
-      id="search-input"
-      type="search"
-      name="q"
-      value="{{ query }}"
-      placeholder="Поиск проектов..."
-      autocomplete="off"
-      hx-get="/projects/"
-      hx-target="#projects-section"
-      hx-trigger="input delay:350ms, search"
-      hx-include="#filter-form"
-      hx-push-url="true"
-      class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-    />
-    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 htmx-indicator" id="search-spinner">
-      <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-      </svg>
-    </div>
-  </div>
+<!-- ══════════════════════ CATALOG PANEL ══════════════════════ -->
+<div id="tab-panel-catalog">
 
-  <!-- Filters -->
-  <form id="filter-form"
+  <!-- Search + Filters row -->
+  <div class="flex flex-col sm:flex-row gap-3 mb-8">
+
+    <!-- Search input -->
+    <div class="relative flex-1" style="max-width: 32rem;">
+      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 5.5 5.5a7.5 7.5 0 0 0 10.65 10.65z" />
+        </svg>
+      </div>
+      <input
+        id="search-input"
+        type="search"
+        name="q"
+        value="{{ query }}"
+        placeholder="Поиск проектов..."
+        autocomplete="off"
         hx-get="/projects/"
         hx-target="#projects-section"
-        hx-trigger="change"
-        hx-include="#search-input"
+        hx-trigger="input delay:350ms, search"
+        hx-include="#filter-form"
         hx-push-url="true"
-        class="flex items-center gap-2 flex-wrap">
-
-    <!-- Tech tags dropdown -->
-    <div class="relative">
-      <button type="button"
-              onclick="this.parentElement.querySelector('.tag-dropdown').classList.toggle('hidden')"
-              class="inline-flex items-center gap-1 px-3 py-2 text-sm border rounded-lg bg-white transition-colors {% if tech_tags_filter %}border-blue-500 text-blue-600 bg-blue-50{% else %}border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900{% endif %}">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+        class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+      />
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 htmx-indicator" id="search-spinner">
+        <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
         </svg>
-        Технологии
-        {% if tech_tags_filter %}
-          <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-xs font-bold">{{ tech_tags_filter|length }}</span>
-        {% endif %}
-        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      <div class="tag-dropdown hidden absolute left-0 top-full mt-1 z-20 w-56 bg-white border border-gray-200 rounded-xl shadow-lg p-2">
-        {% if all_tags %}
-          {% for tag in all_tags %}
-            <label class="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700">
-              <input type="checkbox" name="tech_tags" value="{{ tag }}"
-                     {% if tag in tech_tags_filter %}checked{% endif %}
-                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                     onchange="this.closest('form').dispatchEvent(new Event('change'))">
-              {{ tag }}
-            </label>
-          {% endfor %}
-        {% else %}
-          <p class="px-2 py-1 text-xs text-gray-400">Нет доступных тегов</p>
-        {% endif %}
       </div>
     </div>
 
-    <!-- Team size -->
-    <select name="team_size"
-            class="px-3 py-2 text-sm border rounded-lg bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {% if team_size_filter %}border-blue-500 text-blue-600{% else %}border-gray-200 text-gray-600 hover:border-gray-300{% endif %}">
-      <option value="">Размер команды</option>
-      {% for n in "12345"|make_list %}
-        <option value="{{ n }}" {% if team_size_filter == n %}selected{% endif %}>{{ n }} чел.</option>
-      {% endfor %}
-      <option value="6" {% if team_size_filter == "6" %}selected{% endif %}>6+ чел.</option>
-    </select>
+    <!-- Filters -->
+    <form id="filter-form"
+          hx-get="/projects/"
+          hx-target="#projects-section"
+          hx-trigger="change"
+          hx-include="#search-input"
+          hx-push-url="true"
+          class="flex items-center gap-2 flex-wrap">
 
-    {% if is_filtered %}
-      <a href="/projects/" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-        Сбросить
-      </a>
-    {% endif %}
+      <!-- Tech tags dropdown -->
+      <div class="relative">
+        <button type="button"
+                onclick="this.parentElement.querySelector('.tag-dropdown').classList.toggle('hidden')"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm border rounded-lg bg-white transition-colors {% if tech_tags_filter %}border-blue-500 text-blue-600 bg-blue-50{% else %}border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900{% endif %}">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          Технологии
+          {% if tech_tags_filter %}
+            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-xs font-bold">{{ tech_tags_filter|length }}</span>
+          {% endif %}
+          <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-  </form>
-</div>
-
-<!-- Recommended section -->
-{% if recommended and not is_filtered %}
-<section class="mb-10">
-  <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Рекомендуемые</h2>
-
-  <div class="scroll-x flex gap-4" style="margin: 0 -4px; padding: 4px;">
-    {% for project in recommended %}
-      <article class="flex-shrink-0 w-72 bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-2 hover:border-gray-300 hover:shadow-sm transition-all" style="transition-duration: 150ms;">
-
-        <div class="flex items-start justify-between gap-2">
-          <a href="/projects/{{ project.pk }}/"
-             class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2">
-            {{ project.title }}
-          </a>
-          {% if project.status == ProjectStatus.STAFFED %}
-            <span class="flex-shrink-0 text-xs text-gray-400 bg-gray-100 px-2 py-0 rounded-full" style="padding-top:2px;padding-bottom:2px;">Закрыт</span>
+        <div class="tag-dropdown hidden absolute left-0 top-full mt-1 z-20 w-56 bg-white border border-gray-200 rounded-xl shadow-lg p-2">
+          {% if all_tags %}
+            {% for tag in all_tags %}
+              <label class="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700">
+                <input type="checkbox" name="tech_tags" value="{{ tag }}"
+                       {% if tag in tech_tags_filter %}checked{% endif %}
+                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                       onchange="this.closest('form').dispatchEvent(new Event('change'))">
+                {{ tag }}
+              </label>
+            {% endfor %}
           {% else %}
-            <span class="flex-shrink-0 text-xs text-green-700 bg-green-50 px-2 rounded-full" style="padding-top:2px;padding-bottom:2px;">Открыт</span>
+            <p class="px-2 py-1 text-xs text-gray-400">Нет доступных тегов</p>
           {% endif %}
         </div>
+      </div>
 
-        <p class="text-xs text-gray-500 leading-relaxed line-clamp-2 flex-1">
-          {{ project.description|default:"—" }}
-        </p>
+      <!-- Team size -->
+      <select name="team_size"
+              class="px-3 py-2 text-sm border rounded-lg bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {% if team_size_filter %}border-blue-500 text-blue-600{% else %}border-gray-200 text-gray-600 hover:border-gray-300{% endif %}">
+        <option value="">Размер команды</option>
+        {% for n in "12345"|make_list %}
+          <option value="{{ n }}" {% if team_size_filter == n %}selected{% endif %}>{{ n }} чел.</option>
+        {% endfor %}
+        <option value="6" {% if team_size_filter == "6" %}selected{% endif %}>6+ чел.</option>
+      </select>
 
-        {% if project.tech_tags %}
-          <div class="flex flex-wrap gap-1">
-            {% for tag in project.tech_tags|slice:":3" %}
-              <span class="px-2 rounded text-xs bg-gray-100 text-gray-600" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
-            {% endfor %}
-          </div>
-        {% endif %}
+      {% if is_filtered %}
+        <a href="/projects/" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+          Сбросить
+        </a>
+      {% endif %}
 
-        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-          <span class="text-xs text-gray-400">
-            {{ project.accepted_participants_count }}&thinsp;/&thinsp;{{ project.team_size }} участников
-          </span>
-          <div class="apply-area" data-project-id="{{ project.pk }}">
-            {% include "frontend/partials/apply_button.html" with application_status=user_applications|get_item:project.pk %}
-          </div>
-        </div>
-
-      </article>
-    {% endfor %}
+    </form>
   </div>
-</section>
-{% endif %}
 
-<!-- All projects -->
-<section>
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-      {% if is_filtered %}Результаты поиска{% else %}Все проекты{% endif %}
-    </h2>
-    {% if page_obj.paginator.count %}
-      <span class="text-xs text-gray-400">{{ page_obj.paginator.count }} проект{{ page_obj.paginator.count|pluralize:",,ов" }}</span>
+  <!-- Interest quick-filters (students with saved interests) -->
+  {% if user_interests %}
+  <div class="mb-5 flex flex-wrap items-center gap-2">
+    <span class="text-xs text-gray-400 font-medium mr-1">Мои интересы:</span>
+    {% for interest in user_interests %}
+      {% if interest in all_tags %}
+        <a href="?tech_tags={{ interest|urlencode }}"
+           class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors
+                  {% if interest in tech_tags_filter %}bg-blue-600 text-white border-blue-600{% else %}bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100{% endif %}">
+          {% if interest in tech_tags_filter %}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          {% endif %}
+          {{ interest }}
+        </a>
+      {% else %}
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400 border border-gray-200">
+          {{ interest }}
+        </span>
+      {% endif %}
+    {% endfor %}
+    {% if tech_tags_filter %}
+    <a href="/projects/" class="text-xs text-gray-400 hover:text-gray-600 underline ml-1">Сбросить</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- All projects -->
+  <section>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        {% if is_filtered %}Результаты поиска{% else %}Все проекты{% endif %}
+      </h2>
+      {% if page_obj.paginator.count %}
+        <span class="text-xs text-gray-400">{{ page_obj.paginator.count }} проект{{ page_obj.paginator.count|pluralize:",,ов" }}</span>
+      {% endif %}
+    </div>
+
+    <div id="projects-section" hx-indicator="#search-spinner">
+      {% include "frontend/partials/projects_grid.html" %}
+    </div>
+  </section>
+
+</div><!-- /tab-panel-catalog -->
+
+<!-- ══════════════════════ RECS PANEL ══════════════════════ -->
+{% if show_recs_tab %}
+<div id="tab-panel-recs" style="display:none;">
+
+  <!-- Mode subtitle + badge -->
+  <div class="flex items-start justify-between gap-4 mb-6">
+    <p class="text-sm text-gray-500">
+      {% if rec_mode == "semantic" %}
+        Подбор на основе ML-анализа ваших интересов
+      {% elif rec_mode %}
+        Подбор по совпадению с вашими интересами
+      {% else %}
+        Новые проекты — добавьте интересы в профиле для персональных рекомендаций
+      {% endif %}
+    </p>
+    {% if rec_mode %}
+      <span class="flex-shrink-0 text-xs px-2 py-1 rounded-full
+        {% if rec_mode == 'semantic' %}bg-blue-50 text-blue-600{% else %}bg-gray-100 text-gray-500{% endif %}">
+        {% if rec_mode == "semantic" %}ML{% else %}по интересам{% endif %}
+      </span>
     {% endif %}
   </div>
 
-  <div id="projects-section" hx-indicator="#search-spinner">
-    {% include "frontend/partials/projects_grid.html" %}
+  <!-- No interests hint -->
+  {% if not has_interests %}
+  <div class="mb-6 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+    У вас не указаны интересы — показаны новые проекты.
+    <a href="{% url 'frontend:profile' %}" class="underline font-medium">Добавить интересы</a>
   </div>
-</section>
+  {% endif %}
+
+  <!-- Recommendations grid -->
+  {% if rec_projects %}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {% for project in rec_projects %}
+        <article class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all" style="transition-duration:150ms;">
+
+          <!-- Title + status -->
+          <div class="flex items-start justify-between gap-2">
+            <a href="{% url 'frontend:project_detail' project.pk %}"
+               class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2">
+              {{ project.title }}
+            </a>
+            {% if project.status == ProjectStatus.STAFFED %}
+              <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-gray-100 text-gray-500" style="padding-top:3px;padding-bottom:3px;">
+                <span class="w-1 h-1 rounded-full bg-gray-400 inline-block"></span>Укомплектован
+              </span>
+            {% else %}
+              <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-green-50 text-green-700" style="padding-top:3px;padding-bottom:3px;">
+                <span class="w-1 h-1 rounded-full bg-green-500 inline-block"></span>Открыт
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- Description -->
+          <p class="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">
+            {{ project.description|default:"Описание не указано." }}
+          </p>
+
+          <!-- Tech tags -->
+          {% if project.tech_tags %}
+            <div class="flex flex-wrap gap-1">
+              {% for tag in project.tech_tags|slice:":5" %}
+                <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+              {% endfor %}
+              {% if project.tech_tags|length > 5 %}
+                <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-400" style="padding-top:2px;padding-bottom:2px;">+{{ project.tech_tags|length|add:"-5" }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <!-- Recommendation reason -->
+          {% with reason=rec_reasons|get_item:project.pk %}
+            {% if reason %}
+              <p class="text-xs text-blue-500 italic truncate" title="{{ reason }}">{{ reason }}</p>
+            {% endif %}
+          {% endwith %}
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+            <div class="flex items-center gap-1 text-xs text-gray-500">
+              <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>{{ project.accepted_participants_count }}&thinsp;/&thinsp;{{ project.team_size }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              {% include "frontend/partials/bookmark_button.html" with pk=project.pk %}
+              <a href="{% url 'frontend:project_detail' project.pk %}"
+                 class="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                Подробнее
+              </a>
+              <div class="apply-area" data-project-id="{{ project.pk }}">
+                {% include "frontend/partials/apply_button.html" with application_status=rec_user_applications|get_item:project.pk %}
+              </div>
+            </div>
+          </div>
+
+        </article>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+        <svg class="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <p class="text-sm font-medium text-gray-900 mb-1">Нет подходящих проектов</p>
+      <p class="text-xs text-gray-500 mt-1">
+        Попробуйте обновить <a href="{% url 'frontend:profile' %}" class="underline text-blue-600">интересы в профиле</a>
+      </p>
+    </div>
+  {% endif %}
+
+</div><!-- /tab-panel-recs -->
+{% endif %}
+
+<!-- ══════════════════════ BOOKMARKS PANEL ══════════════════════ -->
+{% if show_bookmarks_tab %}
+<div id="tab-panel-bookmarks" style="display:none;">
+
+  {% if bookmark_projects %}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" id="bookmarks-grid">
+      {% for project in bookmark_projects %}
+        <article class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all bookmark-card" data-pk="{{ project.pk }}" style="transition-duration:150ms;">
+
+          <!-- Title + status -->
+          <div class="flex items-start justify-between gap-2">
+            <a href="{% url 'frontend:project_detail' project.pk %}"
+               class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug line-clamp-2">
+              {{ project.title }}
+            </a>
+            {% if project.status == ProjectStatus.STAFFED %}
+              <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-gray-100 text-gray-500" style="padding-top:3px;padding-bottom:3px;">
+                <span class="w-1 h-1 rounded-full bg-gray-400 inline-block"></span>Укомплектован
+              </span>
+            {% else %}
+              <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-green-50 text-green-700" style="padding-top:3px;padding-bottom:3px;">
+                <span class="w-1 h-1 rounded-full bg-green-500 inline-block"></span>Открыт
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- Description -->
+          <p class="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">
+            {{ project.description|default:"Описание не указано." }}
+          </p>
+
+          <!-- Tech tags -->
+          {% if project.tech_tags %}
+            <div class="flex flex-wrap gap-1">
+              {% for tag in project.tech_tags|slice:":5" %}
+                <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+              {% endfor %}
+              {% if project.tech_tags|length > 5 %}
+                <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-400" style="padding-top:2px;padding-bottom:2px;">+{{ project.tech_tags|length|add:"-5" }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+            <div class="flex items-center gap-1 text-xs text-gray-500">
+              <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>{{ project.accepted_participants_count }}&thinsp;/&thinsp;{{ project.team_size }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              {% include "frontend/partials/bookmark_button.html" with pk=project.pk %}
+              <a href="{% url 'frontend:project_detail' project.pk %}"
+                 class="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                Подробнее
+              </a>
+              <div class="apply-area" data-project-id="{{ project.pk }}">
+                {% include "frontend/partials/apply_button.html" with application_status=bookmark_user_applications|get_item:project.pk %}
+              </div>
+            </div>
+          </div>
+
+        </article>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center" id="bookmarks-empty">
+      <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+        <svg class="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        </svg>
+      </div>
+      <p class="text-sm font-medium text-gray-900 mb-1">Нет сохранённых проектов</p>
+      <p class="text-xs text-gray-500">Нажмите на закладку на карточке проекта, чтобы сохранить его</p>
+    </div>
+  {% endif %}
+
+</div><!-- /tab-panel-bookmarks -->
+{% endif %}
+
+<!-- ══════════════════════ APPLICATIONS PANEL ══════════════════════ -->
+{% if show_applications_tab %}
+<div id="tab-panel-applications" style="display:none;">
+
+  <!-- ── Initiative projects sub-section ─────────────────────── -->
+  {% if my_initiative_projects %}
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Инициативные проекты</h3>
+      <a href="{% url 'frontend:initiative_project_create' %}"
+         class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Предложить ещё
+      </a>
+    </div>
+    <div class="space-y-2">
+      {% for proj in my_initiative_projects %}
+      <div class="flex items-center justify-between gap-4 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
+        <div class="flex items-center gap-3 min-w-0">
+          {% if proj.status == "published" %}
+            <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200" style="padding-top:2px;padding-bottom:2px;">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>Одобрен
+            </span>
+          {% elif proj.status == "on_moderation" %}
+            <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200" style="padding-top:2px;padding-bottom:2px;">
+              <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block"></span>На проверке
+            </span>
+          {% elif proj.status == "rejected" %}
+            <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200" style="padding-top:2px;padding-bottom:2px;">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>Отклонён
+            </span>
+          {% endif %}
+          <a href="{% url 'frontend:project_detail' proj.pk %}"
+             class="text-sm font-medium text-gray-900 hover:text-blue-600 truncate transition-colors">
+            {{ proj.title }}
+          </a>
+        </div>
+        <span class="flex-shrink-0 text-xs text-gray-400">{{ proj.created_at|date:"d.m.Y" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── No initiatives CTA (when no apps and no initiatives) ── -->
+  {% if not my_initiative_projects and not my_applications %}
+  {% comment %}handled by empty state below{% endcomment %}
+  {% endif %}
+
+  {% if my_applications %}
+
+    <!-- Status counters -->
+    <div class="flex items-center gap-2 mb-6 flex-wrap">
+      <button onclick="filterApps('')"      id="app-filter-all"       class="app-filter-btn app-filter-active px-3 py-1 rounded-full text-xs font-medium transition-colors">Все <span class="ml-1 opacity-70">{{ app_counts.total }}</span></button>
+      {% if app_counts.submitted %}
+      <button onclick="filterApps('submitted')" id="app-filter-submitted" class="app-filter-btn px-3 py-1 rounded-full text-xs font-medium transition-colors">На рассмотрении <span class="ml-1 opacity-70">{{ app_counts.submitted }}</span></button>
+      {% endif %}
+      {% if app_counts.accepted %}
+      <button onclick="filterApps('accepted')"  id="app-filter-accepted"  class="app-filter-btn px-3 py-1 rounded-full text-xs font-medium transition-colors">Принятые <span class="ml-1 opacity-70">{{ app_counts.accepted }}</span></button>
+      {% endif %}
+      {% if app_counts.rejected %}
+      <button onclick="filterApps('rejected')"  id="app-filter-rejected"  class="app-filter-btn px-3 py-1 rounded-full text-xs font-medium transition-colors">Отклонённые <span class="ml-1 opacity-70">{{ app_counts.rejected }}</span></button>
+      {% endif %}
+    </div>
+
+    <div class="space-y-3" id="applications-list">
+      {% for app in my_applications %}
+      <article class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all app-card" data-status="{{ app.status }}" style="transition-duration:150ms;">
+        <div class="flex items-start justify-between gap-4">
+
+          <div class="flex-1 min-w-0">
+            <!-- Status badge + date -->
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              {% if app.status == ApplicationStatus.ACCEPTED %}
+                <span class="inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200" style="padding-top:2px;padding-bottom:2px;">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Принята
+                </span>
+              {% elif app.status == ApplicationStatus.REJECTED %}
+                <span class="inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200" style="padding-top:2px;padding-bottom:2px;">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Отклонена
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 px-2 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200" style="padding-top:2px;padding-bottom:2px;">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  На рассмотрении
+                </span>
+              {% endif %}
+              <span class="text-xs text-gray-400">{{ app.created_at|date:"d.m.Y" }}</span>
+              {% if app.project.status == "staffed" %}
+                <span class="text-xs text-gray-400">· Команда уже набрана</span>
+              {% endif %}
+            </div>
+
+            <!-- Project title -->
+            <a href="{% url 'frontend:project_detail' app.project.pk %}"
+               class="text-base font-semibold text-gray-900 hover:text-blue-600 transition-colors leading-snug">
+              {{ app.project.title }}
+            </a>
+
+            <!-- Tech tags -->
+            {% if app.project.tech_tags %}
+            <div class="flex flex-wrap gap-1 mt-2">
+              {% for tag in app.project.tech_tags|slice:":4" %}
+                <span class="px-2 rounded text-xs bg-gray-100 text-gray-500" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Motivation preview -->
+            {% if app.motivation %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+              <p class="text-xs text-gray-400 font-medium mb-1">Ваша мотивация</p>
+              <p class="text-sm text-gray-600 leading-relaxed line-clamp-2">{{ app.motivation }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Review comment -->
+            {% if app.status == ApplicationStatus.REJECTED and app.review_comment %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+              <p class="text-xs text-red-500 font-medium mb-1">Комментарий куратора</p>
+              <p class="text-sm text-gray-600 leading-relaxed">{{ app.review_comment }}</p>
+            </div>
+            {% endif %}
+
+            {% if app.status == ApplicationStatus.ACCEPTED %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+              <p class="text-sm text-green-700 font-medium flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Вы приняты в команду этого проекта
+              </p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Right: team info + link -->
+          <div class="flex-shrink-0 flex flex-col items-end gap-3">
+            <div class="text-right">
+              <p class="text-xs text-gray-400">Команда</p>
+              <p class="text-sm font-semibold text-gray-700">{{ app.project.accepted_participants_count }}&thinsp;/&thinsp;{{ app.project.team_size }}</p>
+            </div>
+            <a href="{% url 'frontend:project_detail' app.project.pk %}"
+               class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:border-gray-300 hover:text-gray-700 transition-colors">
+              Проект
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="flex flex-col items-center justify-center py-24 text-center">
+      <div class="flex items-center justify-center rounded-full bg-blue-50 mb-5" style="width:64px;height:64px;">
+        <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/>
+        </svg>
+      </div>
+      <p class="text-base font-semibold text-gray-900 mb-2">У вас пока нет заявок</p>
+      <p class="text-sm text-gray-500 mb-6 max-w-xs">Найдите интересный проект и откликнитесь — ваша заявка появится здесь.</p>
+      <div class="flex flex-col sm:flex-row items-center gap-3">
+        <button onclick="switchProjectTab('catalog')"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+          Смотреть проекты
+        </button>
+        <a href="{% url 'frontend:initiative_project_create' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Предложить свой проект
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+</div><!-- /tab-panel-applications -->
+{% endif %}
 
 {% endblock %}
 
@@ -265,9 +695,7 @@
     document.getElementById('modal-spinner').style.display = 'none';
     document.getElementById('modal-submit-text').style.display = '';
     document.getElementById('shared-apply-modal').style.display = 'flex';
-    setTimeout(function() {
-      document.getElementById('modal-motivation').focus();
-    }, 50);
+    setTimeout(function() { document.getElementById('modal-motivation').focus(); }, 50);
   };
 
   function closeApplyModal() {
@@ -285,12 +713,10 @@
     var spinner    = document.getElementById('modal-spinner');
     var submitText = document.getElementById('modal-submit-text');
 
-    /* Loading state */
     submitBtn.disabled = true;
     spinner.style.display    = 'inline-block';
     submitText.style.display = 'none';
 
-    /* CSRF token from cookie */
     var csrf = '';
     document.cookie.split(';').forEach(function(c) {
       var p = c.trim();
@@ -302,28 +728,32 @@
     body.append('source', 'card');
     body.append('csrfmiddlewaretoken', csrf);
 
-    fetch('/projects/' + pk + '/submit-application/', {
-      method: 'POST',
-      body: body,
-    })
+    fetch('/projects/' + pk + '/submit-application/', { method: 'POST', body: body })
     .then(function(res) {
-      /* Handle HX-Trigger toast */
+      /* Unauthenticated — redirect to login page */
+      if (res.status === 401) {
+        return res.json().then(function(data) {
+          window.location.href = data.redirect || '/auth/';
+        });
+      }
+
       var trigger = res.headers.get('HX-Trigger');
       if (trigger) {
         try {
           var t = JSON.parse(trigger);
-          if (t.showToast && window.showToast) {
-            window.showToast(t.showToast.message, t.showToast.type);
-          }
+          if (t.showToast && window.showToast) window.showToast(t.showToast.message, t.showToast.type);
         } catch (_) {}
       }
-      return res.text();
-    })
-    .then(function(html) {
-      /* Update ALL cards for this project (recommended + grid) */
-      document.querySelectorAll('.apply-area[data-project-id="' + pk + '"]')
-        .forEach(function(el) { el.innerHTML = html; });
-      closeApplyModal();
+
+      if (!res.ok) {
+        throw new Error('server_error');
+      }
+
+      return res.text().then(function(html) {
+        document.querySelectorAll('.apply-area[data-project-id="' + pk + '"]')
+          .forEach(function(el) { el.innerHTML = html; });
+        closeApplyModal();
+      });
     })
     .catch(function() {
       if (window.showToast) window.showToast('Ошибка при отправке заявки', 'error');
@@ -332,5 +762,134 @@
       submitText.style.display = '';
     });
   });
+
+  /* ── Tab switching ────────────────────────────────────────────── */
+  var _panels = ['catalog', 'recs', 'bookmarks', 'applications'];
+
+  function switchProjectTab(tab) {
+    _panels.forEach(function(name) {
+      var panel = document.getElementById('tab-panel-' + name);
+      var btn   = document.getElementById('tab-btn-' + name);
+      if (panel) panel.style.display = (name === tab) ? '' : 'none';
+      if (btn)   btn.classList.toggle('active', name === tab);
+    });
+  }
+
+  /* ── Auto-switch tab from ?tab= URL param ────────────────────── */
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var tab = params.get('tab');
+    if (tab && document.getElementById('tab-panel-' + tab)) {
+      switchProjectTab(tab);
+    }
+  })();
+
+  /* ── Application status filter ───────────────────────────────── */
+  window.filterApps = function(status) {
+    document.querySelectorAll('.app-card').forEach(function(card) {
+      card.style.display = (!status || card.dataset.status === status) ? '' : 'none';
+    });
+    document.querySelectorAll('.app-filter-btn').forEach(function(btn) {
+      btn.classList.remove('app-filter-active');
+    });
+    var activeId = 'app-filter-' + (status || 'all');
+    var activeBtn = document.getElementById(activeId);
+    if (activeBtn) activeBtn.classList.add('app-filter-active');
+  };
+
+  /* ── Bookmark toggle ──────────────────────────────────────────── */
+  function _getCsrf() {
+    var csrf = '';
+    document.cookie.split(';').forEach(function(c) {
+      var p = c.trim();
+      if (p.startsWith('csrftoken=')) csrf = p.slice('csrftoken='.length);
+    });
+    return csrf;
+  }
+
+  function _setBookmarkIcon(btn, bookmarked) {
+    var outline = btn.querySelector('.bm-icon-outline');
+    var filled  = btn.querySelector('.bm-icon-filled');
+    if (outline) outline.style.display = bookmarked ? 'none' : '';
+    if (filled)  filled.style.display  = bookmarked ? '' : 'none';
+    btn.dataset.bookmarked = bookmarked ? 'true' : 'false';
+    btn.title = bookmarked ? 'Убрать из закладок' : 'В закладки';
+  }
+
+  function _updateBookmarksBadge() {
+    var grid  = document.getElementById('bookmarks-grid');
+    var btn   = document.getElementById('tab-btn-bookmarks');
+    if (!btn) return;
+    var count = grid ? grid.querySelectorAll('.bookmark-card').length : 0;
+    var badge = btn.querySelector('span');
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:1.1rem;height:1.1rem;border-radius:9999px;background:#2563eb;color:#fff;font-size:0.65rem;font-weight:700;margin-left:4px;';
+        btn.appendChild(badge);
+      }
+      badge.textContent = count;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  window.toggleBookmark = function(btn) {
+    var pk         = btn.dataset.pk;
+    var wasBookmarked = btn.dataset.bookmarked === 'true';
+
+    /* Optimistic update */
+    document.querySelectorAll('.bookmark-btn[data-pk="' + pk + '"]').forEach(function(b) {
+      _setBookmarkIcon(b, !wasBookmarked);
+    });
+
+    fetch('/projects/' + pk + '/bookmark/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': _getCsrf() },
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      /* Sync all buttons to server truth */
+      document.querySelectorAll('.bookmark-btn[data-pk="' + pk + '"]').forEach(function(b) {
+        _setBookmarkIcon(b, data.bookmarked);
+      });
+
+      /* Remove card from bookmarks panel when unbookmarked */
+      if (!data.bookmarked) {
+        var card = document.querySelector('#tab-panel-bookmarks .bookmark-card[data-pk="' + pk + '"]');
+        if (card) {
+          card.style.transition = 'opacity 0.2s';
+          card.style.opacity = '0';
+          setTimeout(function() {
+            card.remove();
+            _updateBookmarksBadge();
+            /* Show empty state if grid is now empty */
+            var grid = document.getElementById('bookmarks-grid');
+            if (grid && grid.querySelectorAll('.bookmark-card').length === 0) {
+              grid.innerHTML = '';
+              grid.insertAdjacentHTML('afterend',
+                '<div class="flex flex-col items-center justify-center py-20 text-center" id="bookmarks-empty">' +
+                '<div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">' +
+                '<svg class="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>' +
+                '</svg></div>' +
+                '<p class="text-sm font-medium text-gray-900 mb-1">Нет сохранённых проектов</p>' +
+                '<p class="text-xs text-gray-500">Нажмите на закладку на карточке проекта, чтобы сохранить его</p>' +
+                '</div>'
+              );
+              grid.remove();
+            }
+          }, 200);
+        }
+      }
+      _updateBookmarksBadge();
+    })
+    .catch(function() {
+      /* Revert optimistic update on error */
+      document.querySelectorAll('.bookmark-btn[data-pk="' + pk + '"]').forEach(function(b) {
+        _setBookmarkIcon(b, wasBookmarked);
+      });
+    });
+  };
 </script>
 {% endblock %}

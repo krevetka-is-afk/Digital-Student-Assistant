@@ -1,5 +1,5 @@
 from apps.applications.models import Application
-from apps.projects.models import Project, ProjectStatus
+from apps.projects.models import Project, ProjectSourceType, ProjectStatus
 from apps.users.models import UserRole
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -48,8 +48,14 @@ def profile_view(request):
         own_projects_count = Project.objects.filter(owner=user).count()
 
     applications_count = 0
+    bookmarks_count    = 0
+    initiative_count   = 0
     if role == UserRole.STUDENT:
         applications_count = Application.objects.filter(applicant=user).count()
+        bookmarks_count    = len(profile.favorite_project_ids) if profile else 0
+        initiative_count   = Project.objects.filter(
+            owner=user, source_type=ProjectSourceType.INITIATIVE
+        ).count()
 
     moderation_queue_count = 0
     if role == UserRole.CPPRP:
@@ -63,6 +69,8 @@ def profile_view(request):
         "role":                   role,
         "own_projects_count":     own_projects_count,
         "applications_count":     applications_count,
+        "bookmarks_count":        bookmarks_count,
+        "initiative_count":       initiative_count,
         "moderation_queue_count": moderation_queue_count,
         "interests_initial":      interests_initial,
         "profile_errors":         profile_errors,
