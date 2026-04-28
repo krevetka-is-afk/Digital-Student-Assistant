@@ -1,5 +1,5 @@
 # Create your tests here.
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import reverse
 
 
@@ -30,6 +30,21 @@ def test_metrics_root_ok():
     assert r.status_code == 200
     assert "text/plain" in r["Content-Type"]
     assert b"dsa_web_http_requests_total" in r.content
+
+
+@override_settings(SECURE_SSL_REDIRECT=True, SECURE_REDIRECT_EXEMPT=[r"^metrics/$"])
+def test_metrics_root_is_not_https_redirected_when_scraped_internally():
+    c = Client()
+    r = c.get(reverse("metrics-root"))
+    assert r.status_code == 200
+    assert "text/plain" in r["Content-Type"]
+
+
+@override_settings(SECURE_SSL_REDIRECT=True, SECURE_REDIRECT_EXEMPT=[r"^api/v1/outbox/"])
+def test_outbox_api_is_not_https_redirected_for_internal_consumers():
+    c = Client()
+    r = c.get("/api/v1/outbox/consumers/ml/checkpoint/")
+    assert r.status_code != 301
 
 
 def test_api_v1_health_ok():

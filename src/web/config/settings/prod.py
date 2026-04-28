@@ -18,6 +18,10 @@ if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":  # noqa: F405
     raise RuntimeError("Production settings require PostgreSQL DATABASE_URL or DATABASE_URL_FILE.")
 
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
+SECURE_REDIRECT_EXEMPT = [
+    r"^metrics/$",
+    r"^api/v1/outbox/",
+]
 _secure_cookie_default = SECURE_SSL_REDIRECT
 
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", _secure_cookie_default)
