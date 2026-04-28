@@ -1,8 +1,8 @@
-# API Scheme (Canonical v1)
+# Схема API (Canonical v1)
 
-Updated: 2026-04-28
+Актуализировано: 2026-04-29
 
-## API Entry Points
+## Точки входа API
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -11,9 +11,9 @@ Updated: 2026-04-28
 | GET | `/api/docs/` | Swagger UI for API schema |
 | GET | `/api/v1/` | Canonical API v1 index |
 
-## Canonical API v1 (`/api/v1/`)
+## Канонический API v1 (`/api/v1/`)
 
-Use these endpoints for manual testing, frontend integration, and release contract review.
+Эти методы используются для ручной проверки, интеграции интерфейса и контроля релизного контракта.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
@@ -75,46 +75,46 @@ Use these endpoints for manual testing, frontend integration, and release contra
 | GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff or machine consumer token | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
 | GET | `/api/v1/outbox/snapshot/` | cpprp/staff or machine consumer token | Bootstrap snapshot for downstream consumers (`watermark`, `projects`, `applications`, `user_profiles`, optional faculty resources) |
 
-## Legacy Web Endpoints
+## Устаревшие веб-методы
 
-The project still contains legacy non-canonical web endpoints outside `/api/v1/`.
-They are not part of the canonical API contract and should not be used for new integrations:
+Проект по-прежнему содержит устаревшие неканонические маршруты вне `/api/v1/`.
+Они не входят в основной контракт API и не должны использоваться в новых интеграциях:
 
 - `/base/` (legacy base/auth/health helper endpoints)
 - `/base/projects/` (legacy project endpoints)
 - `/base/search` (legacy search endpoint)
 - `/base/v2/projects/` (legacy viewset router)
 
-## Lifecycle statuses (I2)
+## Статусы жизненного цикла (I2)
 
 - Project: `draft -> on_moderation -> published/rejected -> staffed` (+ `archived`)
 - Initiative proposal: `draft -> on_moderation -> revision_requested -> on_moderation -> published`
 - Application: `submitted -> accepted/rejected`
-- Direct status transitions via generic `PATCH` are blocked; use action endpoints.
+- Прямые переходы между статусами через общий `PATCH` запрещены; нужно использовать специальные методы API.
 
-## Release Contract Source of Truth
+## Источник истины для релизного контракта
 
-- Required canonical paths, operations, and OpenAPI schema components live in `docs/architecture/contracts/api_contract.json`.
-- Required domain event types live in `docs/architecture/contracts/event_contract.json`.
-- Outbox delivery and snapshot semantics live in `docs/architecture/contracts/outbox_delivery_contract.json`.
-- `tests/contract/test_openapi_sync.py` validates these requirements against generated `/api/schema/`.
-- `tests/contract/test_event_schemas.py` validates the event contract against current `emit_event(...)` calls in the backend.
+- Обязательные маршруты, операции и компоненты OpenAPI-схемы зафиксированы в `docs/architecture/contracts/api_contract.json`.
+- Обязательные типы доменных событий зафиксированы в `docs/architecture/contracts/event_contract.json`.
+- Семантика доставки outbox-событий и snapshot описана в `docs/architecture/contracts/outbox_delivery_contract.json`.
+- `tests/contract/test_openapi_sync.py` проверяет эти требования по сгенерированному `/api/schema/`.
+- `tests/contract/test_event_schemas.py` проверяет контракт событий по актуальным вызовам `emit_event(...)` в backend.
 
-## Recommendations Gateway Modes
+## Режимы шлюза рекомендаций
 
-- `semantic`: backend successfully received ranked items from external ML service.
-- `keyword-fallback`: backend used local keyword ranking because ML service is unavailable, timed out, or returned invalid payload.
+- `semantic`: backend успешно получил ранжированные элементы от внешнего ML-сервиса.
+- `keyword-fallback`: backend использовал локальное ранжирование по ключевым словам, потому что ML-сервис недоступен, превысил время ожидания или вернул некорректный ответ.
 
-## Outbox Delivery Semantics
+## Семантика доставки outbox-событий
 
-- Canonical offset is outbox event `id`.
-- `poll` mode: `GET /api/v1/outbox/events/?consumer=<name>` returns events with `id > last_acked_event_id`.
-- `ack`: after successful processing, consumer confirms highest processed offset via `POST /api/v1/outbox/events/ack/`.
-- Ack is idempotent: repeating the same `event_id` keeps checkpoint unchanged (`ack_status=already_acked`).
-- `replay` mode: `GET /api/v1/outbox/events/?consumer=<name>&mode=replay&replay_from_id=<id>` re-reads history from the requested offset and marks each event as `acked|pending` relative to current checkpoint.
-- Resume after restart: consumer reads `GET /api/v1/outbox/consumers/<consumer>/checkpoint/` and continues polling from the stored checkpoint.
+- Каноническим смещением служит `id` outbox-события.
+- Режим `poll`: `GET /api/v1/outbox/events/?consumer=<name>` возвращает события с `id > last_acked_event_id`.
+- `ack`: после успешной обработки потребитель подтверждает наибольшее обработанное смещение через `POST /api/v1/outbox/events/ack/`.
+- Подтверждение идемпотентно: повторная отправка того же `event_id` не меняет контрольную точку (`ack_status=already_acked`).
+- Режим `replay`: `GET /api/v1/outbox/events/?consumer=<name>&mode=replay&replay_from_id=<id>` повторно читает историю с указанного смещения и помечает каждое событие как `acked|pending` относительно текущей контрольной точки.
+- После перезапуска потребитель читает `GET /api/v1/outbox/consumers/<consumer>/checkpoint/` и продолжает опрос с сохраненной позиции.
 
-## Quick browser test flow
+## Быстрая проверка в браузере
 
 1. Open `/api/` and verify links to `/api/v1/`.
 2. Open `/api/v1/health/` and check `{"status":"ok"}`.
@@ -123,22 +123,22 @@ They are not part of the canonical API contract and should not be used for new i
 5. Use token in header: `Authorization: Token <your_token>`.
 6. Open `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.
 
-## Outbox Consumer Machine Auth
+## Машинная аутентификация потребителей outbox
 
-- Outbox endpoints support bearer machine tokens for downstream consumers such as `ml`, `graph`, and faculty-related integration jobs.
-- Tokens are configured in `OUTBOX_SERVICE_TOKENS` as a JSON object: `{"ml":"...","graph":"..."}`.
-- Human users may still access outbox endpoints via existing `cpprp/staff` permissions.
+- Outbox-методы поддерживают bearer machine tokens для сервисов `ml`, `graph` и интеграционных задач, связанных с `faculty`.
+- Токены задаются в `OUTBOX_SERVICE_TOKENS` как JSON-объект: `{"ml":"...","graph":"..."}`.
+- Пользователи также могут обращаться к outbox-методам через существующие права `cpprp/staff`.
 
-## Faculty Mirror API
+## API зеркала преподавателей
 
-`/api/v1/faculty/*` exposes a read-only mirror of HSE faculty data and the resolved project-supervisor matches currently stored by `apps.faculty`.
+`/api/v1/faculty/*` предоставляет read-only зеркало данных преподавателей НИУ ВШЭ и рассчитанные сопоставления проектов с научными руководителями, которые хранятся в `apps.faculty`.
 
 - `GET /api/v1/faculty/persons/?q=<text>&interest=<text>` lists active faculty records.
 - `GET /api/v1/faculty/persons/<source_key>/` returns one faculty record.
 - `GET /api/v1/faculty/persons/<source_key>/projects/` returns confirmed project matches whose projects are visible in the catalog.
 
-Faculty data also participates in outbox snapshots through optional resources: `faculty_persons`, `faculty_publications`, `faculty_courses`, and `project_faculty_matches`.
+Данные о преподавателях также могут входить в outbox snapshot через дополнительные ресурсы: `faculty_persons`, `faculty_publications`, `faculty_courses`, `project_faculty_matches`.
 
-## ML Integration Readiness Policy
+## Политика готовности ML-интеграции
 
-`web` treats external ML as usable only when the ML response is a successful 2xx JSON body with `mode=semantic` and a valid `items` array (`project_id`, `score`, `reason`). In every other case — timeout, 5xx, invalid JSON, invalid items, or non-semantic mode — `web` switches to local `keyword-fallback` for that request.
+`web` считает внешний ML-сервис пригодным для использования только в том случае, если он возвращает успешный JSON-ответ 2xx с `mode=semantic` и корректным массивом `items` (`project_id`, `score`, `reason`). Во всех остальных случаях - при тайм-ауте, ошибке 5xx, некорректном JSON, неверных элементах или другом режиме - `web` переключается на локальный `keyword-fallback` для текущего запроса.
