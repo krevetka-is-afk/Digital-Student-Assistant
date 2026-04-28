@@ -95,8 +95,12 @@ jobs:
             TARGET_REF="${{ needs.build-and-push-image.outputs.target_ref }}"
             TARGET_SHA="${{ needs.build-and-push-image.outputs.target_sha }}"
             IMAGE_PREFIX="${{ needs.build-and-push-image.outputs.image_prefix }}"
-            PUBLIC_HOST="${{ secrets.PROD_SSH_HOST }}"
-            PUBLIC_BASE_URL="http://${{ secrets.PROD_SSH_HOST }}"
+            PUBLIC_HOST="${{ secrets.PROD_PUBLIC_HOST || secrets.PROD_SSH_HOST }}"
+            PUBLIC_BASE_URL="${{ secrets.PROD_PUBLIC_BASE_URL || '' }}"
+            if [ -z "$PUBLIC_BASE_URL" ]; then
+              PUBLIC_BASE_URL="http://${PUBLIC_HOST}"
+            fi
+            PUBLIC_SCHEME="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^(https?)://.*#\1#')"
             compose_cmd=(docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod)
 
             cd "$APP_DIR"
@@ -131,7 +135,7 @@ jobs:
 
             is_placeholder() {
               local value="${1:-}"
-              [[ -z "$value" || "$value" =~ ^(replace|change-me|placeholder) ]]
+              [[ -z "$value" || "$value" =~ (replace|change-me|placeholder|example\.com) ]]
             }
 
             set_env_key() {
@@ -154,12 +158,36 @@ jobs:
               fi
             }
 
+            require_stable_env_for_existing_volume() {
+              local volume_name="$1"
+              shift
+              if ! docker volume inspect "$volume_name" >/dev/null 2>&1; then
+                return 0
+              fi
+              for key in "$@"; do
+                local current
+                current="$(get_env_val "$key")"
+                if is_placeholder "$current"; then
+                  echo "::error::Existing Docker volume $volume_name found, but $key is missing or still a placeholder in infra/.env.prod." >&2
+                  echo "::error::Refusing to generate a new credential because it would not update the existing database role password." >&2
+                  exit 1
+                fi
+              done
+            }
+
             DJ_SECRET="$(python3 - <<'PY'
             import secrets
             print(secrets.token_urlsafe(64))
             PY
             )"
             PG_PASS="$(openssl rand -hex 20)"
+
+            require_stable_env_for_existing_volume \
+              "infra_postgres-prod" \
+              POSTGRES_DB \
+              POSTGRES_USER \
+              POSTGRES_PASSWORD \
+              DATABASE_URL
 
             replace_if_placeholder "DJANGO_SECRET_KEY" "$DJ_SECRET"
             replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
@@ -186,11 +214,17 @@ jobs:
             fi
 
             set_env_key "ML_SERVICE_URL" ""
-            replace_if_placeholder "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1"
-            replace_if_placeholder "DJANGO_CSRF_TRUSTED_ORIGINS" "http://$PUBLIC_HOST,http://localhost"
-            set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"
-            set_env_key "DJANGO_SESSION_COOKIE_SECURE" "false"
-            set_env_key "DJANGO_CSRF_COOKIE_SECURE" "false"
+            set_env_key "DJANGO_ALLOWED_HOSTS" "$PUBLIC_HOST,localhost,127.0.0.1,web"
+            set_env_key "DJANGO_CSRF_TRUSTED_ORIGINS" "$PUBLIC_BASE_URL,http://$PUBLIC_HOST,http://localhost,http://127.0.0.1"
+            if [ "$PUBLIC_SCHEME" = "https" ]; then
+              set_env_key "DJANGO_SECURE_SSL_REDIRECT" "true"
+              set_env_key "DJANGO_SESSION_COOKIE_SECURE" "true"
+              set_env_key "DJANGO_CSRF_COOKIE_SECURE" "true"
+            else
+              set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"
+              set_env_key "DJANGO_SESSION_COOKIE_SECURE" "false"
+              set_env_key "DJANGO_CSRF_COOKIE_SECURE" "false"
+            fi
 
             dump_compose_diagnostics() {
               local status="$1"
@@ -208,7 +242,53 @@ jobs:
             }
             trap 'dump_compose_diagnostics $?' EXIT
 
-            cat > infra/nginx/default.conf <<EOF2
+            if [ "$PUBLIC_SCHEME" = "https" ]; then
+              cat > infra/nginx/default.conf <<EOF2
+            server {
+                listen 80;
+                server_name ${PUBLIC_HOST};
+                server_tokens off;
+
+                location /.well-known/acme-challenge/ {
+                    root /var/www/certbot;
+                }
+
+                location / {
+                    return 301 https://\$host\$request_uri;
+                }
+            }
+
+            server {
+                listen 443 ssl;
+                server_name ${PUBLIC_HOST};
+                server_tokens off;
+
+                ssl_certificate /etc/letsencrypt/live/${PUBLIC_HOST}/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/${PUBLIC_HOST}/privkey.pem;
+
+                client_max_body_size 25m;
+
+                location /static/ {
+                    alias /var/www/staticfiles/;
+                    access_log off;
+                    expires 30d;
+                    add_header Cache-Control "public";
+                }
+
+                location / {
+                    proxy_pass http://web:8000;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Host \$host;
+                    proxy_set_header X-Forwarded-Port \$server_port;
+                    proxy_set_header X-Forwarded-Proto https;
+                    proxy_http_version 1.1;
+                }
+            }
+            EOF2
+            else
+              cat > infra/nginx/default.conf <<EOF2
             server {
                 listen 80;
                 server_name ${PUBLIC_HOST};
@@ -232,6 +312,7 @@ jobs:
                 }
             }
             EOF2
+            fi
 
             WEB_IMAGE="${IMAGE_PREFIX}-web:${TARGET_SHA}"
 
@@ -254,13 +335,24 @@ jobs:
             "${compose_cmd[@]}" up -d --no-build --remove-orphans --force-recreate --wait --wait-timeout 240
             docker logout ghcr.io || true
 
-            SMOKE_HOST="$(get_env_val DJANGO_ALLOWED_HOSTS | tr "," "\n" | sed "s/^ *//;s/ *$//" | grep -vE "^(localhost|127\.0\.0\.1|web|[0-9.]+)$" | head -n1 || true)"
-            if [ -n "$SMOKE_HOST" ]; then
-              SMOKE_BASE_URL="https://${SMOKE_HOST}"
-              SMOKE_CURL_OPTS="--resolve ${SMOKE_HOST}:443:127.0.0.1"
-            else
+            SMOKE_HOST="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
+            SMOKE_PORT="$(printf '%s' "$PUBLIC_BASE_URL" | sed -nE 's#^https?://[^/:]+:([0-9]+).*$#\1#p')"
+            if [ -z "$SMOKE_PORT" ]; then
+              if [ "$PUBLIC_SCHEME" = "https" ]; then
+                SMOKE_PORT="443"
+              else
+                SMOKE_PORT="80"
+              fi
+            fi
+            if [ "$SMOKE_HOST" = "$PUBLIC_BASE_URL" ] || [ -z "$SMOKE_HOST" ]; then
               SMOKE_BASE_URL="http://127.0.0.1"
               SMOKE_CURL_OPTS=""
+            else
+              SMOKE_BASE_URL="$PUBLIC_BASE_URL"
+              SMOKE_CURL_OPTS="--resolve ${SMOKE_HOST}:${SMOKE_PORT}:127.0.0.1"
+              if [ "$PUBLIC_SCHEME" = "https" ]; then
+                SMOKE_CURL_OPTS="$SMOKE_CURL_OPTS -k"
+              fi
             fi
 
             ENV_FILE=infra/.env.prod \

@@ -38,6 +38,12 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert 'DJANGO_CSRF_TRUSTED_ORIGINS' in workflow
     assert 'restart nginx' in workflow
     assert 'PUBLIC_CURL_OPTS=' in workflow
+    assert 'staging\\.example' in workflow
+    assert '--force-recreate --wait --wait-timeout 240' in workflow
+    assert 'require_stable_env_for_existing_volume' in workflow
+    assert '"infra_postgres-staging"' in workflow
+    assert '"infra_neo4j-staging"' in workflow
+    assert 'Refusing to generate a new credential' in workflow
 
 
 def test_staging_env_example_exists_for_full_stack():

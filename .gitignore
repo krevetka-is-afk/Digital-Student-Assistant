@@ -134,6 +134,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.prod
+.env.staging
 .envrc
 .venv
 env/
@@ -209,4 +211,6 @@ docs/issues/*
 data_source/
 .xlsx
 
-scripts/
+scripts/*
+!scripts/backup-stack.sh
+!scripts/install-backup-timer.sh
