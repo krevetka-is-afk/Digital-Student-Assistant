@@ -9,6 +9,7 @@ from zipfile import ZipFile
 from django.db import transaction
 
 from .models import EPP, Project, ProjectSourceType
+from .normalization import normalize_technology_tags
 from .transitions import apply_imported_status
 
 XML_NS = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
@@ -254,15 +255,7 @@ def build_tech_tags(payload: dict[str, str]) -> list[str]:
             continue
         pieces = [item.strip() for item in str(raw_value).replace(";", ",").split(",")]
         items.extend(piece for piece in pieces if piece)
-    deduped: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        marker = item.lower()
-        if marker in seen:
-            continue
-        seen.add(marker)
-        deduped.append(item)
-    return deduped
+    return normalize_technology_tags(items)
 
 
 def validate_headers(headers: list[str]) -> None:

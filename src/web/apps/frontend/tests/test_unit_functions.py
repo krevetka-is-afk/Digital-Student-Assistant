@@ -129,18 +129,17 @@ def test_normalize_remote_items(items, expected):
     "raw, expected",
     [
         ("", []),
-        ("Python", ["Python"]),
-        ("Python, Django", ["Python", "Django"]),
-        # Case-insensitive dedup – first occurrence wins (original case preserved)
-        ("Python, python, PYTHON", ["Python"]),
+        ("Python", ["python"]),
+        ("Python, Django", ["python", "django"]),
+        ("Python, python, PYTHON", ["python"]),
         # Leading/trailing whitespace is stripped
-        ("  Machine Learning  ,  NLP  ", ["Machine Learning", "NLP"]),
+        ("  Machine Learning  ,  NLP  ", ["machine learning", "nlp"]),
         # Empty segments from consecutive commas are dropped
         (",,", []),
         # Mixed case dedup with multiple values
-        ("A, B, A, C, b", ["A", "B", "C"]),
+        ("A, B, A, C, b", ["a", "b", "c"]),
         # Single trailing comma
-        ("Python,", ["Python"]),
+        ("Python,", ["python"]),
     ],
 )
 def test_parse_interests(raw, expected):

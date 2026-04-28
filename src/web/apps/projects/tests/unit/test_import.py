@@ -28,7 +28,7 @@ def test_import_epp_xlsx_creates_epp_and_project():
     assert project.status == ProjectStatus.PUBLISHED
     assert project.status_raw == "Опубликована"
     assert project.raw_payload["Наименование вакансии"] == "ML analyst"
-    assert project.tech_tags == ["pandas", "numpy", "classification", "Python", "SQL", "ml", "data"]
+    assert project.tech_tags == ["pandas", "numpy", "classification", "python", "sql", "ml", "data"]
 
 
 def test_normalize_source_status_covers_all_current_values():

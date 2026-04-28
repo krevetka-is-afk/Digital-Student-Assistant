@@ -1,4 +1,5 @@
 from apps.projects.models import Project
+from apps.projects.normalization import normalize_technology_tags
 from apps.projects.serializers import PrimaryProjectSerializer
 from rest_framework import serializers
 
@@ -52,6 +53,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 {"role": ["You cannot change role via this endpoint."]}
             )
         return super().validate(attrs)
+
+    def validate_interests(self, value):
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Expected a list of interests.")
+        return normalize_technology_tags(value)
 
     def get_favorite_projects_count(self, obj) -> int:
         return len(obj.favorite_project_ids or [])

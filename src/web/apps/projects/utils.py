@@ -1,12 +1,10 @@
-from apps.projects.models import Project, ProjectStatus
+from apps.projects.models import Technology
 
 
 def collect_all_tags() -> list[str]:
-    """Returns a sorted list of all unique tech tags across published projects."""
-    tags: set[str] = set()
-    for tag_list in Project.objects.filter(
-        status=ProjectStatus.PUBLISHED
-    ).values_list("tech_tags", flat=True):
-        if tag_list:
-            tags.update(tag_list)
-    return sorted(tags)
+    """Returns a sorted list of approved technologies from the shared directory."""
+    return list(
+        Technology.objects.approved()
+        .values_list("normalized_name", flat=True)
+        .order_by("normalized_name")
+    )
