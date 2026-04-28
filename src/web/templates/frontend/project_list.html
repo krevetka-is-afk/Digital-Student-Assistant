@@ -179,6 +179,16 @@
         <option value="6" {% if team_size_filter == "6" %}selected{% endif %}>6+ чел.</option>
       </select>
 
+      <!-- Source type -->
+      <select name="source_type"
+              class="px-3 py-2 text-sm border rounded-lg bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {% if source_type_filter %}border-blue-500 text-blue-600{% else %}border-gray-200 text-gray-600 hover:border-gray-300{% endif %}">
+        <option value="">Тип проекта</option>
+        <option value="supervisor" {% if source_type_filter == "supervisor" %}selected{% endif %}>От руководителя</option>
+        <option value="initiative" {% if source_type_filter == "initiative" %}selected{% endif %}>Инициативный</option>
+        <option value="epp"        {% if source_type_filter == "epp" %}selected{% endif %}>ЕПП</option>
+        <option value="manual"     {% if source_type_filter == "manual" %}selected{% endif %}>Вручную</option>
+      </select>
+
       {% if is_filtered %}
         <a href="/projects/" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
           Сбросить
@@ -297,7 +307,10 @@
           {% if project.tech_tags %}
             <div class="flex flex-wrap gap-1">
               {% for tag in project.tech_tags|slice:":5" %}
-                <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+                <a href="?tech_tags={{ tag|urlencode }}"
+                   class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                   style="padding-top:2px;padding-bottom:2px;"
+                   title="Фильтр по тегу «{{ tag }}»">{{ tag }}</a>
               {% endfor %}
               {% if project.tech_tags|length > 5 %}
                 <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-400" style="padding-top:2px;padding-bottom:2px;">+{{ project.tech_tags|length|add:"-5" }}</span>
@@ -357,9 +370,9 @@
 {% if show_bookmarks_tab %}
 <div id="tab-panel-bookmarks" style="display:none;">
 
-  {% if bookmark_projects %}
+  {% if bookmark_page_obj %}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" id="bookmarks-grid">
-      {% for project in bookmark_projects %}
+      {% for project in bookmark_page_obj %}
         <article class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all bookmark-card" data-pk="{{ project.pk }}" style="transition-duration:150ms;">
 
           <!-- Title + status -->
@@ -388,7 +401,10 @@
           {% if project.tech_tags %}
             <div class="flex flex-wrap gap-1">
               {% for tag in project.tech_tags|slice:":5" %}
-                <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium" style="padding-top:2px;padding-bottom:2px;">{{ tag }}</span>
+                <a href="?tech_tags={{ tag|urlencode }}"
+                   class="px-2 rounded-md text-xs bg-gray-100 text-gray-600 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                   style="padding-top:2px;padding-bottom:2px;"
+                   title="Фильтр по тегу «{{ tag }}»">{{ tag }}</a>
               {% endfor %}
               {% if project.tech_tags|length > 5 %}
                 <span class="px-2 rounded-md text-xs bg-gray-100 text-gray-400" style="padding-top:2px;padding-bottom:2px;">+{{ project.tech_tags|length|add:"-5" }}</span>
@@ -419,6 +435,46 @@
         </article>
       {% endfor %}
     </div>
+
+    <!-- Bookmarks pagination -->
+    {% if bookmark_page_obj.has_other_pages %}
+      <nav class="flex items-center justify-center gap-1 mt-8">
+
+        {% if bookmark_page_obj.has_previous %}
+          <a href="?tab=bookmarks&bookmark_page={{ bookmark_page_obj.previous_page_number }}"
+             class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Назад
+          </a>
+        {% endif %}
+
+        <div class="flex items-center gap-1">
+          {% for num in bookmark_page_obj.paginator.page_range %}
+            {% if bookmark_page_obj.number == num %}
+              <span class="w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold bg-blue-600 text-white">{{ num }}</span>
+            {% elif num == 1 or num == bookmark_page_obj.paginator.num_pages or num >= bookmark_page_obj.number|add:"-2" and num <= bookmark_page_obj.number|add:"2" %}
+              <a href="?tab=bookmarks&bookmark_page={{ num }}"
+                 class="w-9 h-9 flex items-center justify-center rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">{{ num }}</a>
+            {% elif num == bookmark_page_obj.number|add:"-3" or num == bookmark_page_obj.number|add:"3" %}
+              <span class="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        {% if bookmark_page_obj.has_next %}
+          <a href="?tab=bookmarks&bookmark_page={{ bookmark_page_obj.next_page_number }}"
+             class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+            Вперёд
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        {% endif %}
+
+      </nav>
+    {% endif %}
 
   {% else %}
     <div class="flex flex-col items-center justify-center py-20 text-center" id="bookmarks-empty">
@@ -573,7 +629,7 @@
             {% endif %}
           </div>
 
-          <!-- Right: team info + link -->
+          <!-- Right: team info + link + withdraw -->
           <div class="flex-shrink-0 flex flex-col items-end gap-3">
             <div class="text-right">
               <p class="text-xs text-gray-400">Команда</p>
@@ -584,6 +640,16 @@
               Проект
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
+            {% if app.status == ApplicationStatus.SUBMITTED %}
+            <form method="post" action="{% url 'frontend:withdraw_application' app.pk %}"
+                  onsubmit="return confirm('Отозвать заявку на проект «{{ app.project.title|escapejs }}»?')">
+              {% csrf_token %}
+              <button type="submit"
+                      class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-red-500 border border-red-200 hover:border-red-400 hover:text-red-700 hover:bg-red-50 transition-colors">
+                Отозвать
+              </button>
+            </form>
+            {% endif %}
           </div>
 
         </div>

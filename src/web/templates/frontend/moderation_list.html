@@ -102,7 +102,7 @@
           </button>
         </form>
 
-        <!-- Reject (requires comment ≥ 20 chars) -->
+        <!-- Reject (requires comment ≥ 100 chars) -->
         <div>
           <button type="button"
                   onclick="toggleModReject({{ project.pk }})"
@@ -118,13 +118,13 @@
               <input type="hidden" name="decision" value="reject">
               <textarea name="comment"
                         rows="3"
-                        minlength="20"
+                        minlength="100"
                         required
-                        placeholder="Укажите причину отклонения (мин. 20 символов)..."
+                        placeholder="Укажите причину отклонения (мин. 100 символов)..."
                         class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 resize-none mb-1"
                         oninput="updateModCounter(this, {{ project.pk }})"></textarea>
               <div class="flex items-center justify-between mb-2">
-                <span id="mod-counter-{{ project.pk }}" class="text-xs text-gray-400">0 / 20 мин.</span>
+                <span id="mod-counter-{{ project.pk }}" class="text-xs text-gray-400">0 / 100 мин.</span>
               </div>
               <div class="flex gap-2">
                 <button type="button"
@@ -196,8 +196,8 @@
   function updateModCounter(textarea, pk) {
     var counter = document.getElementById('mod-counter-' + pk);
     var len = textarea.value.length;
-    counter.textContent = len + ' / 20 мин.';
-    counter.style.color = len >= 20 ? '#16a34a' : '#9ca3af';
+    counter.textContent = len + ' / 100 мин.';
+    counter.style.color = len >= 100 ? '#16a34a' : '#9ca3af';
   }
 </script>
 {% endblock %}

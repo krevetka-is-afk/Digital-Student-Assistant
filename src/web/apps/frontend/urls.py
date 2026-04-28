@@ -42,6 +42,11 @@ urlpatterns = [
         views.review_application_view,
         name="review_application",
     ),
+    path(
+        "applications/<int:pk>/withdraw/",
+        views.withdraw_application,
+        name="withdraw_application",
+    ),
 
     # Project applications (customer view)
     path(

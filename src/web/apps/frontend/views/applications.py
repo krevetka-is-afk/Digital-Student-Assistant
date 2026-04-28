@@ -6,6 +6,7 @@ from apps.projects.models import Project, ProjectStatus
 from apps.users.models import UserRole
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -221,3 +222,29 @@ def review_application_view(request, pk):
         messages.error(request, f"Ошибка: {msg}")
 
     return redirect("frontend:project_applications", pk=application.project.pk)
+
+
+# ---------------------------------------------------------------------------
+# Withdraw Application (student cancels their own SUBMITTED application)
+# ---------------------------------------------------------------------------
+
+@require_POST
+@login_required(login_url="/auth/")
+def withdraw_application(request, pk):
+    """Student withdraws their own submitted application."""
+    application = get_object_or_404(
+        Application.objects.select_related("project"),
+        pk=pk,
+    )
+
+    if application.applicant != request.user:
+        raise PermissionDenied
+
+    if application.status != ApplicationStatus.SUBMITTED:
+        messages.error(request, "Отозвать можно только заявку со статусом «На рассмотрении».")
+        return redirect("frontend:project_list")
+
+    project_title = application.project.title
+    application.delete()
+    messages.success(request, f"Заявка на проект «{project_title}» отозвана.")
+    return redirect("frontend:project_list")
