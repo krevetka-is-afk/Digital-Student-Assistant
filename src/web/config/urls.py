@@ -21,6 +21,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
+handler403 = frontend_views.error_403
 handler404 = frontend_views.error_404
 handler500 = frontend_views.error_500
 
