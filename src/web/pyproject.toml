@@ -25,10 +25,14 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-cov>=7.0",
 ]
 
 [tool.pytest.ini_options]
 python_files = ["tests.py", "test_*.py", "*_test.py", "tests_*.py"]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+pythonpath = [".", "apps"]
+addopts = "--cov=apps --cov-report=term-missing"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

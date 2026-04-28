@@ -5,8 +5,9 @@ from apps.projects.models import Project, ProjectStatus
 from apps.users.utils import user_is_moderator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -145,7 +146,7 @@ def project_applications(request, pk):
     project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)
 
     if project.owner != request.user and not request.user.is_staff:
-        raise Http404
+        raise PermissionDenied
 
     status_filter = request.GET.get("status", "").strip()
     page_number = request.GET.get("page", 1)
@@ -221,3 +222,41 @@ def review_application_view(request, pk):
         messages.error(request, f"Ошибка: {msg}")
 
     return redirect("frontend:project_applications", pk=application.project.pk)
+
+
+# ---------------------------------------------------------------------------
+# Withdraw Application (student cancels their own SUBMITTED application)
+# ---------------------------------------------------------------------------
+
+
+@require_POST
+@login_required(login_url="/auth/")
+def withdraw_application(request, pk):
+    """
+    Student withdraws a SUBMITTED application.
+
+    Only the applicant can withdraw; only SUBMITTED applications can be
+    withdrawn (accepted/rejected ones are immutable from the student's side).
+    Redirects back to the project list after success or failure.
+    """
+    application = get_object_or_404(
+        Application.objects.select_related("project"),
+        pk=pk,
+    )
+
+    if application.applicant != request.user:
+        raise PermissionDenied
+
+    if application.status != ApplicationStatus.SUBMITTED:
+        messages.error(
+            request,
+            "Отозвать можно только заявку со статусом «На рассмотрении».",
+        )
+        return redirect("frontend:project_list")
+
+    application.delete()
+    messages.success(
+        request,
+        f"Заявка на проект «{application.project.title}» отозвана.",
+    )
+    return redirect("frontend:project_list")

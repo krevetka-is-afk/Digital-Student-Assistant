@@ -114,7 +114,11 @@
                  value="{{ reg_name }}"
                  placeholder="Иван Иванов"
                  autocomplete="name"
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                 maxlength="100"
+                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_errors.name %}border-red-400{% else %}border-gray-200{% endif %}">
+          {% if register_errors.name %}
+            <p class="mt-1 text-xs text-red-500">{{ register_errors.name }}</p>
+          {% endif %}
         </div>
 
         <!-- Email -->

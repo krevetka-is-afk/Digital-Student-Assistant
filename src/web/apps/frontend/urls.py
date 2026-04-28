@@ -28,6 +28,9 @@ urlpatterns = [
     # Applications
     path("applications/", views.application_list, name="application_list"),
     path("applications/<int:pk>/review/", views.review_application_view, name="review_application"),
+    path(
+        "applications/<int:pk>/withdraw/", views.withdraw_application, name="withdraw_application"
+    ),
     # Project applications (customer view)
     path(
         "projects/<int:pk>/applications/", views.project_applications, name="project_applications"

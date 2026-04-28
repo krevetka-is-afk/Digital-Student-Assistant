@@ -1,9 +1,8 @@
+from apps.frontend.decorators import moderator_required
 from apps.projects.models import Project, ProjectStatus
-from apps.users.utils import user_is_moderator
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -15,10 +14,9 @@ from .projects import PAGE_SIZE
 
 
 @login_required(login_url="/auth/")
+@moderator_required
 def moderation_list(request):
     """CPPRP/staff moderator sees all projects waiting for moderation."""
-    if not (request.user.is_staff or user_is_moderator(request.user)):
-        raise Http404
 
     page_number = request.GET.get("page", 1)
     queryset = (
@@ -41,10 +39,11 @@ def moderation_list(request):
 
 @require_POST
 @login_required(login_url="/auth/")
+@moderator_required
 def moderate_project_decide(request, pk):
     """CPPRP/staff approves or rejects a project in moderation."""
     from apps.projects.transitions import moderate_project
-    from rest_framework.exceptions import PermissionDenied
+    from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
     from rest_framework.exceptions import ValidationError as DRFValidationError
 
     project = get_object_or_404(Project, pk=pk)
@@ -57,7 +56,7 @@ def moderate_project_decide(request, pk):
             messages.success(request, f"Проект «{project.title}» опубликован!")
         else:
             messages.success(request, f"Проект «{project.title}» отклонён.")
-    except PermissionDenied:
+    except DRFPermissionDenied:
         messages.error(request, "У вас нет прав для модерации.")
     except DRFValidationError as exc:
         detail = exc.detail

@@ -2,8 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-import django
-from django.conf import settings
+import pytest
 
 WEB_DIR = Path(__file__).resolve().parents[1]
 APPS_DIR = WEB_DIR / "apps"
@@ -14,7 +13,21 @@ for path in (WEB_DIR, APPS_DIR):
         sys.path.insert(0, path_str)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
-django.setup()
 
-if "testserver" not in settings.ALLOWED_HOSTS:
-    settings.ALLOWED_HOSTS.append("testserver")
+try:
+    import django
+
+    django.setup()
+    from django.conf import settings
+
+    if "testserver" not in settings.ALLOWED_HOSTS:
+        settings.ALLOWED_HOSTS.append("testserver")
+except Exception:
+    pass
+
+
+@pytest.fixture
+def api_client():
+    from rest_framework.test import APIClient
+
+    return APIClient()
