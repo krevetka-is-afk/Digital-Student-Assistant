@@ -1,144 +1,144 @@
-# API Scheme (Canonical v1)
+# Схема API (Canonical v1)
 
-Updated: 2026-04-28
+Актуализировано: 2026-04-29
 
-## API Entry Points
+## Точки входа API
 
-| Method | Path | Purpose |
+| Метод | Путь | Назначение |
 |---|---|---|
-| GET | `/api/` | Stable API index with links to versioned endpoints |
-| GET | `/api/schema/` | OpenAPI schema (machine-readable contract) |
-| GET | `/api/docs/` | Swagger UI for API schema |
-| GET | `/api/v1/` | Canonical API v1 index |
+| GET | `/api/` | Стабильный индекс API со ссылками на версионированные маршруты |
+| GET | `/api/schema/` | OpenAPI-схема в машиночитаемом виде |
+| GET | `/api/docs/` | Swagger UI для просмотра API-схемы |
+| GET | `/api/v1/` | Канонический индекс API v1 |
 
-## Canonical API v1 (`/api/v1/`)
+## Канонический API v1 (`/api/v1/`)
 
-Use these endpoints for manual testing, frontend integration, and release contract review.
+Эти методы используются для ручной проверки, интеграции интерфейса и контроля релизного контракта.
 
-| Method | Path | Auth | Purpose |
+| Метод | Путь | Доступ | Назначение |
 |---|---|---|---|
-| GET | `/api/v1/health/` | no | Service liveness |
-| GET | `/api/v1/ready/` | no | Service readiness (DB connectivity) |
-| POST | `/api/v1/auth/token/` | no | Obtain DRF token by `username/password` |
-| GET | `/api/v1/search/?q=<text>` | optional | Search published projects (plus own projects for logged-in user) |
-| GET | `/api/v1/initiative-proposals/` | yes | List initiative proposals (owner sees own, CPPRP/staff sees all) |
-| POST | `/api/v1/initiative-proposals/` | student/staff | Create initiative proposal |
-| POST | `/api/v1/initiative-proposals/<id>/actions/submit/` | student/staff | Submit initiative proposal to CPPRP |
-| POST | `/api/v1/initiative-proposals/<id>/actions/moderate/` | cpprp/staff | Moderate initiative proposal (`decision=approve/reject`) |
-| GET | `/api/v1/initiative-proposals/<id>/` | yes | Get initiative proposal by id |
-| PUT | `/api/v1/initiative-proposals/<id>/` | student/staff | Full update of initiative proposal in editable states |
-| PATCH | `/api/v1/initiative-proposals/<id>/` | student/staff | Update initiative proposal in editable states |
-| DELETE | `/api/v1/initiative-proposals/<id>/` | student/staff | Delete initiative proposal in editable states |
-| GET | `/api/v1/projects/` | optional | List projects (`page`, `page_size`, `status`, `q`, `ordering`, `staffing_state`, `application_state`, `application_window_state`) |
-| POST | `/api/v1/projects/` | yes | Create project (owner = current user) |
-| POST | `/api/v1/projects/<id>/actions/submit/` | yes | Submit project for moderation (owner/staff) |
-| POST | `/api/v1/projects/<id>/actions/moderate/` | yes | Moderate project (`decision=approve/reject`, CPPRP/staff) |
-| GET | `/api/v1/projects/<id>/` | optional | Get project by id |
-| PATCH | `/api/v1/projects/<id>/` | yes | Update project (owner or staff) |
-| DELETE | `/api/v1/projects/<id>/` | yes | Delete project (owner or staff) |
-| GET | `/api/v1/applications/` | yes | List own applications (staff sees all) |
-| POST | `/api/v1/applications/` | yes | Create application (applicant = current user) |
-| POST | `/api/v1/applications/<id>/actions/review/` | yes | Review application (`decision=accept/reject`, owner/staff) |
-| GET | `/api/v1/applications/<id>/` | yes | Get application by id |
-| PATCH | `/api/v1/applications/<id>/` | yes | Update application (owner or staff) |
-| DELETE | `/api/v1/applications/<id>/` | yes | Delete application (owner or staff) |
-| GET | `/api/v1/account/me/` | yes | Role-aware cabinet counters and current profile summary |
-| GET | `/api/v1/account/student/overview/` | student/staff | Student cabinet overview with applications, favorites, deadlines, templates |
-| GET | `/api/v1/account/customer/projects/` | customer/staff | Customer cabinet project list with `applications_count` and `submitted_applications_count` |
-| GET | `/api/v1/account/customer/applications/` | customer/staff | Customer cabinet incoming applications (`status` filter supported) |
-| GET | `/api/v1/account/cpprp/moderation-queue/` | cpprp/staff | CPPRP moderation queue |
-| GET | `/api/v1/account/cpprp/applications/` | cpprp/staff | CPPRP applications overview and recent feed (`status` filter for recent feed) |
-| GET | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | List platform deadlines |
-| POST | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | Create deadline and emit `deadline.changed` |
-| GET | `/api/v1/account/cpprp/templates/` | cpprp/staff | List document templates |
-| POST | `/api/v1/account/cpprp/templates/` | cpprp/staff | Create document template |
-| GET | `/api/v1/account/templates/<id>/download/` | yes | Unified template download endpoint (role/audience aware) |
-| GET | `/api/v1/account/cpprp/export/projects/` | cpprp/staff | Export projects as CSV |
-| GET | `/api/v1/account/cpprp/export/applications/` | cpprp/staff | Export applications as CSV |
-| GET | `/api/v1/users/me/` | yes | Get current user's profile |
-| PATCH | `/api/v1/users/me/` | yes | Update current user's profile (`role`, `interests`) |
-| PUT | `/api/v1/users/me/` | yes | Full update alias for current user's profile |
-| GET | `/api/v1/users/me/favorites/` | yes | List bookmarked projects |
-| PUT | `/api/v1/users/me/favorites/` | yes | Replace bookmarked project ids |
-| POST | `/api/v1/users/me/favorites/` | yes | Append bookmarked project ids |
-| DELETE | `/api/v1/users/me/favorites/<id>/` | yes | Remove bookmarked project |
-| GET | `/api/v1/faculty/persons/` | optional | List non-stale HSE faculty persons (`q`, `interest`) |
-| GET | `/api/v1/faculty/persons/<source_key>/` | optional | Get one faculty person mirror record |
-| GET | `/api/v1/faculty/persons/<source_key>/projects/` | optional | List confirmed public project matches for one faculty person |
-| GET | `/api/v1/recs/search/?q=<text>` | no | Search proxy for recommendation stack |
-| GET | `/api/v1/recs/recommendations/` | yes | Personalized recommendations by interests/profile |
-| POST | `/api/v1/recs/reindex/` | cpprp/staff | Emit `recs.reindex_requested` event |
-| GET | `/api/v1/imports/epp/` | cpprp/staff | List import runs |
-| POST | `/api/v1/imports/epp/` | cpprp/staff | Run XLSX import and emit `import.completed` on success |
-| GET | `/api/v1/outbox/events/` | cpprp/staff or machine consumer token | Read outbox feed with `consumer` checkpoint semantics (`mode=poll|replay`,`since_id`,`replay_from_id`) |
-| POST | `/api/v1/outbox/events/ack/` | cpprp/staff or machine consumer token | Monotonic ack for consumer checkpoint (`consumer`, `event_id`) |
-| GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff or machine consumer token | Get consumer resume state (`last_acked_event_id`, `last_seen_event_id`, `status`) |
-| GET | `/api/v1/outbox/snapshot/` | cpprp/staff or machine consumer token | Bootstrap snapshot for downstream consumers (`watermark`, `projects`, `applications`, `user_profiles`, optional faculty resources) |
+| GET | `/api/v1/health/` | нет | Проверка доступности сервиса |
+| GET | `/api/v1/ready/` | нет | Проверка готовности сервиса и связи с базой данных |
+| POST | `/api/v1/auth/token/` | нет | Получение DRF-токена по `username/password` |
+| GET | `/api/v1/search/?q=<text>` | необязательно | Поиск опубликованных проектов, а для авторизованного пользователя также собственных проектов |
+| GET | `/api/v1/initiative-proposals/` | да | Список инициативных тем: автор видит свои, ЦППРП и staff - все |
+| POST | `/api/v1/initiative-proposals/` | student/staff | Создание инициативной темы |
+| POST | `/api/v1/initiative-proposals/<id>/actions/submit/` | student/staff | Отправка инициативной темы в ЦППРП |
+| POST | `/api/v1/initiative-proposals/<id>/actions/moderate/` | cpprp/staff | Модерация инициативной темы (`decision=approve/reject`) |
+| GET | `/api/v1/initiative-proposals/<id>/` | да | Получение инициативной темы по идентификатору |
+| PUT | `/api/v1/initiative-proposals/<id>/` | student/staff | Полное обновление инициативной темы в редактируемом состоянии |
+| PATCH | `/api/v1/initiative-proposals/<id>/` | student/staff | Частичное обновление инициативной темы в редактируемом состоянии |
+| DELETE | `/api/v1/initiative-proposals/<id>/` | student/staff | Удаление инициативной темы в редактируемом состоянии |
+| GET | `/api/v1/projects/` | необязательно | Список проектов (`page`, `page_size`, `status`, `q`, `ordering`, `staffing_state`, `application_state`, `application_window_state`) |
+| POST | `/api/v1/projects/` | да | Создание проекта; владельцем становится текущий пользователь |
+| POST | `/api/v1/projects/<id>/actions/submit/` | да | Отправка проекта на модерацию (владелец/staff) |
+| POST | `/api/v1/projects/<id>/actions/moderate/` | да | Модерация проекта (`decision=approve/reject`, ЦППРП/staff) |
+| GET | `/api/v1/projects/<id>/` | необязательно | Получение проекта по идентификатору |
+| PATCH | `/api/v1/projects/<id>/` | да | Обновление проекта (владелец или staff) |
+| DELETE | `/api/v1/projects/<id>/` | да | Удаление проекта (владелец или staff) |
+| GET | `/api/v1/applications/` | да | Список собственных заявок, а для staff - всех заявок |
+| POST | `/api/v1/applications/` | да | Создание заявки; заявителем становится текущий пользователь |
+| POST | `/api/v1/applications/<id>/actions/review/` | да | Рассмотрение заявки (`decision=accept/reject`, владелец проекта/staff) |
+| GET | `/api/v1/applications/<id>/` | да | Получение заявки по идентификатору |
+| PATCH | `/api/v1/applications/<id>/` | да | Обновление заявки (владелец или staff) |
+| DELETE | `/api/v1/applications/<id>/` | да | Удаление заявки (владелец или staff) |
+| GET | `/api/v1/account/me/` | да | Счетчики и краткая сводка профиля с учетом роли пользователя |
+| GET | `/api/v1/account/student/overview/` | student/staff | Обзор кабинета студента с заявками, избранным, сроками и шаблонами |
+| GET | `/api/v1/account/customer/projects/` | customer/staff | Список проектов заказчика с полями `applications_count` и `submitted_applications_count` |
+| GET | `/api/v1/account/customer/applications/` | customer/staff | Входящие заявки заказчика с поддержкой фильтра `status` |
+| GET | `/api/v1/account/cpprp/moderation-queue/` | cpprp/staff | Очередь модерации ЦППРП |
+| GET | `/api/v1/account/cpprp/applications/` | cpprp/staff | Обзор заявок для ЦППРП и лента последних изменений (`status` для ленты) |
+| GET | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | Список сроков платформы |
+| POST | `/api/v1/account/cpprp/deadlines/` | cpprp/staff | Создание срока и публикация события `deadline.changed` |
+| GET | `/api/v1/account/cpprp/templates/` | cpprp/staff | Список шаблонов документов |
+| POST | `/api/v1/account/cpprp/templates/` | cpprp/staff | Создание шаблона документа |
+| GET | `/api/v1/account/templates/<id>/download/` | да | Единая конечная точка скачивания шаблона с учетом роли и аудитории |
+| GET | `/api/v1/account/cpprp/export/projects/` | cpprp/staff | Экспорт проектов в CSV |
+| GET | `/api/v1/account/cpprp/export/applications/` | cpprp/staff | Экспорт заявок в CSV |
+| GET | `/api/v1/users/me/` | да | Получение профиля текущего пользователя |
+| PATCH | `/api/v1/users/me/` | да | Обновление профиля текущего пользователя (`role`, `interests`) |
+| PUT | `/api/v1/users/me/` | да | Полное обновление профиля текущего пользователя |
+| GET | `/api/v1/users/me/favorites/` | да | Список избранных проектов |
+| PUT | `/api/v1/users/me/favorites/` | да | Полная замена списка идентификаторов избранных проектов |
+| POST | `/api/v1/users/me/favorites/` | да | Добавление идентификаторов проектов в избранное |
+| DELETE | `/api/v1/users/me/favorites/<id>/` | да | Удаление проекта из избранного |
+| GET | `/api/v1/faculty/persons/` | необязательно | Список актуальных записей о преподавателях НИУ ВШЭ (`q`, `interest`) |
+| GET | `/api/v1/faculty/persons/<source_key>/` | необязательно | Получение одной зеркальной записи о преподавателе |
+| GET | `/api/v1/faculty/persons/<source_key>/projects/` | необязательно | Список подтвержденных публичных сопоставлений проектов для одного преподавателя |
+| GET | `/api/v1/recs/search/?q=<text>` | нет | Поисковый прокси для подсистемы рекомендаций |
+| GET | `/api/v1/recs/recommendations/` | да | Персональные рекомендации по интересам и профилю |
+| POST | `/api/v1/recs/reindex/` | cpprp/staff | Публикация события `recs.reindex_requested` |
+| GET | `/api/v1/imports/epp/` | cpprp/staff | Список запусков импорта |
+| POST | `/api/v1/imports/epp/` | cpprp/staff | Запуск импорта XLSX и публикация события `import.completed` при успехе |
+| GET | `/api/v1/outbox/events/` | cpprp/staff или служебный токен потребителя | Чтение ленты outbox с семантикой контрольных точек по `consumer` (`mode=poll|replay`,`since_id`,`replay_from_id`) |
+| POST | `/api/v1/outbox/events/ack/` | cpprp/staff или служебный токен потребителя | Монотонное подтверждение обработки для контрольной точки потребителя (`consumer`, `event_id`) |
+| GET | `/api/v1/outbox/consumers/<consumer>/checkpoint/` | cpprp/staff или служебный токен потребителя | Получение состояния возобновления для потребителя (`last_acked_event_id`, `last_seen_event_id`, `status`) |
+| GET | `/api/v1/outbox/snapshot/` | cpprp/staff или служебный токен потребителя | Начальный снимок состояния для внешних потребителей (`watermark`, `projects`, `applications`, `user_profiles`, дополнительные ресурсы faculty) |
 
-## Legacy Web Endpoints
+## Устаревшие веб-методы
 
-The project still contains legacy non-canonical web endpoints outside `/api/v1/`.
-They are not part of the canonical API contract and should not be used for new integrations:
+Проект по-прежнему содержит устаревшие неканонические маршруты вне `/api/v1/`.
+Они не входят в основной контракт API и не должны использоваться в новых интеграциях:
 
-- `/base/` (legacy base/auth/health helper endpoints)
-- `/base/projects/` (legacy project endpoints)
-- `/base/search` (legacy search endpoint)
-- `/base/v2/projects/` (legacy viewset router)
+- `/base/` - устаревшие вспомогательные маршруты base/auth/health;
+- `/base/projects/` - устаревшие маршруты проектов;
+- `/base/search` - устаревший маршрут поиска;
+- `/base/v2/projects/` - устаревший маршрутизатор на viewset.
 
-## Lifecycle statuses (I2)
+## Статусы жизненного цикла (I2)
 
-- Project: `draft -> on_moderation -> published/rejected -> staffed` (+ `archived`)
-- Initiative proposal: `draft -> on_moderation -> revision_requested -> on_moderation -> published`
-- Application: `submitted -> accepted/rejected`
-- Direct status transitions via generic `PATCH` are blocked; use action endpoints.
+- Проект: `draft -> on_moderation -> published/rejected -> staffed` (+ `archived`)
+- Инициативная тема: `draft -> on_moderation -> revision_requested -> on_moderation -> published`
+- Заявка: `submitted -> accepted/rejected`
+- Прямые переходы между статусами через общий `PATCH` запрещены; нужно использовать специальные методы API.
 
-## Release Contract Source of Truth
+## Источник истины для релизного контракта
 
-- Required canonical paths, operations, and OpenAPI schema components live in `docs/architecture/contracts/api_contract.json`.
-- Required domain event types live in `docs/architecture/contracts/event_contract.json`.
-- Outbox delivery and snapshot semantics live in `docs/architecture/contracts/outbox_delivery_contract.json`.
-- `tests/contract/test_openapi_sync.py` validates these requirements against generated `/api/schema/`.
-- `tests/contract/test_event_schemas.py` validates the event contract against current `emit_event(...)` calls in the backend.
+- Обязательные маршруты, операции и компоненты OpenAPI-схемы зафиксированы в `docs/architecture/contracts/api_contract.json`.
+- Обязательные типы доменных событий зафиксированы в `docs/architecture/contracts/event_contract.json`.
+- Семантика доставки outbox-событий и снимка состояния описана в `docs/architecture/contracts/outbox_delivery_contract.json`.
+- `tests/contract/test_openapi_sync.py` проверяет эти требования по сгенерированному `/api/schema/`.
+- `tests/contract/test_event_schemas.py` проверяет контракт событий по актуальным вызовам `emit_event(...)` в backend.
 
-## Recommendations Gateway Modes
+## Режимы шлюза рекомендаций
 
-- `semantic`: backend successfully received ranked items from external ML service.
-- `keyword-fallback`: backend used local keyword ranking because ML service is unavailable, timed out, or returned invalid payload.
+- `semantic`: backend успешно получил ранжированные элементы от внешнего ML-сервиса.
+- `keyword-fallback`: backend использовал локальное ранжирование по ключевым словам, потому что ML-сервис недоступен, превысил время ожидания или вернул некорректный ответ.
 
-## Outbox Delivery Semantics
+## Семантика доставки outbox-событий
 
-- Canonical offset is outbox event `id`.
-- `poll` mode: `GET /api/v1/outbox/events/?consumer=<name>` returns events with `id > last_acked_event_id`.
-- `ack`: after successful processing, consumer confirms highest processed offset via `POST /api/v1/outbox/events/ack/`.
-- Ack is idempotent: repeating the same `event_id` keeps checkpoint unchanged (`ack_status=already_acked`).
-- `replay` mode: `GET /api/v1/outbox/events/?consumer=<name>&mode=replay&replay_from_id=<id>` re-reads history from the requested offset and marks each event as `acked|pending` relative to current checkpoint.
-- Resume after restart: consumer reads `GET /api/v1/outbox/consumers/<consumer>/checkpoint/` and continues polling from the stored checkpoint.
+- Каноническим смещением служит `id` outbox-события.
+- Режим `poll`: `GET /api/v1/outbox/events/?consumer=<name>` возвращает события с `id > last_acked_event_id`.
+- `ack`: после успешной обработки потребитель подтверждает наибольшее обработанное смещение через `POST /api/v1/outbox/events/ack/`.
+- Подтверждение идемпотентно: повторная отправка того же `event_id` не меняет контрольную точку (`ack_status=already_acked`).
+- Режим `replay`: `GET /api/v1/outbox/events/?consumer=<name>&mode=replay&replay_from_id=<id>` повторно читает историю с указанного смещения и помечает каждое событие как `acked|pending` относительно текущей контрольной точки.
+- После перезапуска потребитель читает `GET /api/v1/outbox/consumers/<consumer>/checkpoint/` и продолжает опрос с сохраненной позиции.
 
-## Quick browser test flow
+## Быстрая проверка в браузере
 
-1. Open `/api/` and verify links to `/api/v1/`.
-2. Open `/api/v1/health/` and check `{"status":"ok"}`.
-3. Open `/api/v1/ready/` and check `{"status":"ok"}`.
-4. Call `POST /api/v1/auth/token/` in DRF browsable API form.
-5. Use token in header: `Authorization: Token <your_token>`.
-6. Open `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.
+1. Откройте `/api/` и убедитесь, что в ответе есть ссылки на `/api/v1/`.
+2. Откройте `/api/v1/health/` и проверьте ответ `{"status":"ok"}`.
+3. Откройте `/api/v1/ready/` и проверьте ответ `{"status":"ok"}`.
+4. Вызовите `POST /api/v1/auth/token/` через DRF browsable API.
+5. Передайте токен в заголовке: `Authorization: Token <your_token>`.
+6. Откройте `/api/v1/projects/`, `/api/v1/applications/`, `/api/v1/users/me/`.
 
-## Outbox Consumer Machine Auth
+## Машинная аутентификация потребителей outbox
 
-- Outbox endpoints support bearer machine tokens for downstream consumers such as `ml`, `graph`, and faculty-related integration jobs.
-- Tokens are configured in `OUTBOX_SERVICE_TOKENS` as a JSON object: `{"ml":"...","graph":"..."}`.
-- Human users may still access outbox endpoints via existing `cpprp/staff` permissions.
+- Outbox-методы поддерживают служебные токены доступа для сервисов `ml`, `graph` и интеграционных задач, связанных с `faculty`.
+- Токены задаются в `OUTBOX_SERVICE_TOKENS` как JSON-объект: `{"ml":"...","graph":"..."}`.
+- Пользователи также могут обращаться к outbox-методам через существующие права `cpprp/staff`.
 
-## Faculty Mirror API
+## API зеркала преподавателей
 
-`/api/v1/faculty/*` exposes a read-only mirror of HSE faculty data and the resolved project-supervisor matches currently stored by `apps.faculty`.
+`/api/v1/faculty/*` предоставляет API только для чтения к зеркалу данных преподавателей НИУ ВШЭ и рассчитанным сопоставлениям проектов с научными руководителями, которые хранятся в `apps.faculty`.
 
-- `GET /api/v1/faculty/persons/?q=<text>&interest=<text>` lists active faculty records.
-- `GET /api/v1/faculty/persons/<source_key>/` returns one faculty record.
-- `GET /api/v1/faculty/persons/<source_key>/projects/` returns confirmed project matches whose projects are visible in the catalog.
+- `GET /api/v1/faculty/persons/?q=<text>&interest=<text>` возвращает список актуальных записей о преподавателях.
+- `GET /api/v1/faculty/persons/<source_key>/` возвращает одну запись о преподавателе.
+- `GET /api/v1/faculty/persons/<source_key>/projects/` возвращает подтвержденные сопоставления с проектами, видимыми в каталоге.
 
-Faculty data also participates in outbox snapshots through optional resources: `faculty_persons`, `faculty_publications`, `faculty_courses`, and `project_faculty_matches`.
+Данные о преподавателях также могут входить в снимок состояния outbox через дополнительные ресурсы: `faculty_persons`, `faculty_publications`, `faculty_courses`, `project_faculty_matches`.
 
-## ML Integration Readiness Policy
+## Политика готовности ML-интеграции
 
-`web` treats external ML as usable only when the ML response is a successful 2xx JSON body with `mode=semantic` and a valid `items` array (`project_id`, `score`, `reason`). In every other case — timeout, 5xx, invalid JSON, invalid items, or non-semantic mode — `web` switches to local `keyword-fallback` for that request.
+`web` считает внешний ML-сервис пригодным для использования только в том случае, если он возвращает успешный JSON-ответ 2xx с `mode=semantic` и корректным массивом `items` (`project_id`, `score`, `reason`). Во всех остальных случаях - при тайм-ауте, ошибке 5xx, некорректном JSON, неверных элементах или другом режиме - `web` переключается на локальный `keyword-fallback` для текущего запроса.

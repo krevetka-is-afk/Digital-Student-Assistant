@@ -1,6 +1,6 @@
 # Digital-Student-Assistant
 
-Цифровой Ассистент Студента - это платформа подбора и сопровождения студенческих проектов. Текущий runtime состоит из Django + DRF backend, Django templates frontend, role-based личных кабинетов (`student`, `customer`, `cpprp`), email/password аутентификации с подтверждением email, reference ML-сервиса для поиска/рекомендаций и graph сервиса, который строит связи между студентами, научными руководителями, тегами и заявками из outbox-событий. `web` остается source of truth для пользователей, проектов, заявок, дедлайнов, импортов и модерационных статусов.
+Digital Student Assistant - платформа для подбора и сопровождения студенческих проектов. Текущий контур системы включает веб-сервис на Django + DRF, интерфейс на Django templates, ролевые кабинеты (`student`, `customer`, `cpprp`), локальную аутентификацию с подтверждением адреса электронной почты, ML-сервис для поиска и рекомендаций и graph-сервис, который строит связи между студентами, научными руководителями, тегами и заявками на основе outbox-событий. Компонент `web` остается основным источником данных о пользователях, проектах, заявках, сроках, импортах и модерационных статусах.
 
 ![CI](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/ci.yml/badge.svg) [![Deploy Production](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml/badge.svg)](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml)
 
@@ -23,14 +23,14 @@ uv sync --all-packages --group dev
 export PYTHONPATH=.
 ```
 
-## Canonical test entrypoint
+## Основная команда проверки
 
 ```bash
 uv sync --all-packages --group dev
 ./scripts/run-release-gate.sh
 ```
 
-Этот сценарий использует единое workspace-окружение для `web`, `ml`, `graph`, затем `run-release-gate.sh` применяет Django migrations для локальной SQLite-базы и запускает общий `pytest` release gate из корня репозитория.
+Сценарий использует единое рабочее окружение для `web`, `ml` и `graph`, затем `run-release-gate.sh` применяет миграции Django для локальной SQLite-базы и запускает общий `pytest` из корня репозитория.
 
 ## Docker
 
@@ -38,7 +38,7 @@ uv sync --all-packages --group dev
 docker compose -f infra/docker-compose.yml --profile dev up --build
 ```
 
-## Web (Django) локальный запуск
+## Локальный запуск веб-сервиса
 
 ```bash
 cd src/web/
@@ -51,52 +51,49 @@ uv run python manage.py runserver --settings=config.settings.dev
 
 После запуска:
 
-- Home: `http://127.0.0.1:8000/`
-- Health: `http://127.0.0.1:8000/health/`
-- API root: `http://127.0.0.1:8000/api/v1/`
-- Account API: `http://127.0.0.1:8000/api/v1/account/me/`
-- Recs search: `http://127.0.0.1:8000/api/v1/recs/search/?q=graph`
-- ML readiness: `http://127.0.0.1:8001/ready`
-- Graph state: `http://127.0.0.1:8002/state`
+- главная страница: `http://127.0.0.1:8000/`;
+- проверка доступности: `http://127.0.0.1:8000/health/`;
+- корень API: `http://127.0.0.1:8000/api/v1/`;
+- кабинет пользователя: `http://127.0.0.1:8000/api/v1/account/me/`;
+- поиск рекомендаций: `http://127.0.0.1:8000/api/v1/recs/search/?q=graph`;
+- готовность ML-сервиса: `http://127.0.0.1:8001/ready`;
+- состояние graph-сервиса: `http://127.0.0.1:8002/state`.
 
-## Текущий product focus
+## Текущий фокус проекта
 
-- Канонический release surface фиксируется в `docs/architecture/contracts/api_contract.json` и проверяется против generated OpenAPI.
-- Канонический event surface фиксируется в `docs/architecture/contracts/event_contract.json` и проверяется против фактических `emit_event(...)` вызовов в `src/web/apps/*`.
-- Канонический runtime сейчас строится вокруг Django API, Django templates frontend, role-based `account` кабинетов и recommendation flow через `recs` + outbox для downstream `ml`/`graph`/`faculty`.
+- Канонический контракт релиза фиксируется в `docs/architecture/contracts/api_contract.json` и сверяется с автоматически сгенерированной OpenAPI-схемой.
+- Канонический контракт событий фиксируется в `docs/architecture/contracts/event_contract.json` и сверяется с фактическими вызовами `emit_event(...)` в `src/web/apps/*`.
+- Текущий контур выполнения строится вокруг Django API, интерфейса на Django templates, ролевых кабинетов `account` и сценария рекомендаций через `recs` и outbox для сервисов `ml`, `graph` и `faculty`.
 - `EPP` хранится в `projects` как родительская сущность.
-- `Project` представляет vacancy/topic строку из файла и остается основным объектом модерации и заявок.
-- `account` предоставляет отдельные role-based кабинеты, но не заменяет существующие `/api/v1/projects/` и `/api/v1/applications/`.
-- Frontend реализован на Django templates. Основной режим аутентификации текущей итерации - локальная регистрация/login с email verification.
+- `Project` представляет отдельную тему или вакансию из импортируемого набора и остается основным объектом модерации и заявок.
+- `account` предоставляет отдельные ролевые кабинеты, но не заменяет существующие `/api/v1/projects/` и `/api/v1/applications/`.
+- Интерфейс реализован на Django templates. Основной режим аутентификации в текущей итерации - локальная регистрация и вход с подтверждением email.
 
-## Import
+## Импорт данных
 
-Канонический runtime-контракт для импорта - `POST /api/v1/imports/epp/` с XLSX-файлом. CLI-команда тоже поддерживается, но требует явного доступного пути.
+Канонический контракт импорта - `POST /api/v1/imports/epp/` с XLSX-файлом. Команда командной строки также поддерживается, но требует явного доступного пути.
 
 ```bash
 cd src/web
 uv run python manage.py import_epp_xlsx --path /absolute/path/to/EPP.xlsx --settings=config.settings.dev
 ```
 
-Текущий header contract и нормализация полей зафиксированы в `src/web/apps/projects/importers.py`, а `ImportRun.stats` является каноническим описанием результата импорта.
+Текущий контракт заголовков и нормализация полей зафиксированы в `src/web/apps/projects/importers.py`, а `ImportRun.stats` служит каноническим описанием результата импорта.
 
-## Release Contracts
+## Контракты релиза
 
-Canonical release contracts live in `docs/architecture/contracts/api_contract.json` and `docs/architecture/contracts/event_contract.json`.
-They are validated against generated OpenAPI and current outbox event emitters in `tests/contract/`.
+Канонические контракты релиза расположены в `docs/architecture/contracts/api_contract.json` и `docs/architecture/contracts/event_contract.json`. Они проверяются по сгенерированной OpenAPI-схеме и по актуальным источникам outbox-событий в `tests/contract/`.
 
-Current release surface includes:
+Текущий состав релизного контура включает:
 
-- `projects`, `applications` and their action endpoints for submit/moderate/review flows
-- `account/me`, `account/student/overview`, `account/customer/*`, `account/cpprp/*` for role-based personal cabinets
-- `users/me` and `users/me/favorites*` for profile and student bookmarks
-- `recs/search`, `recs/recommendations`, `recs/reindex` for recommendation/search integration
-- `faculty/persons*` for HSE faculty mirror data and project-supervisor matching
-- `imports/epp` and outbox delivery endpoints (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`, `outbox/snapshot`) for safe downstream graph/ML/faculty synchronization
+- `projects`, `applications` и их специальные методы для отправки, модерации и рассмотрения заявок;
+- `account/me`, `account/student/overview`, `account/customer/*`, `account/cpprp/*` для ролевых личных кабинетов;
+- `users/me` и `users/me/favorites*` для профиля и избранных проектов студента;
+- `recs/search`, `recs/recommendations`, `recs/reindex` для интеграции поиска и рекомендаций;
+- `faculty/persons*` для зеркала данных преподавателей и сопоставления проектов с научными руководителями;
+- `imports/epp` и outbox-методы (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`, `outbox/snapshot`) для безопасной синхронизации с `graph`, `ml` и `faculty`.
 
-Portable deployment assets live in `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh`, and `scripts/restore-postgres.sh`.
-Admin login and CSRF topology runbook: `docs/issues/admin-login-http-https.md`.
-Executable `k6` scenarios for VM sizing live in `perf/k6/`.
+Файлы развертывания расположены в `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh` и `scripts/restore-postgres.sh`. Отдельная инструкция по входу в административную панель и топологии CSRF находится в `docs/issues/admin-login-http-https.md`. Выполнимые сценарии `k6` для оценки размеров виртуальной машины находятся в `perf/k6/`.
 
 ## Django settings profiles
 
@@ -109,44 +106,44 @@ python manage.py check --deploy --settings=config.settings.prod
 
 ## Структура проекта
 
-- `src/web/` - Django + DRF сервис
-- `src/web/apps/frontend/` - Django templates frontend
-- `src/web/apps/*/tests/{api,unit}/` - локальные тесты web-доменов
-- `src/ml/` - FastAPI ML сервис
-- `src/graph/` – Neo4J
-- `tests/` - межсервисные contract/integration/e2e сценарии
-- `infra/` - docker compose и инфраструктурные файлы
-- `infra/compose/test/docker-compose.yml` - тестовое окружение для integration flow
-- `docs/architecture/` - ADR, contracts и архитектурные документы
-- `security/` - security-проверки и конфигурации
+- `src/web/` - сервис Django + DRF;
+- `src/web/apps/frontend/` - интерфейс на Django templates;
+- `src/web/apps/*/tests/{api,unit}/` - локальные тесты веб-доменов;
+- `src/ml/` - FastAPI ML-сервис;
+- `src/graph/` - сервис проекции графа на Neo4j;
+- `tests/` - межсервисные contract/integration/e2e-сценарии;
+- `infra/` - Docker Compose и инфраструктурные файлы;
+- `infra/compose/test/docker-compose.yml` - тестовое окружение для интеграционного контура;
+- `docs/architecture/` - ADR, контракты и архитектурные документы;
+- `security/` - проверки безопасности и конфигурация.
 
-## Contribute
+## Разработка
 
 ```bash
 uv run pre-commit install
 ```
 
-before PR
+Перед созданием pull request:
 
 ```bash
 ./scripts/uv-linters.sh
 ```
 
-Type checking via `ty` is available as a separate script:
+Проверка типов через `ty` вынесена в отдельный сценарий:
 
 ```bash
 ./scripts/uv-typecheck.sh
 ```
 
-You can also include it in the lint script explicitly:
+При необходимости ее можно явно включить в сценарий линтеров:
 
 ```bash
 CHECK_TYPES=1 ./scripts/uv-linters.sh
 ```
 
-## Issues
+## Сообщения об ошибках и предложениях
 
-Now we have two options for issues:
+Доступны два шаблона обращений:
 
 1. [Bug report](.github/ISSUE_TEMPLATE/bug_report.yml)
 2. [Feature request](.github/ISSUE_TEMPLATE/feature.yml)

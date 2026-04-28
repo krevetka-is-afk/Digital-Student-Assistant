@@ -1,6 +1,6 @@
 # 3. Нефункциональные требования
 
-Актуализировано: 2026-04-28.
+Актуализировано: 2026-04-29.
 
 ## Нагрузка
 
@@ -9,44 +9,44 @@
 - просмотр каталога и карточек проектов;
 - поиск и рекомендации;
 - подача заявок;
-- модерация и review заявок;
+- модерация проектов и рассмотрение заявок;
 - импорт EPP XLSX;
-- outbox consumption со стороны ML/graph/faculty consumers.
+- обработка outbox-событий со стороны ML, graph и faculty-сервисов.
 
 ## Производительность
 
-Целевые ориентиры для production-like проверки:
+Целевые ориентиры для проверки в окружении, близком к рабочему:
 
 - `GET /projects/`: p95 < 1s, p99 < 2s;
 - `GET /api/v1/projects/`: p95 < 500ms;
 - `GET /api/v1/recs/search/`: p95 < 800ms;
-- write paths: p95 < 1.5s;
+- операции записи: p95 < 1.5s;
 - 5xx < 1%;
-- без OOM/restarts и без повторяющихся `502/504` от Nginx.
+- без отказов из-за нехватки памяти, незапланированных перезапусков и повторяющихся ответов `502/504` от Nginx.
 
 ## Надежность
 
-- PostgreSQL является production-target хранилищем operational data.
+- PostgreSQL является целевым хранилищем эксплуатационных данных.
 - Изменения доменных сущностей проходят через транзакции Django/DRF.
-- Outbox delivery использует at-least-once семантику, монотонный ack и checkpoint per consumer.
-- Повторная обработка downstream events должна быть идемпотентной.
-- Neo4j Community не покрывается автоматическим online backup как production-critical источник правды; source of truth остается `web`/PostgreSQL.
+- Доставка через outbox использует семантику at-least-once, монотонное подтверждение и отдельную контрольную точку для каждого потребителя.
+- Повторная обработка событий внешними сервисами должна быть идемпотентной.
+- Neo4j Community не покрывается автоматическим онлайн-резервным копированием как критичный источник данных; источником правды остается `web`/PostgreSQL.
 
 ## Безопасность
 
 - Ролевая модель: `student`, `customer`, `cpprp`, `staff`.
-- Django admin доступен только staff/superuser.
-- Auth текущей итерации: локальный login/register с email verification; token endpoint не должен выдавать токен до подтверждения email.
-- Сервисные consumers используют bearer machine tokens для outbox API.
+- Django admin доступен только пользователям `staff`/`superuser`.
+- Аутентификация текущей итерации: локальные регистрация и вход с подтверждением адреса электронной почты; метод выдачи токена не должен возвращать токен до подтверждения email.
+- Сервисные потребители используют служебные токены доступа для outbox API.
 - Production-конфигурация должна хранить секреты вне кода и проходить `manage.py check --deploy`.
 
 ## Наблюдаемость
 
-- Health/readiness endpoints: `/health/`, `/ready/`, `/api/v1/health/`, `/api/v1/ready/`.
-- Metrics endpoints доступны для web, ML и graph сервисов.
-- Observability stack: Prometheus/Grafana без Loki/Tempo/OpenTelemetry в первой итерации.
+- Методы проверки доступности и готовности: `/health/`, `/ready/`, `/api/v1/health/`, `/api/v1/ready/`.
+- Метрики доступны для web, ML и graph-сервисов.
+- Стек наблюдаемости: Prometheus/Grafana без Loki/Tempo/OpenTelemetry в первой итерации.
 
-## Verification
+## Проверка
 
 Канонические команды:
 
