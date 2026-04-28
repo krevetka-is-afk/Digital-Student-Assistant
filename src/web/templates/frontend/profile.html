@@ -268,9 +268,14 @@
           <input type="text" name="full_name" id="id_full_name"
                  value="{{ profile_user.get_full_name }}"
                  placeholder="Иван Иванов"
-                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
+                 maxlength="100"
+                 class="w-full border {% if profile_errors.full_name %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
                  style="background:#fafafa;">
+          {% if profile_errors.full_name %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_errors.full_name }}</p>
+          {% else %}
           <p class="text-xs text-gray-400 mt-1">Отображается в профиле и в шапке</p>
+          {% endif %}
         </div>
 
         <!-- Bio -->
@@ -281,8 +286,14 @@
           </label>
           <textarea name="bio" id="id_bio" rows="4"
                     placeholder="Расскажите кратко о себе, своём опыте и целях..."
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition resize-none"
+                    maxlength="500"
+                    class="w-full border {% if profile_errors.bio %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition resize-none"
                     style="background:#fafafa;">{{ profile.bio|default:"" }}</textarea>
+          {% if profile_errors.bio %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_errors.bio }}</p>
+          {% else %}
+          <p class="text-xs text-gray-400 mt-1">Максимум 500 символов</p>
+          {% endif %}
         </div>
 
         <!-- Interests (students only) -->
@@ -294,7 +305,7 @@
           <input type="hidden" name="interests_raw" id="interests_raw_input"
                  value="{{ interests_initial }}">
           <div id="interests-chip-container"
-               class="border border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition cursor-text"
+               class="border {% if profile_errors.interests %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition cursor-text"
                style="background:#fafafa;min-height:42px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"
                onclick="document.getElementById('interests-input').focus()">
             <div id="interests-chips" style="display:contents;"></div>
@@ -305,7 +316,11 @@
                    onkeydown="handleInterestKey(event)"
                    onblur="addInterestTag()">
           </div>
-          <p class="text-xs text-gray-400 mt-1">Enter или запятая — добавить тег, Backspace — удалить последний</p>
+          {% if profile_errors.interests %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_errors.interests }}</p>
+          {% else %}
+          <p class="text-xs text-gray-400 mt-1">Enter или запятая — добавить тег, Backspace — удалить последний. Максимум 20 интересов.</p>
+          {% endif %}
         </div>
         {% endif %}
 

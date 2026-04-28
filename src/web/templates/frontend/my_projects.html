@@ -258,14 +258,40 @@
 <!-- ================================================================ -->
 <div id="tab-panel-articles" style="display:none;">
 
-  <p class="text-sm text-gray-500 mb-5">
-    Научные публикации по тематике ваших проектов.
-    <span class="text-gray-400">Данные будут загружены из внешнего источника.</span>
-  </p>
+  <div class="flex flex-wrap items-center gap-3 mb-5">
+    <p class="text-sm text-gray-500 flex-1 min-w-0">
+      Научные публикации по тематике ваших проектов.
+      <span class="text-gray-400">Данные будут загружены из внешнего источника.</span>
+    </p>
+    {% if article_years or article_directions %}
+    <div class="flex flex-wrap gap-2 flex-shrink-0">
+      {% if article_years %}
+      <select id="article-year-filter" onchange="filterArticles()"
+              class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
+        <option value="">Все годы</option>
+        {% for yr in article_years %}
+        <option value="{{ yr }}">{{ yr }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      {% if article_directions %}
+      <select id="article-dir-filter" onchange="filterArticles()"
+              class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
+        <option value="">Все направления</option>
+        {% for dir in article_directions %}
+        <option value="{{ dir }}">{{ dir }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
 
-  <div style="display:flex;flex-direction:column;gap:12px;">
+  <div style="display:flex;flex-direction:column;gap:12px;" id="articles-list">
     {% for article in sample_articles %}
-    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all">
+    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all article-card"
+         data-year="{{ article.year|default:'' }}"
+         data-direction="{{ article.direction|default:'' }}">
 
       <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
 
@@ -333,6 +359,12 @@
       <p class="text-gray-500">Статьи пока не загружены</p>
     </div>
     {% endfor %}
+    <!-- Shown by JS when active filters match nothing -->
+    <div id="articles-filter-empty" style="display:none;"
+         class="text-center py-12 bg-white border border-gray-200 rounded-2xl">
+      <p class="text-sm font-medium text-gray-700 mb-1">Нет статей по выбранным критериям</p>
+      <p class="text-xs text-gray-400">Попробуйте изменить год или направление</p>
+    </div>
   </div>
 
 </div><!-- /tab-panel-articles -->
@@ -491,9 +523,9 @@ function _initGraph() {
       },
     },
     edges: {
-      width: 1.5,
       color: { color: '#cbd5e1', highlight: '#64748b', hover: '#94a3b8' },
       smooth: { type: 'continuous' },
+      scaling: { min: 1, max: 6 },
     },
     physics: {
       stabilization: { iterations: 300 },
@@ -503,6 +535,22 @@ function _initGraph() {
   };
   new vis.Network(container, data, options);
 }
+
+/* ── Article filtering ──────────────────────────────────────────── */
+window.filterArticles = function() {
+  var year = (document.getElementById('article-year-filter') || {}).value || '';
+  var dir  = (document.getElementById('article-dir-filter')  || {}).value || '';
+  var cards = document.querySelectorAll('#articles-list .article-card');
+  var visible = 0;
+  cards.forEach(function(card) {
+    var show = (!year || card.dataset.year === year) &&
+               (!dir  || card.dataset.direction === dir);
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  var empty = document.getElementById('articles-filter-empty');
+  if (empty) empty.style.display = (visible === 0 && cards.length > 0) ? '' : 'none';
+};
 
 function switchTab(tab) {
   var tabs = ['projects', 'articles', 'staff', 'graph'];

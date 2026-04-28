@@ -7,6 +7,7 @@ from .applications import (
     project_applications,
     review_application_view,
     submit_application,
+    withdraw_application,
 )
 from .auth import (
     auth_view,
@@ -54,6 +55,7 @@ __all__ = [
     "application_list",
     "project_applications",
     "review_application_view",
+    "withdraw_application",
     # moderation
     "moderation_list",
     "moderate_project_decide",
