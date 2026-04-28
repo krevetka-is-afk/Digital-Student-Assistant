@@ -7,10 +7,11 @@ Unfold's ModelAdmin automatically.
 """
 
 from importlib import import_module
+from typing import Any, cast
 
 from django.contrib import admin
 
 try:  # pragma: no cover - exercised when django-unfold is installed in CI/deploy.
-    UnfoldModelAdmin = import_module("unfold.admin").ModelAdmin
+    UnfoldModelAdmin = cast(Any, import_module("unfold.admin").ModelAdmin)
 except ModuleNotFoundError:  # pragma: no cover - local offline fallback only.
-    UnfoldModelAdmin = admin.ModelAdmin
+    UnfoldModelAdmin = cast(Any, admin.ModelAdmin)
