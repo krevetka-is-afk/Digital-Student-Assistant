@@ -487,7 +487,14 @@ jobs:
             TARGET_REF="${{ github.sha }}"
             EXPECTED_SHA="${{ github.sha }}"
             STAGING_COMPOSE_FILE="infra/docker-compose.staging.yml"
+            STAGING_OBSERVABILITY_COMPOSE_FILE="infra/observability/docker-compose.observability.yml"
             STAGING_ENV_FILE="infra/.env.staging"
+            STAGING_COMPOSE_ARGS=(
+              -f "$STAGING_COMPOSE_FILE"
+              -f "$STAGING_OBSERVABILITY_COMPOSE_FILE"
+              --env-file "$STAGING_ENV_FILE"
+              --profile observability
+            )
 
             test -n "$APP_DIR"
             test -d "$APP_DIR"
@@ -511,6 +518,7 @@ jobs:
               echo "Ref mismatch: expected $EXPECTED_SHA, got $ACTUAL_SHA" >&2
               exit 1
             fi
+            test -f "$STAGING_OBSERVABILITY_COMPOSE_FILE"
 
             OWNER_LC="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
             REPO_LC="$(printf '%s' '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')"
@@ -583,6 +591,7 @@ jobs:
             )"
             PG_PASS="$(openssl rand -hex 20)"
             NEO4J_PASS="$(openssl rand -hex 20)"
+            GRAFANA_PASS="$(openssl rand -hex 20)"
 
             require_stable_env_for_existing_volume \
               "infra_postgres-staging" \
@@ -600,6 +609,8 @@ jobs:
             replace_if_placeholder "POSTGRES_PASSWORD" "$PG_PASS"
             replace_if_placeholder "NEO4J_AUTH" "neo4j/${NEO4J_PASS}"
             replace_if_placeholder "NEO4J_PASSWORD" "$NEO4J_PASS"
+            replace_if_placeholder "GRAFANA_ADMIN_USER" "admin"
+            replace_if_placeholder "GRAFANA_ADMIN_PASSWORD" "$GRAFANA_PASS"
 
             POSTGRES_DB_VAL="$(get_env_val POSTGRES_DB)"
             POSTGRES_USER_VAL="$(get_env_val POSTGRES_USER)"
@@ -651,10 +662,10 @@ jobs:
               fi
               trap - EXIT
               echo "Staging deploy failed; collecting docker compose diagnostics..." >&2
-              docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" ps || true
-              for service in postgres neo4j web ml graph nginx; do
+              docker compose "${STAGING_COMPOSE_ARGS[@]}" ps || true
+              for service in postgres neo4j web ml graph nginx prometheus grafana; do
                 echo "--- docker compose logs: ${service} ---" >&2
-                docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" logs --tail 200 "$service" || true
+                docker compose "${STAGING_COMPOSE_ARGS[@]}" logs --tail 200 "$service" || true
               done
               exit "$status"
             }
@@ -742,14 +753,27 @@ jobs:
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \
             GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" pull web ml graph
+            docker compose "${STAGING_COMPOSE_ARGS[@]}" pull web ml graph prometheus grafana
 
             WEB_IMAGE="$WEB_IMAGE" \
             ML_IMAGE="$ML_IMAGE" \
             GRAPH_IMAGE="$GRAPH_IMAGE" \
-            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" up -d --no-build --remove-orphans --force-recreate --wait --wait-timeout 240
-            docker compose -f "$STAGING_COMPOSE_FILE" --env-file "$STAGING_ENV_FILE" restart nginx
+            docker compose "${STAGING_COMPOSE_ARGS[@]}" up -d --no-build --remove-orphans --force-recreate --wait --wait-timeout 240
+            docker compose "${STAGING_COMPOSE_ARGS[@]}" restart nginx
             docker logout ghcr.io || true
+
+            for i in {1..20}; do
+              if curl -fsS --max-time 5 http://127.0.0.1:3000/api/health >/dev/null &&
+                curl -fsS --max-time 5 http://127.0.0.1:9090/-/ready >/dev/null; then
+                echo "Staging observability stack is healthy."
+                break
+              fi
+              if [ "$i" -eq 20 ]; then
+                echo "::error::Staging observability stack did not become healthy." >&2
+                exit 1
+              fi
+              sleep 3
+            done
 
             PUBLIC_BASE_URL="$STAGING_BASE_URL"
 
