@@ -241,6 +241,9 @@ def resend_email_code_view(request):
     email = request.POST.get("email", "").strip().lower()
     next_url = request.POST.get("next", "").strip()
 
+    safe_next_url = _safe_redirect_target(request, next_url)
+    safe_email = email if _check_email_fmt(email) else ""
+
     result = resend_signup_code(email)
     if result.retry_after_seconds:
         messages.info(
@@ -250,7 +253,7 @@ def resend_email_code_view(request):
         )
     else:
         messages.info(request, result.message)
-    return redirect(_verification_redirect_url(email, next_url))
+    return redirect(_verification_redirect_url(safe_email, safe_next_url))
 
 
 @require_POST
