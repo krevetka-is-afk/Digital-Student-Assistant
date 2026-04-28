@@ -1,6 +1,6 @@
 # Digital-Student-Assistant
 
-Digital Student Assistant - платформа для подбора и сопровождения студенческих проектов. Текущий контур системы включает веб-сервис на Django + DRF, интерфейс на Django templates, ролевые кабинеты (`student`, `customer`, `cpprp`), локальную аутентификацию с подтверждением адреса электронной почты, ML-сервис для поиска и рекомендаций и graph-сервис, который строит связи между студентами, научными руководителями, тегами и заявками на основе outbox-событий. Компонент `web` остается источником правды для пользователей, проектов, заявок, сроков, импортов и модерационных статусов.
+Digital Student Assistant - платформа для подбора и сопровождения студенческих проектов. Текущий контур системы включает веб-сервис на Django + DRF, интерфейс на Django templates, ролевые кабинеты (`student`, `customer`, `cpprp`), локальную аутентификацию с подтверждением адреса электронной почты, ML-сервис для поиска и рекомендаций и graph-сервис, который строит связи между студентами, научными руководителями, тегами и заявками на основе outbox-событий. Компонент `web` остается основным источником данных о пользователях, проектах, заявках, сроках, импортах и модерационных статусах.
 
 ![CI](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/ci.yml/badge.svg) [![Deploy Production](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml/badge.svg)](https://github.com/krevetka-is-afk/Digital-Student-Assistant/actions/workflows/deploy-prod.yml)
 
@@ -52,7 +52,7 @@ uv run python manage.py runserver --settings=config.settings.dev
 После запуска:
 
 - главная страница: `http://127.0.0.1:8000/`;
-- health-check: `http://127.0.0.1:8000/health/`;
+- проверка доступности: `http://127.0.0.1:8000/health/`;
 - корень API: `http://127.0.0.1:8000/api/v1/`;
 - кабинет пользователя: `http://127.0.0.1:8000/api/v1/account/me/`;
 - поиск рекомендаций: `http://127.0.0.1:8000/api/v1/recs/search/?q=graph`;
@@ -93,7 +93,7 @@ uv run python manage.py import_epp_xlsx --path /absolute/path/to/EPP.xlsx --sett
 - `faculty/persons*` для зеркала данных преподавателей и сопоставления проектов с научными руководителями;
 - `imports/epp` и outbox-методы (`outbox/events`, `outbox/events/ack`, `outbox/consumers/<consumer>/checkpoint`, `outbox/snapshot`) для безопасной синхронизации с `graph`, `ml` и `faculty`.
 
-Файлы развертывания расположены в `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh` и `scripts/restore-postgres.sh`. Отдельная инструкция по входу в административную панель и топологии CSRF находится в `docs/issues/admin-login-http-https.md`. Выполнимые сценарии `k6` для оценки размеров VM находятся в `perf/k6/`.
+Файлы развертывания расположены в `infra/docker-compose.prod.yml`, `infra/nginx/default.conf`, `scripts/backup-postgres.sh` и `scripts/restore-postgres.sh`. Отдельная инструкция по входу в административную панель и топологии CSRF находится в `docs/issues/admin-login-http-https.md`. Выполнимые сценарии `k6` для оценки размеров виртуальной машины находятся в `perf/k6/`.
 
 ## Django settings profiles
 
@@ -108,7 +108,7 @@ python manage.py check --deploy --settings=config.settings.prod
 
 - `src/web/` - сервис Django + DRF;
 - `src/web/apps/frontend/` - интерфейс на Django templates;
-- `src/web/apps/*/tests/{api,unit}/` - локальные тесты web-доменов
+- `src/web/apps/*/tests/{api,unit}/` - локальные тесты веб-доменов;
 - `src/ml/` - FastAPI ML-сервис;
 - `src/graph/` - сервис проекции графа на Neo4j;
 - `tests/` - межсервисные contract/integration/e2e-сценарии;
@@ -143,7 +143,7 @@ CHECK_TYPES=1 ./scripts/uv-linters.sh
 
 ## Сообщения об ошибках и предложениях
 
-Доступны два шаблона issue:
+Доступны два шаблона обращений:
 
 1. [Bug report](.github/ISSUE_TEMPLATE/bug_report.yml)
 2. [Feature request](.github/ISSUE_TEMPLATE/feature.yml)

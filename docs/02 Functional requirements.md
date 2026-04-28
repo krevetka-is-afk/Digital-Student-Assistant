@@ -32,9 +32,9 @@
 
 ## Жизненный цикл проектов и заявок
 
-- Project: `draft -> on_moderation -> published/rejected -> staffed`, также поддерживается `archived`.
-- Initiative proposal: `draft -> on_moderation -> revision_requested -> on_moderation -> published`.
-- Application: `submitted -> accepted/rejected`.
+- Проект: `draft -> on_moderation -> published/rejected -> staffed`, также поддерживается `archived`.
+- Инициативная тема: `draft -> on_moderation -> revision_requested -> on_moderation -> published`.
+- Заявка: `submitted -> accepted/rejected`.
 - Прямое изменение статусов жизненного цикла через общий `PATCH` запрещено; переходы выполняются через специальные методы API.
 
 ## Импорт данных
@@ -47,11 +47,11 @@
 
 - `web` обращается к ML-сервису через REST-шлюз (`/search`, `/recommendations`, `/reindex`).
 - Если ML-сервис не возвращает корректный `mode=semantic`, `web` использует локальный резервный поиск по ключевым словам.
-- Внешние сервисы получают изменения через outbox events, ack/checkpoint/replay и snapshot.
+- Внешние сервисы получают изменения через outbox-события, подтверждения обработки, контрольные точки, повторное чтение и снимок состояния.
 - Graph-сервис строит Neo4j-проекцию по outbox-событиям.
 
 ## Данные преподавателей
 
 - Система хранит зеркало данных о преподавателях, публикациях и курсах.
 - Для проектов рассчитываются сопоставления с преподавателями по данным научного руководителя.
-- Read-only API: `/api/v1/faculty/persons/`, `/api/v1/faculty/persons/<source_key>/`, `/api/v1/faculty/persons/<source_key>/projects/`.
+- API только для чтения: `/api/v1/faculty/persons/`, `/api/v1/faculty/persons/<source_key>/`, `/api/v1/faculty/persons/<source_key>/projects/`.
