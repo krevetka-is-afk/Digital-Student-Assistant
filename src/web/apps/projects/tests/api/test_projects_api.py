@@ -80,6 +80,25 @@ def test_create_project_normalizes_null_tech_tags():
     assert response.json()["tech_tags"] == []
 
 
+def test_project_detail_succeeds_with_malformed_favorites_in_profile():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    project = Project.objects.create(
+        title=_title("Stable detail"),
+        owner=owner,
+        status=ProjectStatus.PUBLISHED
+        )
+    UserProfile.objects.filter(pk=student.profile.pk).update(favorite_project_ids="string")
+
+    client = Client()
+    client.force_login(student)
+    response = client.get(reverse("api-v1-project-detail", kwargs={"pk": project.pk}))
+
+    assert response.status_code == 200
+    assert response.json()["pk"] == project.pk
+    assert response.json()["is_favorite"] is False
+
+
 def test_create_project_normalizes_tech_tags_to_lowercase_unique_values():
     user = _make_user(role=UserRole.CUSTOMER)
     client = Client()

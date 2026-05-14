@@ -141,7 +141,7 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
         profile = getattr(request.user, "profile", None)
         if profile is None:
             return False
-        return obj.pk in (profile.favorite_project_ids or [])
+        return obj.pk in profile.get_favorite_project_ids()
 
     def validate_extra_data(self, value):
         if value is None:

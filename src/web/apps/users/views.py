@@ -70,13 +70,17 @@ class MyFavoriteProjectsAPIView(APIView):
     )
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        projects = list(
-            Project.objects.filter(
-                pk__in=profile.favorite_project_ids or [],
+        favorite_ids = profile.get_favorite_project_ids()
+        project_by_id = {
+            project.pk: project
+            for project in Project.objects.filter(
+                pk__in=favorite_ids,
                 status__in=ProjectStatus.catalog_values(),
             ).select_related("owner", "epp")
-        )
-        payload = {"project_ids": list(profile.favorite_project_ids or []), "items": projects}
+        }
+        visible_ids = [project_id for project_id in favorite_ids if project_id in project_by_id]
+        projects = [project_by_id[project_id] for project_id in visible_ids]
+        payload = {"project_ids": visible_ids, "items": projects}
         return Response(
             FavoriteProjectsResponseSerializer(payload, context={"request": request}).data
         )
@@ -112,7 +116,7 @@ class MyFavoriteProjectsAPIView(APIView):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = FavoriteProjectsUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        project_ids = list(profile.favorite_project_ids or [])
+        project_ids = profile.get_favorite_project_ids()
         project_ids.extend(serializer.validated_data.get("project_ids", []))
         profile.set_favorite_project_ids(project_ids)
         profile.save(update_fields=["favorite_project_ids", "updated_at"])
@@ -137,8 +141,8 @@ class MyFavoriteProjectDetailAPIView(APIView):
     def delete(self, request, pk: int):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         project_ids = [
-            project_id for project_id in profile.favorite_project_ids or [] if project_id != pk
-        ]
+            project_id for project_id in profile.get_favorite_project_ids() if project_id != pk
+            ]
         profile.set_favorite_project_ids(project_ids)
         profile.save(update_fields=["favorite_project_ids", "updated_at"])
         emit_event(

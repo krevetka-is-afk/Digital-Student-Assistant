@@ -81,7 +81,7 @@ def _build_counters(user, profile: UserProfile) -> dict[str, int]:
         "projects_total": projects_qs.count(),
         "projects_on_moderation": projects_on_moderation,
         "incoming_submitted_applications": incoming_submitted,
-        "favorite_projects_total": len(profile.favorite_project_ids or []),
+        "favorite_projects_total": len(profile.get_favorite_project_ids()),
     }
 
 
@@ -137,7 +137,7 @@ class StudentOverviewAPIView(APIView):
         favorites = list(
             _project_queryset_with_dashboard_counts()
             .select_related("owner")
-            .filter(pk__in=profile.favorite_project_ids or [])
+            .filter(pk__in=profile.get_favorite_project_ids())
             .order_by("-updated_at")
         )
         payload = {

@@ -92,6 +92,11 @@ class UserProfile(models.Model):
 
     def save(self, *args, **kwargs):
         setattr(self, "interests", normalize_technology_tags(self.interests))
+        setattr(
+            self,
+            "favorite_project_ids",
+            self.normalize_favorite_project_ids(self.favorite_project_ids),
+        )
         super().save(*args, **kwargs)
         self.sync_interest_technologies()
 
@@ -112,16 +117,31 @@ class UserProfile(models.Model):
     def is_email_verified(self) -> bool:
         return self.email_verified
 
-    def set_favorite_project_ids(self, project_ids: list[int]) -> None:
+    @staticmethod
+    def normalize_favorite_project_ids(raw_value) -> list[int]:
+        if raw_value is None:
+            return []
+        if not isinstance(raw_value, (list, tuple, set)):
+            return []
+
         normalized: list[int] = []
         seen: set[int] = set()
-        for raw_project_id in project_ids:
-            project_id = int(raw_project_id)
-            if project_id in seen:
+        for raw_project_id in raw_value:
+            try:
+                project_id = int(raw_project_id)
+            except (TypeError, ValueError):
+                continue
+            if project_id < 1 or project_id in seen:
                 continue
             seen.add(project_id)
             normalized.append(project_id)
-        setattr(self, "favorite_project_ids", normalized)
+        return normalized
+
+    def get_favorite_project_ids(self) -> list[int]:
+        return self.normalize_favorite_project_ids(self.favorite_project_ids)
+
+    def set_favorite_project_ids(self, project_ids: list[int]) -> None:
+        setattr(self, "favorite_project_ids", self.normalize_favorite_project_ids(project_ids))
 
     def mark_email_verified(self, verified_at=None) -> None:
         self.email_verified_at = verified_at or timezone.now()

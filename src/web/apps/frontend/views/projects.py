@@ -230,7 +230,7 @@ def project_list(request):
 
         # Suggest interests from activity when student has none set
         if not has_interests:
-            fav_ids = list(request.user.profile.favorite_project_ids)
+            fav_ids = request.user.profile.get_favorite_project_ids()
             applied_ids = [a.project_id for a in my_applications]
             activity_ids = list({*fav_ids, *applied_ids})[:20]
             if activity_ids:
@@ -248,7 +248,7 @@ def project_list(request):
 
     if request.user.is_authenticated:
         show_bookmarks_tab = True
-        fav_ids = list(request.user.profile.favorite_project_ids)
+        fav_ids = request.user.profile.get_favorite_project_ids()
         bookmarked_ids = set(fav_ids)
         if fav_ids:
             bm_queryset = (
@@ -1091,7 +1091,7 @@ def toggle_bookmark(request, pk):
 
     get_object_or_404(Project, pk=pk)
     profile = request.user.profile
-    favorites = list(profile.favorite_project_ids)
+    favorites = profile.get_favorite_project_ids()
 
     if pk in favorites:
         favorites.remove(pk)
