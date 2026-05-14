@@ -40,7 +40,11 @@ class ApiRootView(APIView):
     permission_classes = [AllowAny]
     name = "API Root"
 
-    @extend_schema(responses=ApiRootResponseSerializer)
+    @extend_schema(
+        tags=["System"],
+        summary="Корневой API endpoint",
+        responses=ApiRootResponseSerializer,
+    )
     def get(self, request, *args, **kwargs):
         return Response(
             {
@@ -58,7 +62,11 @@ class ApiV1RootView(APIView):
     permission_classes = [AllowAny]
     name = "API v1 Root"
 
-    @extend_schema(responses=ApiV1RootResponseSerializer)
+    @extend_schema(
+        tags=["System"],
+        summary="Корень API v1",
+        responses=ApiV1RootResponseSerializer,
+    )
     def get(self, request, *args, **kwargs):
         return Response(
             {

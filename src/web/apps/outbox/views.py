@@ -37,6 +37,8 @@ class OutboxEventListAPIView(generics.ListAPIView):
     permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
     @extend_schema(
+        tags=["Outbox"],
+        summary="Список outbox-событий",
         parameters=[
             OpenApiParameter(
                 name="event_type",
@@ -150,7 +152,12 @@ class OutboxEventListAPIView(generics.ListAPIView):
 class OutboxEventAckAPIView(APIView):
     permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
-    @extend_schema(request=OutboxAckSerializer, responses=OutboxAckResponseSerializer)
+    @extend_schema(
+        tags=["Outbox"],
+        summary="Подтвердить обработку события",
+        request=OutboxAckSerializer,
+        responses=OutboxAckResponseSerializer,
+    )
     def post(self, request):
         serializer = OutboxAckSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -171,7 +178,11 @@ class OutboxEventAckAPIView(APIView):
 class OutboxConsumerCheckpointAPIView(APIView):
     permission_classes = [IsOutboxConsumerOrCpprpOrStaff]
 
-    @extend_schema(responses=OutboxConsumerCheckpointSerializer)
+    @extend_schema(
+        tags=["Outbox"],
+        summary="Получить checkpoint consumer-а",
+        responses=OutboxConsumerCheckpointSerializer,
+    )
     def get(self, request, consumer: str):
         checkpoint = get_or_create_consumer_checkpoint(consumer)
         serializer = OutboxConsumerCheckpointSerializer(checkpoint)
@@ -191,6 +202,8 @@ class OutboxSnapshotAPIView(APIView):
     }
 
     @extend_schema(
+        tags=["Outbox"],
+        summary="Получить snapshot агрегатов",
         parameters=[
             OpenApiParameter(
                 name="resources",

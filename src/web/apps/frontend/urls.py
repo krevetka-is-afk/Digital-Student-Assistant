@@ -117,6 +117,11 @@ urlpatterns = [
     ),
     path("cpprp/export/projects/", views.cpprp_export_projects, name="cpprp_export_projects"),
     path(
+        "cpprp/export/projects.xlsx",
+        views.cpprp_export_projects_xlsx,
+        name="cpprp_export_projects_xlsx",
+    ),
+    path(
         "cpprp/export/applications/",
         views.cpprp_export_applications,
         name="cpprp_export_applications"

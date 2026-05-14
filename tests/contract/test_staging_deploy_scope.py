@@ -9,6 +9,15 @@ STAGING_OBSERVABILITY_COMPOSE_PATH = (
 STAGING_ENV_PATH = ROOT_DIR / 'infra' / '.env.staging.example'
 
 
+def test_staging_compose_nginx_uses_envsubst_template():
+    compose = STAGING_COMPOSE_PATH.read_text(encoding='utf-8')
+
+    assert 'NGINX_PUBLIC_HOST: ${NGINX_PUBLIC_HOST:?NGINX_PUBLIC_HOST is required}' in compose
+    assert 'default.https.conf.template' in compose
+    assert '/etc/nginx/templates/default.conf.template' in compose
+    assert '/etc/nginx/conf.d:rw' in compose
+
+
 def test_staging_compose_is_full_stack():
     compose = STAGING_COMPOSE_PATH.read_text(encoding='utf-8')
 
@@ -52,8 +61,11 @@ def test_staging_workflow_uses_staging_specific_artifacts():
     assert allowed_hosts_line in workflow
     assert 'set_env_key "DJANGO_SECURE_SSL_REDIRECT" "true"' in workflow
     assert 'set_env_key "DJANGO_SECURE_SSL_REDIRECT" "false"' in workflow
-    assert 'server_name ${STAGING_HOST};' in workflow
-    assert 'ssl_certificate /etc/letsencrypt/live/${STAGING_HOST}/fullchain.pem;' in workflow
+    assert 'set_env_key "NGINX_PUBLIC_HOST" "${STAGING_HOST}"' in workflow
+    assert 'set_env_key "NGINX_CONF_TEMPLATE" "./nginx/templates/default.https.conf.template"' \
+        in workflow
+    assert 'set_env_key "NGINX_CONF_TEMPLATE" "./nginx/templates/default.http.conf.template"' \
+        in workflow
     assert 'sudo -n test -r "/etc/letsencrypt/live/${STAGING_HOST}/fullchain.pem"' in workflow
     assert 'Missing TLS certificate for ${STAGING_HOST}' in workflow
     assert 'restart nginx' in workflow
@@ -88,3 +100,4 @@ def test_staging_env_example_exists_for_full_stack():
     assert 'GRAPH_ENABLE_BACKGROUND_POLLER=false' in env_example
     assert 'GRAFANA_ADMIN_USER=admin' in env_example
     assert 'GRAFANA_ADMIN_PASSWORD=replace-with-staging-grafana-password' in env_example
+    assert 'NGINX_PUBLIC_HOST=' in env_example

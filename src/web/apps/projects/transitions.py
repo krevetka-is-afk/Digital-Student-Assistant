@@ -1,4 +1,5 @@
 from apps.account.permissions import has_any_role
+from apps.notifications.services import NotificationSpec, create_notifications
 from apps.users.models import UserRole
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
@@ -52,6 +53,22 @@ def submit_project_for_moderation(project: Project, actor) -> Project:
     project.save(
         update_fields=["status", "moderation_comment", "moderated_by", "moderated_at", "updated_at"]
     )
+    create_notifications(
+        recipients=[project.owner],
+        spec=NotificationSpec(
+            event_type="project.submitted_for_moderation",
+            title="Проект отправлен на модерацию",
+            body="Проект отправлен на модерацию. Мы уведомим вас о результате.",
+            target_type="project",
+            target_id=str(project.pk),
+            actor_id=getattr(actor, "id", None),
+            dedupe_key=(
+                f"project.submitted_for_moderation:\
+                    {project.pk}:\
+                        {project.updated_at.isoformat() if project.updated_at else ''}"
+            ),
+        ),
+    )
     return project
 
 
@@ -89,6 +106,36 @@ def moderate_project(project: Project, actor, decision: str, comment: str = "") 
     )
 
     recalculate_project_staffing(project)
+    normalized_decision = decision.strip().lower()
+    if normalized_decision == "approve":
+        event_type = "project.moderation.approved"
+        title = "Проект одобрен"
+        body = "Проект прошёл модерацию и опубликован."
+    else:
+        event_type = "project.moderation.rejected"
+        title = "Проект отклонён"
+        body = "Проект отклонён модератором."
+        if project.status == ProjectStatus.REVISION_REQUESTED:
+            event_type = "project.moderation.revision_requested"
+            title = "Проект отправлен на доработку"
+            body = "Проект отправлен на доработку. Ознакомьтесь с комментарием модератора."
+    if normalized_comment:
+        body = f"{body}\n\nКомментарий: {normalized_comment}"
+
+    create_notifications(
+        recipients=[project.owner],
+        spec=NotificationSpec(
+            event_type=event_type,
+            title=title,
+            body=body,
+            target_type="project",
+            target_id=str(project.pk),
+            actor_id=getattr(actor, "id", None),
+            dedupe_key=f"{event_type}:\
+                {project.pk}:\
+                    {project.moderated_at.isoformat() if project.moderated_at else ''}",
+        ),
+    )
     return project
 
 

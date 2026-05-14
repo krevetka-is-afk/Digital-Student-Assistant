@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from apps.notifications.models import Notification
 from apps.projects.models import Project, ProjectStatus
 from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
@@ -34,6 +35,12 @@ def test_owner_can_submit_project_for_moderation():
     assert response.status_code == 200
     project.refresh_from_db()
     assert project.status == ProjectStatus.ON_MODERATION
+    assert Notification.objects.filter(
+        recipient=owner,
+        event_type="project.submitted_for_moderation",
+        target_type="project",
+        target_id=str(project.pk),
+    ).exists()
 
 
 def test_owner_can_submit_project_for_moderation_from_revision_requested():
@@ -89,6 +96,12 @@ def test_cpprp_can_approve_project_on_moderation():
     project.refresh_from_db()
     assert project.status == ProjectStatus.PUBLISHED
     assert project.moderated_by_id == cpprp.id
+    assert Notification.objects.filter(
+        recipient=owner,
+        event_type="project.moderation.approved",
+        target_type="project",
+        target_id=str(project.pk),
+    ).exists()
 
 
 def test_customer_cannot_moderate_project():

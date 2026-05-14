@@ -9,9 +9,18 @@
   "links": [],
   "panels": [
     {
+      "id": 1,
+      "title": "Web readiness",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
       },
       "fieldConfig": {
         "defaults": {
@@ -33,13 +42,6 @@
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -59,18 +61,324 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
-          "expr": "up{job=~\"dsa-web|dsa-ml|dsa-graph\"}",
-          "legendFormat": "{{job}}",
+          "expr": "min(dsa_web_readiness_status)",
+          "legendFormat": "",
           "refId": "A"
         }
-      ],
-      "title": "Service Scrape Health",
-      "type": "stat"
+      ]
     },
     {
+      "id": 2,
+      "title": "ML readiness",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "expr": "min(dsa_ml_readiness_status)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Graph readiness",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "expr": "min(dsa_graph_readiness_status)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Latest outbox id",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "expr": "dsa_web_outbox_latest_event_id",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "ML outbox lag",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "expr": "dsa_web_outbox_consumer_lag{consumer=\"ml\"}",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Graph outbox lag",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "expr": "dsa_web_outbox_consumer_lag{consumer=\"graph\"}",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Outbox checkpoints",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
       },
       "fieldConfig": {
         "defaults": {
@@ -84,7 +392,6 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -120,54 +427,66 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
-      "id": 2,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(dsa_web_http_request_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "web p95",
+          "expr": "dsa_web_outbox_latest_event_id",
+          "legendFormat": "web latest",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(dsa_ml_http_request_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "ml p95",
+          "expr": "dsa_web_outbox_consumer_checkpoint{consumer=\"ml\"}",
+          "legendFormat": "ml checkpoint",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(dsa_graph_http_request_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "graph p95",
+          "expr": "dsa_web_outbox_consumer_checkpoint{consumer=\"graph\"}",
+          "legendFormat": "graph checkpoint",
           "refId": "C"
+        },
+        {
+          "expr": "dsa_ml_outbox_last_acked_event_id",
+          "legendFormat": "ml mirrored ack",
+          "refId": "D"
+        },
+        {
+          "expr": "dsa_graph_outbox_last_acked_event_id",
+          "legendFormat": "graph mirrored ack",
+          "refId": "E"
         }
-      ],
-      "title": "HTTP p95 Latency",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 8,
+      "title": "Outbox lag and pending age",
+      "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
       },
       "fieldConfig": {
         "defaults": {
@@ -181,7 +500,322 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "dsa_web_outbox_consumer_lag{consumer=\"ml\"}",
+          "legendFormat": "ml lag",
+          "refId": "A"
+        },
+        {
+          "expr": "dsa_web_outbox_consumer_lag{consumer=\"graph\"}",
+          "legendFormat": "graph lag",
+          "refId": "B"
+        },
+        {
+          "expr": "dsa_web_outbox_oldest_pending_age_seconds{consumer=\"ml\"}",
+          "legendFormat": "ml pending age",
+          "refId": "C"
+        },
+        {
+          "expr": "dsa_web_outbox_oldest_pending_age_seconds{consumer=\"graph\"}",
+          "legendFormat": "graph pending age",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Outbox processing rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(dsa_ml_outbox_sync_events_total[5m])",
+          "legendFormat": "ml events/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(dsa_graph_outbox_sync_events_total[5m])",
+          "legendFormat": "graph events/sec",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(dsa_ml_poller_cycles_total{result=\"success\"}[5m])",
+          "legendFormat": "ml poll cycles/sec",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(dsa_graph_poller_cycles_total{result=\"success\"}[5m])",
+          "legendFormat": "graph poll cycles/sec",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Projected state",
+      "type": "barchart",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "barRadius": 0,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "expr": "dsa_ml_projects_indexed",
+          "legendFormat": "ml projects indexed",
+          "refId": "A"
+        },
+        {
+          "expr": "dsa_ml_profiles_indexed",
+          "legendFormat": "ml profiles indexed",
+          "refId": "B"
+        },
+        {
+          "expr": "dsa_graph_nodes",
+          "legendFormat": "graph nodes {{type}}",
+          "refId": "C"
+        },
+        {
+          "expr": "dsa_graph_edges",
+          "legendFormat": "graph edges",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Web request rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 20
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -221,169 +855,42 @@
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 4
-      },
-      "id": 3,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "sum(rate(dsa_web_http_requests_total{status=~\"5..\"}[5m]))",
-          "legendFormat": "web 5xx",
+          "expr": "sum(rate(dsa_web_http_requests_total[5m])) by (path)",
+          "legendFormat": "{{path}}",
           "refId": "A"
-        },
-        {
-          "expr": "sum(rate(dsa_ml_http_requests_total{status=~\"5..\"}[5m]))",
-          "legendFormat": "ml 5xx",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(rate(dsa_graph_http_requests_total{status=~\"5..\"}[5m]))",
-          "legendFormat": "graph 5xx",
-          "refId": "C"
         }
-      ],
-      "title": "HTTP 5xx Rate",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 12,
+      "title": "Web p95 latency",
+      "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
       "gridPos": {
-        "h": 4,
+        "h": 8,
         "w": 8,
         "x": 8,
-        "y": 0
-      },
-      "id": 4,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.0",
-      "targets": [
-        {
-          "expr": "dsa_web_readiness_status or dsa_ml_readiness_status or dsa_graph_readiness_status",
-          "legendFormat": "{{check}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Readiness Checks",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 16,
-        "y": 0
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.0",
-      "targets": [
-        {
-          "expr": "dsa_ml_outbox_last_acked_event_id",
-          "legendFormat": "ml",
-          "refId": "A"
-        },
-        {
-          "expr": "dsa_graph_outbox_last_acked_event_id",
-          "legendFormat": "graph",
-          "refId": "B"
-        }
-      ],
-      "title": "Outbox Checkpoint Mirrors",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "y": 20
       },
       "fieldConfig": {
         "defaults": {
@@ -397,7 +904,6 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
@@ -433,62 +939,84 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "s"
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 12
-      },
-      "id": 6,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "increase(dsa_ml_outbox_sync_requests_total{result=\"error\"}[5m])",
-          "legendFormat": "ml sync errors",
+          "expr": "histogram_quantile(0.95, sum(rate(dsa_web_http_request_duration_seconds_bucket[5m])) by (le, path))",
+          "legendFormat": "{{path}} p95",
           "refId": "A"
-        },
-        {
-          "expr": "increase(dsa_graph_outbox_sync_requests_total{result=\"error\"}[5m])",
-          "legendFormat": "graph sync errors",
-          "refId": "B"
-        },
-        {
-          "expr": "increase(dsa_ml_poller_cycles_total{result=\"error\"}[5m])",
-          "legendFormat": "ml poller errors",
-          "refId": "C"
-        },
-        {
-          "expr": "increase(dsa_graph_poller_cycles_total{result=\"error\"}[5m])",
-          "legendFormat": "graph poller errors",
-          "refId": "D"
         }
-      ],
-      "title": "Outbox and Poller Errors",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 13,
+      "title": "Web status codes",
+      "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 20
+      },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -499,53 +1027,32 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "reqps"
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "id": 7,
       "options": {
         "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "none",
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "expr": "dsa_ml_projects_indexed",
-          "legendFormat": "ml projects",
+          "expr": "sum(rate(dsa_web_http_requests_total[5m])) by (status)",
+          "legendFormat": "{{status}}",
           "refId": "A"
-        },
-        {
-          "expr": "dsa_ml_profiles_indexed",
-          "legendFormat": "ml profiles",
-          "refId": "B"
-        },
-        {
-          "expr": "dsa_graph_nodes",
-          "legendFormat": "graph {{type}}",
-          "refId": "C"
-        },
-        {
-          "expr": "dsa_graph_edges",
-          "legendFormat": "graph edges",
-          "refId": "D"
         }
-      ],
-      "title": "Indexed State",
-      "type": "barchart"
+      ]
     }
   ],
   "preload": false,
@@ -553,7 +1060,8 @@
   "schemaVersion": 42,
   "tags": [
     "dsa",
-    "observability"
+    "outbox",
+    "staging"
   ],
   "templating": {
     "list": []
@@ -566,5 +1074,6 @@
   "timezone": "browser",
   "title": "Digital Student Assistant Overview",
   "uid": "dsa-overview",
-  "version": 1
+  "version": 2,
+  "weekStart": ""
 }

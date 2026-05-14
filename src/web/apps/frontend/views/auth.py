@@ -2,20 +2,14 @@ from urllib.parse import urlencode, urlsplit
 
 from apps.users.email_verification import (
     VERIFICATION_GENERIC_RESEND_MESSAGE,
-    create_signup_verification,
     is_user_pending_email_verification,
     resend_signup_code,
     verify_signup_code,
 )
 from apps.users.models import (
-    ExternalAccessAllowlist,
-    ExternalAccessRequest,
-    ExternalAccessRequestStatus,
-    UserProfile,
     UserRole,
-    normalize_email,
 )
-from django.conf import settings
+from apps.users.registration import register_user
 from django.contrib import messages
 from django.contrib.auth import (
     authenticate,
@@ -29,13 +23,10 @@ from django.contrib.auth import (
 )
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as _validate_email_fmt
-from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-_NAME_MAX = 100
-_PASSWORD_MIN = 8
 _CONSENT_ACCEPTED_VALUES = {"1", "true", "on", "yes"}
 
 
@@ -45,63 +36,6 @@ def _check_email_fmt(email: str) -> bool:
         return True
     except ValidationError:
         return False
-
-
-def _email_domain(email: str) -> str:
-    normalized = normalize_email(email)
-    _, _, domain = normalized.partition("@")
-    return domain
-
-
-def _is_corporate_email(email: str) -> bool:
-    domain = _email_domain(email)
-    return bool(domain) and domain in {
-        item.strip().lower() for item in getattr(settings, "ALLOWED_CORPORATE_EMAIL_DOMAINS", [])
-    }
-
-
-def _external_email_is_allowlisted(email: str, role: str) -> bool:
-    normalized = normalize_email(email)
-    return ExternalAccessAllowlist.objects.filter(
-        email=normalized,
-        allowed_role=role,
-        is_active=True,
-    ).exists()
-
-
-def _create_or_refresh_external_access_request(
-        *,
-        email: str,
-        full_name: str,
-        requested_role: str
-) -> None:
-    normalized = normalize_email(email)
-    request_obj = ExternalAccessRequest.objects.filter(email=normalized).first()
-    if request_obj is None:
-        ExternalAccessRequest.objects.create(
-            email=normalized,
-            full_name=full_name,
-            requested_role=requested_role,
-        )
-        return
-
-    request_obj.full_name = full_name
-    request_obj.requested_role = requested_role
-    request_obj.status = ExternalAccessRequestStatus.PENDING
-    request_obj.decision_note = ""
-    request_obj.reviewed_by = None
-    request_obj.reviewed_at = None
-    request_obj.save(
-        update_fields=[
-            "full_name",
-            "requested_role",
-            "status",
-            "decision_note",
-            "reviewed_by",
-            "reviewed_at",
-            "updated_at",
-        ]
-    )
 
 
 def _safe_redirect_target(request, raw_next_url: str) -> str:
@@ -121,16 +55,6 @@ def _safe_redirect_target(request, raw_next_url: str) -> str:
         return reverse(route_name)
 
     return reverse("frontend:project_list")
-
-
-def _build_unique_username(email: str) -> str:
-    User = get_user_model()
-    base = email.split("@")[0]
-    username, n = base, 1
-    while User.objects.filter(username=username).exists():
-        username = f"{base}{n}"
-        n += 1
-    return username
 
 
 def _verification_redirect_url(email: str, next_url: str = "") -> str:
@@ -208,80 +132,24 @@ def auth_view(request):
                     in _CONSENT_ACCEPTED_VALUES
             )
 
-            if not reg_email:
-                register_errors["email"] = "Введите email."
-            elif not _check_email_fmt(reg_email):
-                register_errors["email"] = "Введите корректный email-адрес."
-            if not password:
-                register_errors["password"] = "Введите пароль."
-            elif len(password) < _PASSWORD_MIN:
-                register_errors["password"] = (
-                    f"Пароль должен содержать не менее {_PASSWORD_MIN} символов."
-                )
-            if reg_name and len(reg_name) > _NAME_MAX:
-                register_errors["name"] = f"Имя не может превышать {_NAME_MAX} символов."
-            if reg_role not in {UserRole.STUDENT, UserRole.CUSTOMER}:
-                reg_role = UserRole.STUDENT
-            if not reg_personal_data_consent:
-                register_errors["personal_data_consent"] = (
-                    "Для регистрации необходимо согласие на обработку персональных данных."
-                )
-            is_corporate_email = _is_corporate_email(reg_email)
-            if (
-                    reg_role == UserRole.STUDENT
-                    and reg_email
-                    and "email" not in register_errors
-                    and not is_corporate_email
-            ):
-                register_errors["email"] = (
-                    "Регистрация студентов доступна только для корпоративных адресов "
-                    "@edu.hse.ru."
-                )
-
-            external_customer_needs_moderation = (
-                    reg_role == UserRole.CUSTOMER
-                    and reg_email
-                    and not is_corporate_email
-                    and not _external_email_is_allowlisted(reg_email, reg_role)
+            result = register_user(
+                email=reg_email,
+                password=password,
+                full_name=reg_name,
+                role=reg_role,
+                personal_data_consent=reg_personal_data_consent,
             )
-
-            if not register_errors:
-                if external_customer_needs_moderation:
-                    _create_or_refresh_external_access_request(
-                        email=reg_email,
-                        full_name=reg_name,
-                        requested_role=reg_role,
-                    )
-                    messages.info(
-                        request,
-                        "Заявка на внешний доступ отправлена. После одобрения сотрудником ЦППРП "
-                        "вы сможете завершить регистрацию с этой почтой.",
-                    )
+            if result.success:
+                if result.status == "access_request_created":
+                    messages.info(request, result.message)
                     return redirect("frontend:auth")
-                User = get_user_model()
-                if User.objects.filter(email__iexact=reg_email).exists():
-                    register_errors["email"] = "Пользователь с таким email уже существует."
-                else:
-                    with transaction.atomic():
-                        new_user = User.objects.create_user(
-                            username=_build_unique_username(reg_email),
-                            email=reg_email,
-                            password=password,
-                            is_active=False,
-                        )
-                        parts = reg_name.split(" ", 1)
-                        new_user.first_name = parts[0]
-                        new_user.last_name = parts[1] if len(parts) > 1 else ""
-                        new_user.save(update_fields=["first_name", "last_name"])
 
-                        UserProfile.objects.create(user=new_user, role=reg_role)
-                        create_signup_verification(new_user)
+                messages.success(request, result.message)
+                return redirect(_verification_redirect_url(result.normalized_email, next_url))
 
-                    messages.success(
-                        request,
-                        "Мы отправили код подтверждения на указанный email.",
-                    )
-                    return redirect(_verification_redirect_url(reg_email, next_url))
+            register_errors = {
+                field: messages_list[0] for field, messages_list in result.field_errors.items()
+            }
 
     return render(
         request,

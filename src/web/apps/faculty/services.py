@@ -69,6 +69,14 @@ def _parse_datetime(value: Any):
     return parse_datetime(str(value))
 
 
+def _model_str(model: type[models.Model], field_name: str, value: Any) -> str:
+    text = str(value or "")
+    max_length = getattr(model._meta.get_field(field_name), "max_length", None)
+    if max_length is not None and len(text) > max_length:
+        return text[:max_length]
+    return text
+
+
 def _schedule_event(
     *,
     event_type: str,
@@ -148,6 +156,8 @@ def faculty_course_payload(course: FacultyCourse) -> dict[str, Any]:
         "academic_year": course.academic_year,
         "language": course.language,
         "level": course.level,
+        "raw_meta": course.raw_meta,
+        "raw_payload": course.raw_payload,
         "source_hash": course.source_hash,
     }
 
@@ -186,14 +196,14 @@ def upsert_person(payload: dict[str, Any], *, seen_at) -> tuple[FacultyPerson, b
     }
     source_hash = stable_hash(payload)
     defaults = {
-        "source_person_id": source_person_id,
-        "source_profile_url": profile_url,
-        "full_name": str(payload.get("full_name") or ""),
+        "source_person_id": _model_str(FacultyPerson, "source_person_id", source_person_id),
+        "source_profile_url": _model_str(FacultyPerson, "source_profile_url", profile_url),
+        "full_name": _model_str(FacultyPerson, "full_name", payload.get("full_name")),
         "full_name_normalized": normalize_text(payload.get("full_name")),
-        "primary_unit": str(payload.get("primary_unit") or ""),
+        "primary_unit": _model_str(FacultyPerson, "primary_unit", payload.get("primary_unit")),
         "primary_unit_normalized": normalize_text(payload.get("primary_unit")),
-        "campus_id": str(payload.get("campus_id") or ""),
-        "campus_name": str(payload.get("campus_name") or ""),
+        "campus_id": _model_str(FacultyPerson, "campus_id", payload.get("campus_id")),
+        "campus_name": _model_str(FacultyPerson, "campus_name", payload.get("campus_name")),
         "publications_total": int(payload.get("publications_total") or 0),
         "emails": extract_emails(payload),
         "interests": payload.get("interests") or [],
@@ -230,10 +240,10 @@ def upsert_publication(payload: dict[str, Any]) -> tuple[FacultyPublication, boo
     source_hash = stable_hash(payload)
     defaults = {
         "title": str(payload.get("title") or ""),
-        "publication_type": str(payload.get("type") or ""),
+        "publication_type": _model_str(FacultyPublication, "publication_type", payload.get("type")),
         "year": payload.get("year") if isinstance(payload.get("year"), int) else None,
-        "language": str(payload.get("language") or ""),
-        "url": str(payload.get("url") or ""),
+        "language": _model_str(FacultyPublication, "language", payload.get("language")),
+        "url": _model_str(FacultyPublication, "url", payload.get("url")),
         "created_at_source": _parse_datetime(payload.get("created_at")),
         "raw_payload": payload,
         "source_hash": source_hash,
@@ -265,8 +275,12 @@ def replace_authorships(publication: FacultyPublication, authors: list[dict[str,
                 publication=publication,
                 person=person,
                 position=int(author.get("position") or index),
-                display_name=str(author.get("display_name") or ""),
-                href=str(author.get("href") or ""),
+                display_name=_model_str(
+                    FacultyAuthorship,
+                    "display_name",
+                    author.get("display_name"),
+                ),
+                href=_model_str(FacultyAuthorship, "href", author.get("href")),
             )
         )
     FacultyAuthorship.objects.bulk_create(authorships)
@@ -278,15 +292,20 @@ def upsert_course(person: FacultyPerson, payload: dict[str, Any]) -> tuple[Facul
     defaults = {
         "person": person,
         "title": str(payload.get("title") or ""),
-        "url": str(payload.get("url") or ""),
-        "academic_year": str(payload.get("academic_year") or ""),
-        "language": str(payload.get("language") or ""),
-        "level": str(payload.get("level") or ""),
+        "url": _model_str(FacultyCourse, "url", payload.get("url")),
+        "academic_year": _model_str(FacultyCourse, "academic_year", payload.get("academic_year")),
+        "language": _model_str(FacultyCourse, "language", payload.get("language")),
+        "level": _model_str(FacultyCourse, "level", payload.get("level")),
         "raw_meta": str(payload.get("raw_meta") or ""),
+        "raw_payload": payload,
         "source_hash": source_hash,
     }
     course, created = FacultyCourse.objects.get_or_create(course_key=key, defaults=defaults)
-    changed = created or course.source_hash != source_hash
+    changed = created or course.source_hash != source_hash or any(
+        getattr(course, field_name) != value
+        for field_name, value in defaults.items()
+        if field_name != "person"
+    )
     if changed:
         for field_name, value in defaults.items():
             setattr(course, field_name, value)

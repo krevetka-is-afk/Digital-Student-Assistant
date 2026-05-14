@@ -105,19 +105,34 @@ jobs:
 
             cd "$APP_DIR"
 
-            git fetch --all --prune --tags
-            if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
-              echo "Discarding tracked local changes in deploy worktree"
-              git reset --hard HEAD
-            fi
-            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
-              git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
-              git pull --ff-only origin "$TARGET_REF"
-            else
-              git checkout --detach "$TARGET_REF"
-            fi
+            git_safe() {
+              git -c fetch.recurseSubmodules=false -c submodule.recurse=false "$@"
+            }
 
-            ACTUAL_SHA="$(git rev-parse HEAD)"
+            cleanup_deploy_only_submodules() {
+              local path
+              for path in "docs/technical-specification/technical-specification-3"; do
+                rm -rf "$path" ".git/modules/$path"
+                git config --local --remove-section "submodule.$path" >/dev/null 2>&1 || true
+              done
+            }
+
+            cleanup_deploy_only_submodules
+
+            git_safe fetch --all --prune --tags --no-recurse-submodules
+            if ! git_safe diff --quiet --ignore-submodules -- || ! git_safe diff --cached --quiet --ignore-submodules --; then
+              echo "Discarding tracked local changes in deploy worktree"
+              git_safe reset --hard HEAD
+            fi
+            if git_safe show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
+              git_safe checkout -B "$TARGET_REF" "origin/$TARGET_REF"
+              git_safe pull --ff-only --no-recurse-submodules origin "$TARGET_REF"
+            else
+              git_safe checkout --detach "$TARGET_REF"
+            fi
+            cleanup_deploy_only_submodules
+
+            ACTUAL_SHA="$(git_safe rev-parse HEAD)"
             if [ "$ACTUAL_SHA" != "$TARGET_SHA" ]; then
               echo "Ref mismatch: expected $TARGET_SHA, got $ACTUAL_SHA" >&2
               exit 1
@@ -242,76 +257,18 @@ jobs:
             }
             trap 'dump_compose_diagnostics $?' EXIT
 
+            set_env_key "NGINX_PUBLIC_HOST" "$PUBLIC_HOST"
+
             if [ "$PUBLIC_SCHEME" = "https" ]; then
-              cat > infra/nginx/default.conf <<EOF2
-            server {
-                listen 80;
-                server_name ${PUBLIC_HOST};
-                server_tokens off;
-
-                location /.well-known/acme-challenge/ {
-                    root /var/www/certbot;
-                }
-
-                location / {
-                    return 301 https://\$host\$request_uri;
-                }
-            }
-
-            server {
-                listen 443 ssl;
-                server_name ${PUBLIC_HOST};
-                server_tokens off;
-
-                ssl_certificate /etc/letsencrypt/live/${PUBLIC_HOST}/fullchain.pem;
-                ssl_certificate_key /etc/letsencrypt/live/${PUBLIC_HOST}/privkey.pem;
-
-                client_max_body_size 25m;
-
-                location /static/ {
-                    alias /var/www/staticfiles/;
-                    access_log off;
-                    expires 30d;
-                    add_header Cache-Control "public";
-                }
-
-                location / {
-                    proxy_pass http://web:8000;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
-                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Host \$host;
-                    proxy_set_header X-Forwarded-Port \$server_port;
-                    proxy_set_header X-Forwarded-Proto https;
-                    proxy_http_version 1.1;
-                }
-            }
-            EOF2
+              if ! sudo -n test -r "/etc/letsencrypt/live/${PUBLIC_HOST}/fullchain.pem" ||
+                ! sudo -n test -r "/etc/letsencrypt/live/${PUBLIC_HOST}/privkey.pem"; then
+                echo "::error::Missing TLS certificate for ${PUBLIC_HOST}." >&2
+                echo "::error::Run certbot on the production VM before deploying HTTPS." >&2
+                exit 1
+              fi
+              set_env_key "NGINX_CONF_TEMPLATE" "./nginx/templates/default.https.conf.template"
             else
-              cat > infra/nginx/default.conf <<EOF2
-            server {
-                listen 80;
-                server_name ${PUBLIC_HOST};
-                server_tokens off;
-
-                location /.well-known/acme-challenge/ {
-                    root /var/www/certbot;
-                }
-
-                client_max_body_size 25m;
-
-                location / {
-                    proxy_pass http://web:8000;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
-                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Host \$host;
-                    proxy_set_header X-Forwarded-Port \$server_port;
-                    proxy_set_header X-Forwarded-Proto http;
-                    proxy_http_version 1.1;
-                }
-            }
-            EOF2
+              set_env_key "NGINX_CONF_TEMPLATE" "./nginx/templates/default.http.conf.template"
             fi
 
             WEB_IMAGE="${IMAGE_PREFIX}-web:${TARGET_SHA}"

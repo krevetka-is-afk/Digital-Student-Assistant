@@ -17,7 +17,9 @@ def _make_profile(*, is_staff: bool = False, role: str = UserRole.STUDENT):
     return UserProfile.objects.create(
         user=user,
         role=role,
-        favorite_project_ids=[1, 2, 2],
+        # Distinct ids: save() persists normalize_favorite_project_ids() (dedupe/order),
+        # so duplicate raw entries are not a stable way to assert "count == 3".
+        favorite_project_ids=[1, 2, 3],
     )
 
 

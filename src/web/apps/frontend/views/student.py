@@ -46,7 +46,7 @@ def student_overview(request):
 
     # ── 2. Favourite projects ─────────────────────────────────────────────────
     try:
-        fav_ids = list(user.profile.favorite_project_ids or [])
+        fav_ids = user.profile.get_favorite_project_ids()
     except Exception:
         fav_ids = []
 

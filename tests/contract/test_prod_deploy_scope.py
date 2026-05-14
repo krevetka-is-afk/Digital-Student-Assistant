@@ -6,6 +6,15 @@ PROD_COMPOSE_PATH = ROOT_DIR / 'infra' / 'docker-compose.prod.yml'
 SMOKE_SCRIPT_PATH = ROOT_DIR / 'scripts' / 'smoke-prod.sh'
 
 
+def test_prod_compose_nginx_uses_envsubst_template():
+    compose = PROD_COMPOSE_PATH.read_text(encoding='utf-8')
+
+    assert 'NGINX_PUBLIC_HOST: ${NGINX_PUBLIC_HOST:?NGINX_PUBLIC_HOST is required}' in compose
+    assert 'default.https.conf.template' in compose
+    assert '/etc/nginx/templates/default.conf.template' in compose
+    assert '/etc/nginx/conf.d:rw' in compose
+
+
 def test_prod_compose_is_web_only():
     compose = PROD_COMPOSE_PATH.read_text(encoding='utf-8')
 
@@ -30,6 +39,18 @@ def test_prod_workflow_only_builds_and_pulls_web_image():
     assert '"${compose_cmd[@]}" pull web' in workflow
     assert 'pull web ml graph' not in workflow
     assert 'for service in postgres web nginx; do' in workflow
+
+
+def test_prod_workflow_sets_nginx_env_from_public_host():
+    workflow = DEPLOY_WORKFLOW_PATH.read_text(encoding='utf-8')
+
+    assert 'set_env_key "NGINX_PUBLIC_HOST" "$PUBLIC_HOST"' \
+        in workflow
+    assert 'set_env_key "NGINX_CONF_TEMPLATE" "./nginx/templates/default.https.conf.template"' \
+        in workflow
+    assert 'set_env_key "NGINX_CONF_TEMPLATE" "./nginx/templates/default.http.conf.template"' \
+        in workflow
+    assert 'Missing TLS certificate for ${PUBLIC_HOST}' in workflow
 
 
 def test_prod_workflow_keeps_public_host_separate_from_ssh_host():

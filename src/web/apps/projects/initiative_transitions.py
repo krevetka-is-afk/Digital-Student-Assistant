@@ -1,4 +1,5 @@
 from apps.account.permissions import has_any_role
+from apps.notifications.services import NotificationSpec, create_notifications
 from apps.users.models import UserRole
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
@@ -81,6 +82,20 @@ def submit_initiative_proposal_for_moderation(
             submitted_by=actor if getattr(actor, "is_authenticated", False) else None,
         )
 
+    create_notifications(
+        recipients=[proposal.owner],
+        spec=NotificationSpec(
+            event_type="initiative.submitted_for_moderation",
+            title="Инициатива отправлена на модерацию",
+            body="Инициатива отправлена на модерацию. Мы уведомим вас о результате.",
+            target_type="initiative",
+            target_id=str(proposal.pk),
+            actor_id=getattr(actor, "id", None),
+            dedupe_key=f"initiative.submitted_for_moderation:\
+                {proposal.pk}:\
+                    {proposal.updated_at.isoformat() if proposal.updated_at else ''}",
+        ),
+    )
     return proposal
 
 
@@ -140,11 +155,9 @@ def moderate_initiative_proposal(
         )
 
     with transaction.atomic():
-        proposal = (
-            InitiativeProposal.objects.select_for_update()
-            .select_related("published_project")
-            .get(pk=proposal.pk)
-        )
+        # Keep the row lock on the proposal itself only. Joining a nullable
+        # published_project relation under FOR UPDATE breaks on PostgreSQL.
+        proposal = InitiativeProposal.objects.select_for_update().get(pk=proposal.pk)
         submission = proposal.submissions.select_for_update().order_by("-submission_number").first()
         if (
             submission is None
@@ -194,4 +207,34 @@ def moderate_initiative_proposal(
             ]
         )
 
+    normalized_decision = decision.strip().lower()
+    normalized_comment = comment.strip()
+    if normalized_decision == "approve":
+        event_type = "initiative.moderation.approved"
+        title = "Инициатива одобрена"
+        published_id = getattr(proposal.published_project, "pk", None)
+        body = "Инициатива прошла модерацию и опубликована."
+        if published_id is not None:
+            body = f"{body}\n\nСоздан проект: {published_id}"
+    else:
+        event_type = "initiative.moderation.rejected"
+        title = "Инициатива отправлена на доработку"
+        body = "Инициатива отправлена на доработку."
+    if normalized_comment:
+        body = f"{body}\n\nКомментарий: {normalized_comment}"
+
+    create_notifications(
+        recipients=[proposal.owner],
+        spec=NotificationSpec(
+            event_type=event_type,
+            title=title,
+            body=body,
+            target_type="initiative",
+            target_id=str(proposal.pk),
+            actor_id=getattr(actor, "id", None),
+            dedupe_key=f"{event_type}:\
+                {proposal.pk}:\
+                    {proposal.moderated_at.isoformat() if proposal.moderated_at else ''}",
+        ),
+    )
     return proposal

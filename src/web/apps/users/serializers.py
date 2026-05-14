@@ -6,11 +6,23 @@ from rest_framework import serializers
 from .models import UserProfile
 
 
+class FavoriteProjectIdsField(serializers.ListField):
+    child = serializers.IntegerField(min_value=1)
+
+    def to_internal_value(self, data):
+        values = super().to_internal_value(data)
+        return UserProfile.normalize_favorite_project_ids(values)
+
+    def to_representation(self, value):
+        return UserProfile.normalize_favorite_project_ids(value)
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
     email_verified = serializers.BooleanField(read_only=True)
     favorite_projects_count = serializers.SerializerMethodField(read_only=True)
+    favorite_project_ids = FavoriteProjectIdsField(required=False, allow_empty=True)
 
     class Meta:
         model = UserProfile
@@ -62,7 +74,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return normalize_technology_tags(value)
 
     def get_favorite_projects_count(self, obj) -> int:
-        return len(obj.favorite_project_ids or [])
+        return len(obj.get_favorite_project_ids())
 
 
 class FavoriteProjectsUpdateSerializer(serializers.Serializer):

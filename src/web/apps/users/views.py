@@ -16,12 +16,21 @@ from .serializers import (
 class MyProfileAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(responses=UserProfileSerializer)
+    @extend_schema(
+        tags=["Users"],
+        summary="Мой профиль",
+        responses=UserProfileSerializer,
+    )
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         return Response(UserProfileSerializer(profile).data)
 
-    @extend_schema(request=UserProfileSerializer, responses=UserProfileSerializer)
+    @extend_schema(
+        tags=["Users"],
+        summary="Частично обновить профиль",
+        request=UserProfileSerializer,
+        responses=UserProfileSerializer,
+    )
     def patch(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = UserProfileSerializer(
@@ -41,7 +50,12 @@ class MyProfileAPIView(APIView):
         )
         return Response(serializer.data)
 
-    @extend_schema(request=UserProfileSerializer, responses=UserProfileSerializer)
+    @extend_schema(
+        tags=["Users"],
+        summary="Полностью обновить профиль",
+        request=UserProfileSerializer,
+        responses=UserProfileSerializer,
+    )
     def put(self, request):
         return self.patch(request)
 
@@ -49,21 +63,31 @@ class MyProfileAPIView(APIView):
 class MyFavoriteProjectsAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(responses=FavoriteProjectsResponseSerializer)
+    @extend_schema(
+        tags=["Users"],
+        summary="Список избранных проектов",
+        responses=FavoriteProjectsResponseSerializer,
+    )
     def get(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        projects = list(
-            Project.objects.filter(
-                pk__in=profile.favorite_project_ids or [],
+        favorite_ids = profile.get_favorite_project_ids()
+        project_by_id = {
+            project.pk: project
+            for project in Project.objects.filter(
+                pk__in=favorite_ids,
                 status__in=ProjectStatus.catalog_values(),
             ).select_related("owner", "epp")
-        )
-        payload = {"project_ids": list(profile.favorite_project_ids or []), "items": projects}
+        }
+        visible_ids = [project_id for project_id in favorite_ids if project_id in project_by_id]
+        projects = [project_by_id[project_id] for project_id in visible_ids]
+        payload = {"project_ids": visible_ids, "items": projects}
         return Response(
             FavoriteProjectsResponseSerializer(payload, context={"request": request}).data
         )
 
     @extend_schema(
+        tags=["Users"],
+        summary="Перезаписать избранные проекты",
         request=FavoriteProjectsUpdateSerializer,
         responses=FavoriteProjectsResponseSerializer,
     )
@@ -83,6 +107,8 @@ class MyFavoriteProjectsAPIView(APIView):
         return self.get(request)
 
     @extend_schema(
+        tags=["Users"],
+        summary="Добавить проекты в избранное",
         request=FavoriteProjectsUpdateSerializer,
         responses=FavoriteProjectsResponseSerializer,
     )
@@ -90,7 +116,7 @@ class MyFavoriteProjectsAPIView(APIView):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = FavoriteProjectsUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        project_ids = list(profile.favorite_project_ids or [])
+        project_ids = profile.get_favorite_project_ids()
         project_ids.extend(serializer.validated_data.get("project_ids", []))
         profile.set_favorite_project_ids(project_ids)
         profile.save(update_fields=["favorite_project_ids", "updated_at"])
@@ -107,12 +133,16 @@ class MyFavoriteProjectsAPIView(APIView):
 class MyFavoriteProjectDetailAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(responses={204: None})
+    @extend_schema(
+        tags=["Users"],
+        summary="Удалить проект из избранного",
+        responses={204: None},
+    )
     def delete(self, request, pk: int):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         project_ids = [
-            project_id for project_id in profile.favorite_project_ids or [] if project_id != pk
-        ]
+            project_id for project_id in profile.get_favorite_project_ids() if project_id != pk
+            ]
         profile.set_favorite_project_ids(project_ids)
         profile.save(update_fields=["favorite_project_ids", "updated_at"])
         emit_event(

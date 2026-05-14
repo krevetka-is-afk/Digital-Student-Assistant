@@ -82,6 +82,8 @@ class FacultyCourseSerializer(serializers.ModelSerializer):
             "academic_year",
             "language",
             "level",
+            "raw_meta",
+            "raw_payload",
             "source_hash",
             "updated_at",
         ]

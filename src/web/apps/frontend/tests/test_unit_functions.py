@@ -1,9 +1,8 @@
 """
 test_unit_functions.py – parametrised unit tests for pure helper functions.
 
-No database access is required; Django is configured by pytest-django via
-DJANGO_SETTINGS_MODULE in pyproject.toml, but no @pytest.mark.django_db
-markers are needed here.
+No database access is required. Django is configured for the suite via
+apps/conftest.py (django.setup + session migrate); this module does not touch the ORM.
 """
 
 import pytest

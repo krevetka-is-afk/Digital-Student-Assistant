@@ -41,6 +41,7 @@ required = {
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
         "DATABASE_URL",
+        "NGINX_PUBLIC_HOST",
     },
     "staging": {
         "DJANGO_SECRET_KEY",
@@ -55,6 +56,7 @@ required = {
         "NEO4J_USER",
         "NEO4J_PASSWORD",
         "ML_SERVICE_URL",
+        "NGINX_PUBLIC_HOST",
     },
 }[env_name]
 

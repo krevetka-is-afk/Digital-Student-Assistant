@@ -19,6 +19,8 @@ target-version = ['py313']
 addopts = ["--import-mode=importlib"]
 filterwarnings = [
     "ignore:.*import python_multipart.*:PendingDeprecationWarning",
+    # drf-spectacular on Python 3.14+ uses typing internals deprecated for 3.17
+    "ignore:.*'_UnionGenericAlias'.*:DeprecationWarning:drf_spectacular.plumbing",
 ]
 testpaths = ["src", "tests"]
 norecursedirs = [".venv", ".pytest_cache", ".ruff_cache", ".tmp", "build", "dist"]

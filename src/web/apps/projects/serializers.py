@@ -27,6 +27,7 @@ class TechnologySerializer(serializers.ModelSerializer):
 
 
 class PrimaryProjectSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="pk", read_only=True)
     owner = UserPublicSerializer(read_only=True)
     moderated_by = UserPublicSerializer(read_only=True)
     edit_url = serializers.SerializerMethodField(read_only=True)
@@ -47,6 +48,7 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
+            "id",
             "epp",
             "owner",
             "url",
@@ -139,7 +141,7 @@ class PrimaryProjectSerializer(serializers.ModelSerializer):
         profile = getattr(request.user, "profile", None)
         if profile is None:
             return False
-        return obj.pk in (profile.favorite_project_ids or [])
+        return obj.pk in profile.get_favorite_project_ids()
 
     def validate_extra_data(self, value):
         if value is None:

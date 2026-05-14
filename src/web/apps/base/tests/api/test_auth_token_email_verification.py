@@ -32,7 +32,7 @@ def test_api_v1_token_rejects_unverified_user_with_specific_code():
 
     response = Client().post(
         reverse("api-v1-auth-token"),
-        data={"username": user.username, "password": "password123"},
+        data={"email": user.email, "password": "password123"},
     )
 
     assert response.status_code == 403
@@ -48,7 +48,7 @@ def test_api_v1_token_issues_token_for_verified_user():
 
     response = Client().post(
         reverse("api-v1-auth-token"),
-        data={"username": user.username, "password": "password123"},
+        data={"email": user.email, "password": "password123"},
     )
 
     assert response.status_code == 200
@@ -64,8 +64,24 @@ def test_legacy_base_token_rejects_unverified_user():
 
     response = Client().post(
         "/base/auth/",
-        data={"username": user.username, "password": "password123"},
+        data={"email": user.email, "password": "password123"},
     )
 
     assert response.status_code == 403
     assert response.json()["code"] == "email_not_verified"
+
+
+def test_api_v1_token_requires_email_instead_of_username():
+    user = _make_user(
+        email=f"legacy-username-{uuid4().hex[:8]}@example.com",
+        is_active=True,
+        verified=True,
+    )
+
+    response = Client().post(
+        reverse("api-v1-auth-token"),
+        data={"username": user.username, "password": "password123"},
+    )
+
+    assert response.status_code == 400
+    assert "email" in response.json()

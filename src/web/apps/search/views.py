@@ -1,9 +1,13 @@
 from apps.projects.models import Project, ProjectStatus
 from apps.projects.serializers import PrimaryProjectSerializer
 from apps.recs.services import search_projects
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Recommendations"], summary="Поиск проектов"),
+)
 class SearchListView(generics.ListAPIView):
     queryset = Project.objects.filter(status__in=ProjectStatus.catalog_values())
     serializer_class = PrimaryProjectSerializer

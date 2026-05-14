@@ -1,4 +1,5 @@
 from apps.account.permissions import IsCpprpOrStaff
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -8,6 +9,10 @@ from .serializers import ImportRunSerializer
 from .services import run_epp_xlsx_import
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Imports"], summary="История запусков импорта EPP"),
+    post=extend_schema(tags=["Imports"], summary="Запустить импорт EPP из XLSX"),
+)
 class ImportRunListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ImportRunSerializer
     permission_classes = [IsCpprpOrStaff]

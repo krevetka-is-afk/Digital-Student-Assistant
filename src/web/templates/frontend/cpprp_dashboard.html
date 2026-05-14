@@ -632,13 +632,23 @@
         </div>
       </div>
       <p class="text-xs text-gray-500 mb-4">id, title, status, source_type, team_size, accepted, program, course, created_at</p>
-      <a href="{% url 'frontend:cpprp_export_projects' %}"
-         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-        </svg>
-        Скачать projects.csv
-      </a>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'frontend:cpprp_export_projects' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Скачать projects.csv
+        </a>
+        <a href="{% url 'frontend:cpprp_export_projects_xlsx' %}?variant=both"
+           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Скачать projects.xlsx (EPP + DSA)
+        </a>
+      </div>
+      <p class="text-xs text-gray-400 mt-3">XLSX: лист совместимый с импортом EPP и лист <code class="text-gray-500">DSA_extended</code>. Параметр <code class="text-gray-500">?variant=compatible|extended|both</code></p>
     </div>
 
     <div class="bg-white border border-gray-200 rounded-2xl p-6">

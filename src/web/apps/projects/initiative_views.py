@@ -1,5 +1,5 @@
 from apps.account.permissions import IsCpprpOrStaff, IsStudentOrStaff
-from apps.outbox.services import emit_event
+from apps.notifications.services import NotificationSpec, create_notifications
 from apps.users.models import UserRole
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
@@ -14,7 +14,6 @@ from .initiative_transitions import (
     submit_initiative_proposal_for_moderation,
 )
 from .pagination import ProjectListPagination
-from .serializers import PrimaryProjectSerializer
 
 
 def _base_initiative_queryset(user):
@@ -63,6 +62,8 @@ class InitiativeProposalModerationInputSerializer(serializers.Serializer):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Projects"],
+        summary="Список инициативных предложений",
         parameters=[
             OpenApiParameter(
                 name="status",
@@ -72,7 +73,8 @@ class InitiativeProposalModerationInputSerializer(serializers.Serializer):
                 description="Filter by initiative proposal status.",
             )
         ]
-    )
+    ),
+    post=extend_schema(tags=["Projects"], summary="Создать инициативное предложение"),
 )
 class InitiativeProposalListCreateAPIView(generics.ListCreateAPIView):
     queryset = InitiativeProposal.objects.select_related(
@@ -91,12 +93,33 @@ class InitiativeProposalListCreateAPIView(generics.ListCreateAPIView):
         return _apply_initiative_filters(queryset, self.request.query_params)
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user, status=InitiativeProposalStatus.DRAFT)
+        proposal = serializer.save(owner=self.request.user, status=InitiativeProposalStatus.DRAFT)
+        create_notifications(
+            recipients=[proposal.owner],
+            spec=NotificationSpec(
+                event_type="initiative.created",
+                title="Инициатива создана",
+                body="Инициатива создана в статусе «черновик». \
+                    Вы можете отправить её на модерацию.",
+                target_type="initiative",
+                target_id=str(proposal.pk),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=f"initiative.created:\
+                    {proposal.pk}:\
+                        {proposal.created_at.isoformat() if proposal.created_at else ''}",
+            ),
+        )
 
 
 initiative_proposal_list_create_view = InitiativeProposalListCreateAPIView.as_view()
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Projects"], summary="Детали инициативного предложения"),
+    patch=extend_schema(tags=["Projects"], summary="Обновить инициативу частично"),
+    put=extend_schema(tags=["Projects"], summary="Полностью обновить инициативу"),
+    delete=extend_schema(tags=["Projects"], summary="Удалить инициативу"),
+)
 class InitiativeProposalRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = InitiativeProposal.objects.select_related(
         "owner", "moderated_by", "published_project"
@@ -119,11 +142,42 @@ class InitiativeProposalRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDest
 
     def perform_update(self, serializer):
         _ensure_initiative_proposal_editable(serializer.instance)
-        serializer.save()
+        proposal = serializer.save()
+        create_notifications(
+            recipients=[proposal.owner],
+            spec=NotificationSpec(
+                event_type="initiative.updated",
+                title="Инициатива обновлена",
+                body="Данные инициативы были обновлены.",
+                target_type="initiative",
+                target_id=str(proposal.pk),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=f"initiative.updated:\
+                    {proposal.pk}:\
+                        {proposal.updated_at.isoformat() if proposal.updated_at else ''}",
+            ),
+        )
 
     def perform_destroy(self, instance):
         _ensure_initiative_proposal_editable(instance)
+        owner = getattr(instance, "owner", None)
+        proposal_id = getattr(instance, "pk", None)
+        updated_at = getattr(instance, "updated_at", None)
         super().perform_destroy(instance)
+        create_notifications(
+            recipients=[owner],
+            spec=NotificationSpec(
+                event_type="initiative.deleted",
+                title="Инициатива удалена",
+                body="Инициатива была удалена.",
+                target_type="initiative",
+                target_id=str(proposal_id),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=f"initiative.deleted:\
+                    {proposal_id}:\
+                        {updated_at.isoformat() if updated_at else ''}",
+            ),
+        )
 
 
 initiative_proposal_rud_view = InitiativeProposalRetrieveUpdateDestroyAPIView.as_view()
@@ -132,7 +186,12 @@ initiative_proposal_rud_view = InitiativeProposalRetrieveUpdateDestroyAPIView.as
 class InitiativeProposalSubmitForModerationAPIView(APIView):
     permission_classes = [IsStudentOrStaff]
 
-    @extend_schema(request=None, responses=InitiativeProposalSerializer)
+    @extend_schema(
+        tags=["Projects"],
+        summary="Отправить инициативу на модерацию",
+        request=None,
+        responses=InitiativeProposalSerializer,
+    )
     def post(self, request, pk: int):
         proposal = get_object_or_404(
             InitiativeProposal.objects.select_related("owner", "moderated_by", "published_project"),
@@ -147,6 +206,8 @@ class InitiativeProposalModerationAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
     @extend_schema(
+        tags=["Projects"],
+        summary="Рассмотреть инициативное предложение",
         request=InitiativeProposalModerationInputSerializer,
         responses=InitiativeProposalSerializer,
     )
@@ -166,23 +227,6 @@ class InitiativeProposalModerationAPIView(APIView):
             decision=payload.validated_data["decision"],
             comment=payload.validated_data["comment"],
         )
-
-        if proposal.published_project_id is not None and proposal.published_project is not None:
-            project = proposal.published_project
-            project_pk = project.pk
-            project_updated_at = project.updated_at
-            if project_pk is None or project_updated_at is None:
-                serializer = InitiativeProposalSerializer(proposal, context={"request": request})
-                return Response(serializer.data)
-            emit_event(
-                event_type="project.changed",
-                aggregate_type="project",
-                aggregate_id=project_pk,
-                payload=PrimaryProjectSerializer(project, context={"request": request}).data,
-                idempotency_key=(
-                    f"project.changed:{project_pk}:{project_updated_at.isoformat()}:initiative-publish"
-                ),
-            )
 
         serializer = InitiativeProposalSerializer(proposal, context={"request": request})
         return Response(serializer.data)

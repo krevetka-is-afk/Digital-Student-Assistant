@@ -183,3 +183,33 @@ def test_user_can_manage_favorite_projects():
     )
 
     assert delete_response.status_code == 204
+
+
+def test_profile_me_normalizes_malformed_favorite_project_ids():
+    user = _make_user()
+    UserProfile.objects.filter(pk=user.profile.pk).update(favorite_project_ids="string")
+
+    client = Client()
+    client.force_login(user)
+    response = client.get(reverse("user-profile-me"))
+
+    assert response.status_code == 200
+    assert response.json()["favorite_project_ids"] == []
+    assert response.json()["favorite_projects_count"] == 0
+
+
+def test_favorites_endpoint_preserves_visible_order_and_skips_hidden_projects():
+    user = _make_user()
+    first = Project.objects.create(title="First", status=ProjectStatus.PUBLISHED)
+    hidden = Project.objects.create(title="Hidden", status=ProjectStatus.DRAFT)
+    second = Project.objects.create(title="Second", status=ProjectStatus.PUBLISHED)
+    user.profile.set_favorite_project_ids([second.pk, hidden.pk, first.pk])
+    user.profile.save(update_fields=["favorite_project_ids"])
+
+    client = Client()
+    client.force_login(user)
+    response = client.get(reverse("user-profile-favorites"))
+
+    assert response.status_code == 200
+    assert response.json()["project_ids"] == [second.pk, first.pk]
+    assert [item["pk"] for item in response.json()["items"]] == [second.pk, first.pk]

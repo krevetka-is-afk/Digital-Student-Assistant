@@ -1,6 +1,7 @@
 import csv
 
 from apps.base.admin_unfold import UnfoldModelAdmin
+from apps.projects.export_epp_xlsx import build_projects_xlsx_bytes
 from django import forms
 from django.contrib import admin
 from django.http import HttpResponse
@@ -30,7 +31,12 @@ class ProjectAdmin(UnfoldModelAdmin):
     autocomplete_fields = ("owner",)
     readonly_fields = ("created_at", "updated_at")
     list_per_page = 50
-    actions = ("publish_selected", "archive_selected", "export_selected_as_csv")
+    actions = (
+        "publish_selected",
+        "archive_selected",
+        "export_selected_as_csv",
+        "export_selected_as_epp_xlsx",
+    )
     change_list_template = "admin/projects/project/change_list.html"
     fieldsets = (
         (
@@ -67,11 +73,19 @@ class ProjectAdmin(UnfoldModelAdmin):
                 self.admin_site.admin_view(self.export_all_as_csv_view),
                 name="projects_project_export_all",
             ),
+            path(
+                "export-all-xlsx/",
+                self.admin_site.admin_view(self.export_all_as_epp_xlsx_view),
+                name="projects_project_export_all_xlsx",
+            ),
         ]
         return custom_urls + urls
 
     def export_all_as_csv_view(self, request):
         return self.export_selected_as_csv(request, Project.objects.order_by("pk"))
+
+    def export_all_as_epp_xlsx_view(self, request):
+        return self.export_selected_as_epp_xlsx(request, Project.objects.order_by("pk"))
 
     @admin.action(description="Publish selected projects")
     def publish_selected(self, request, queryset):
@@ -121,6 +135,18 @@ class ProjectAdmin(UnfoldModelAdmin):
                     project.created_at.strftime("%Y-%m-%d %H:%M") if project.created_at else "",
                 ]
             )
+        return response
+
+    @admin.action(description="Export selected projects as EPP XLSX (compatible + extended)")
+    def export_selected_as_epp_xlsx(self, request, queryset):
+        payload = build_projects_xlsx_bytes(queryset, variant="both")
+        response = HttpResponse(
+            payload,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response["Content-Disposition"] = 'attachment; filename="projects-export-both.xlsx"'
         return response
 
 

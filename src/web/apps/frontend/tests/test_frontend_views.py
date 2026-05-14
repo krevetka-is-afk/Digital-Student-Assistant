@@ -24,10 +24,8 @@ from django.utils import timezone
 
 User = get_user_model()
 
-# All tests in this module require database access; pytest-django wraps each
-# test in a transaction that is rolled back after the test, providing full
-# isolation without accumulating stale data across test runs.
-pytestmark = pytest.mark.django_db
+# Database: session-scoped migrate + django.setup() in apps/conftest.py
+# (pytest-django is not part of this workspace; do not use pytest.mark.django_db).
 
 
 # ---------------------------------------------------------------------------

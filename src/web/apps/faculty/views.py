@@ -1,10 +1,14 @@
 from apps.projects.models import ProjectStatus
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, permissions
 
 from .models import FacultyMatchStatus, FacultyPerson, ProjectFacultyMatch
 from .serializers import FacultyPersonSerializer, ProjectFacultyMatchPublicSerializer
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Faculty"], summary="Список преподавателей"),
+)
 class FacultyPersonListAPIView(generics.ListAPIView):
     serializer_class = FacultyPersonSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -24,6 +28,9 @@ class FacultyPersonListAPIView(generics.ListAPIView):
         return queryset
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Faculty"], summary="Карточка преподавателя"),
+)
 class FacultyPersonDetailAPIView(generics.RetrieveAPIView):
     serializer_class = FacultyPersonSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -34,6 +41,9 @@ class FacultyPersonDetailAPIView(generics.RetrieveAPIView):
         return FacultyPerson.objects.filter(is_stale=False)
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Faculty"], summary="Проекты преподавателя"),
+)
 class FacultyPersonProjectsAPIView(generics.ListAPIView):
     serializer_class = ProjectFacultyMatchPublicSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]

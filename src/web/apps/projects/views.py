@@ -1,5 +1,5 @@
 from apps.account.permissions import IsCpprpOrStaff, IsCustomerOrStaff
-from apps.outbox.services import emit_event
+from apps.notifications.services import NotificationSpec, create_notifications
 from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -150,6 +150,8 @@ def _apply_project_filters(queryset, params):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Projects"],
+        summary="Список проектов",
         parameters=[
             OpenApiParameter(
                 name="status",
@@ -234,7 +236,8 @@ def _apply_project_filters(queryset, params):
                 location=OpenApiParameter.QUERY,
             ),
         ]
-    )
+    ),
+    post=extend_schema(tags=["Projects"], summary="Создать проект"),
 )
 class ProjectListCreateAPIView(generics.ListCreateAPIView):
     queryset = Project.objects.select_related("owner", "epp")
@@ -253,18 +256,28 @@ class ProjectListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         project = serializer.save(owner=self.request.user, status=ProjectStatus.DRAFT)
-        emit_event(
-            event_type="project.changed",
-            aggregate_type="project",
-            aggregate_id=project.pk,
-            payload=PrimaryProjectSerializer(project, context={"request": self.request}).data,
-            idempotency_key=f"project.changed:{project.pk}:{project.updated_at.isoformat()}:create",
+        create_notifications(
+            recipients=[project.owner],
+            spec=NotificationSpec(
+                event_type="project.created",
+                title="Проект создан",
+                body="Проект создан в статусе «черновик». Вы можете отправить его на модерацию.",
+                target_type="project",
+                target_id=str(project.pk),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=f"project.created:\
+                    {project.pk}:\
+                        {project.created_at.isoformat() if project.created_at else ''}",
+            ),
         )
 
 
 project_list_create_view = ProjectListCreateAPIView.as_view()
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Projects"], summary="Список технологий"),
+)
 class TechnologyListAPIView(generics.ListAPIView):
     serializer_class = TechnologySerializer
     permission_classes = [permissions.AllowAny]
@@ -337,30 +350,35 @@ class ProjectDestroyAPIView(generics.DestroyAPIView):
         return self.queryset.filter(owner=user)
 
     def perform_destroy(self, instance):
-        deleted_at = timezone.now()
-        aggregate_id = instance.pk
-        snapshot = {
-            "pk": aggregate_id,
-            "title": instance.title,
-            "status": "deleted",
-            "tombstone": True,
-            "created_at": instance.created_at.isoformat() if instance.created_at else None,
-            "updated_at": instance.updated_at.isoformat() if instance.updated_at else None,
-            "deleted_at": deleted_at.isoformat(),
-        }
+        owner = getattr(instance, "owner", None)
+        project_id = getattr(instance, "pk", None)
+        updated_at = getattr(instance, "updated_at", None)
         super().perform_destroy(instance)
-        emit_event(
-            event_type="project.deleted",
-            aggregate_type="project",
-            aggregate_id=aggregate_id,
-            payload=snapshot,
-            idempotency_key=f"project.deleted:{aggregate_id}:{deleted_at.isoformat()}",
+        create_notifications(
+            recipients=[owner],
+            spec=NotificationSpec(
+                event_type="project.deleted",
+                title="Проект удалён",
+                body="Проект был удалён.",
+                target_type="project",
+                target_id=str(project_id),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=(
+                    f"project.deleted:{project_id}:{updated_at.isoformat() if updated_at else ''}"
+                ),
+            ),
         )
 
 
 project_destroy_view = ProjectDestroyAPIView.as_view()
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Projects"], summary="Детали проекта"),
+    patch=extend_schema(tags=["Projects"], summary="Обновить проект частично"),
+    put=extend_schema(tags=["Projects"], summary="Полностью обновить проект"),
+    delete=extend_schema(tags=["Projects"], summary="Удалить проект"),
+)
 class ProjectRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.select_related("owner", "epp").annotate(
         applications_count=Count("applications")
@@ -387,34 +405,40 @@ class ProjectRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
         return self.queryset.filter(owner=user)
 
     def perform_destroy(self, instance):
-        deleted_at = timezone.now()
-        aggregate_id = instance.pk
-        snapshot = {
-            "pk": aggregate_id,
-            "title": instance.title,
-            "status": "deleted",
-            "tombstone": True,
-            "created_at": instance.created_at.isoformat() if instance.created_at else None,
-            "updated_at": instance.updated_at.isoformat() if instance.updated_at else None,
-            "deleted_at": deleted_at.isoformat(),
-        }
+        owner = getattr(instance, "owner", None)
+        project_id = getattr(instance, "pk", None)
+        updated_at = getattr(instance, "updated_at", None)
         super().perform_destroy(instance)
-        emit_event(
-            event_type="project.deleted",
-            aggregate_type="project",
-            aggregate_id=aggregate_id,
-            payload=snapshot,
-            idempotency_key=f"project.deleted:{aggregate_id}:{deleted_at.isoformat()}",
+        create_notifications(
+            recipients=[owner],
+            spec=NotificationSpec(
+                event_type="project.deleted",
+                title="Проект удалён",
+                body="Проект был удалён.",
+                target_type="project",
+                target_id=str(project_id),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=(
+                    f"project.deleted:{project_id}:{updated_at.isoformat() if updated_at else ''}"
+                ),
+            ),
         )
 
     def perform_update(self, serializer):
         project = serializer.save()
-        emit_event(
-            event_type="project.changed",
-            aggregate_type="project",
-            aggregate_id=project.pk,
-            payload=PrimaryProjectSerializer(project, context={"request": self.request}).data,
-            idempotency_key=f"project.changed:{project.pk}:{project.updated_at.isoformat()}:update",
+        create_notifications(
+            recipients=[project.owner],
+            spec=NotificationSpec(
+                event_type="project.updated",
+                title="Проект обновлён",
+                body="Данные проекта были обновлены.",
+                target_type="project",
+                target_id=str(project.pk),
+                actor_id=getattr(self.request.user, "id", None),
+                dedupe_key=f"project.updated:\
+                    {project.pk}:\
+                        {project.updated_at.isoformat() if project.updated_at else ''}",
+            ),
         )
 
 
@@ -429,17 +453,15 @@ class ProjectModerationInputSerializer(serializers.Serializer):
 class ProjectSubmitForModerationAPIView(APIView):
     permission_classes = [IsCustomerOrStaff]
 
-    @extend_schema(request=None, responses=PrimaryProjectSerializer)
+    @extend_schema(
+        tags=["Projects"],
+        summary="Отправить проект на модерацию",
+        request=None,
+        responses=PrimaryProjectSerializer,
+    )
     def post(self, request, pk: int):
         project = get_object_or_404(Project.objects.select_related("owner", "epp"), pk=pk)
         submit_project_for_moderation(project=project, actor=request.user)
-        emit_event(
-            event_type="project.changed",
-            aggregate_type="project",
-            aggregate_id=project.pk,
-            payload=PrimaryProjectSerializer(project, context={"request": request}).data,
-            idempotency_key=f"project.changed:{project.pk}:{project.updated_at.isoformat()}:submit",
-        )
         serializer = PrimaryProjectSerializer(project, context={"request": request})
         return Response(serializer.data)
 
@@ -448,6 +470,8 @@ class ProjectModerationAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
     @extend_schema(
+        tags=["Projects"],
+        summary="Рассмотреть проект",
         request=ProjectModerationInputSerializer,
         responses=PrimaryProjectSerializer,
     )
@@ -461,13 +485,6 @@ class ProjectModerationAPIView(APIView):
             actor=request.user,
             decision=payload.validated_data["decision"],
             comment=payload.validated_data["comment"],
-        )
-        emit_event(
-            event_type="project.changed",
-            aggregate_type="project",
-            aggregate_id=project.pk,
-            payload=PrimaryProjectSerializer(project, context={"request": request}).data,
-            idempotency_key=f"project.changed:{project.pk}:{project.updated_at.isoformat()}:moderate",
         )
         serializer = PrimaryProjectSerializer(project, context={"request": request})
         return Response(serializer.data)

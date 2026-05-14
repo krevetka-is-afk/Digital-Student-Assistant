@@ -1,6 +1,7 @@
 import json
 from uuid import uuid4
 
+from apps.notifications.models import Notification
 from apps.projects.initiative_models import (
     InitiativeProposal,
     InitiativeProposalStatus,
@@ -127,6 +128,12 @@ def test_reject_edit_and_resubmit_preserves_submission_history():
         reverse("api-v1-initiative-proposal-submit", kwargs={"pk": proposal_id})
     )
     assert submit_response.status_code == 200
+    assert Notification.objects.filter(
+        recipient=student,
+        event_type="initiative.submitted_for_moderation",
+        target_type="initiative",
+        target_id=str(proposal_id),
+    ).exists()
 
     moderator_client = Client()
     moderator_client.force_login(cpprp)
@@ -190,6 +197,12 @@ def test_approve_publishes_initiative_as_catalog_project():
         reverse("api-v1-initiative-proposal-submit", kwargs={"pk": proposal_id})
     )
     assert submit_response.status_code == 200
+    assert Notification.objects.filter(
+        recipient=student,
+        event_type="initiative.submitted_for_moderation",
+        target_type="initiative",
+        target_id=str(proposal_id),
+    ).exists()
 
     moderator_client = Client()
     moderator_client.force_login(cpprp)
@@ -203,6 +216,12 @@ def test_approve_publishes_initiative_as_catalog_project():
     payload = approve_response.json()
     assert payload["status"] == InitiativeProposalStatus.PUBLISHED
     assert payload["published_project"] is not None
+    assert Notification.objects.filter(
+        recipient=student,
+        event_type="initiative.moderation.approved",
+        target_type="initiative",
+        target_id=str(proposal_id),
+    ).exists()
 
     proposal = InitiativeProposal.objects.select_related("published_project").get(pk=proposal_id)
     project = proposal.published_project

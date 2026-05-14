@@ -58,6 +58,7 @@ echo "Uploading project to ${REMOTE}:${REMOTE_DIR} ..."
 
 COPYFILE_DISABLE=1 tar --format ustar \
   --exclude='.git' \
+  --exclude='.gitmodules' \
   --exclude='.venv' \
   --exclude='__pycache__' \
   --exclude='.DS_Store' \
@@ -66,6 +67,7 @@ COPYFILE_DISABLE=1 tar --format ustar \
   --exclude='.tmp' \
   --exclude='.pytest_cache' \
   --exclude='.ruff_cache' \
+  --exclude='docs/technical-specification/technical-specification-3' \
   -czf - . \
   | ssh "${SSH_OPTS[@]}" "$REMOTE" "set -euo pipefail
       sudo mkdir -p '$REMOTE_DIR'

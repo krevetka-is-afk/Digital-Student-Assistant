@@ -39,6 +39,8 @@ Digital-Student-Assistant/
 │  │  └─ test/
 │  │     └─ docker-compose.yml
 │  ├─ nginx/
+│  │  ├─ acme/
+│  │  └─ templates/
 │  ├─ observability/
 │  ├─ docker-compose.yml
 │  ├─ docker-compose.dev.yml

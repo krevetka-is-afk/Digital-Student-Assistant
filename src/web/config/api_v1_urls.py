@@ -1,4 +1,9 @@
-from apps.base.auth_views import VerifiedObtainAuthTokenView
+from apps.base.auth_views import (
+    RegisterAPIView,
+    ResendVerificationAPIView,
+    VerifiedObtainAuthTokenView,
+    VerifyEmailAPIView,
+)
 from apps.base.views import health_custom, readiness
 from apps.imports.views import ImportRunListCreateAPIView
 from apps.outbox.views import (
@@ -34,7 +39,14 @@ urlpatterns = [
     path("", ApiV1RootView.as_view(), name="api-v1-root"),
     path("health/", health_custom, name="api-v1-health"),
     path("ready/", readiness, name="api-v1-ready"),
+    path("auth/register/", RegisterAPIView.as_view(), name="api-v1-auth-register"),
     path("auth/token/", VerifiedObtainAuthTokenView.as_view(), name="api-v1-auth-token"),
+    path("auth/verify-email/", VerifyEmailAPIView.as_view(), name="api-v1-auth-verify-email"),
+    path(
+        "auth/verify-email/resend/",
+        ResendVerificationAPIView.as_view(),
+        name="api-v1-auth-verify-email-resend",
+    ),
     path("search/", SearchListView.as_view(), name="api-v1-search"),
     path("recs/search/", SearchProxyAPIView.as_view(), name="api-v1-recs-search"),
     path(
@@ -46,6 +58,7 @@ urlpatterns = [
     path("account/", include("apps.account.urls")),
     path("faculty/", include("apps.faculty.urls")),
     path("imports/epp/", ImportRunListCreateAPIView.as_view(), name="api-v1-import-epp"),
+    path("notifications/", include("apps.notifications.urls")),
     path("outbox/events/", OutboxEventListAPIView.as_view(), name="api-v1-outbox-events"),
     path("outbox/snapshot/", OutboxSnapshotAPIView.as_view(), name="api-v1-outbox-snapshot"),
     path("outbox/events/ack/", OutboxEventAckAPIView.as_view(), name="api-v1-outbox-events-ack"),

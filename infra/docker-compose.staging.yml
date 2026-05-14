@@ -99,6 +99,8 @@ services:
       OUTBOX_BASE_URL: ${OUTBOX_BASE_URL:-http://web:8000}
       OUTBOX_CONSUMER: ml
       OUTBOX_AUTH_HEADER: ${OUTBOX_AUTH_HEADER:-}
+      ML_OUTBOX_AUTH_HEADER: ${ML_OUTBOX_AUTH_HEADER:-}
+      ML_OUTBOX_SERVICE_TOKEN: ${ML_OUTBOX_SERVICE_TOKEN:-}
       OUTBOX_TIMEOUT_SEC: ${OUTBOX_TIMEOUT_SEC:-10}
       OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-100}
       OUTBOX_POLL_INTERVAL_SEC: ${OUTBOX_POLL_INTERVAL_SEC:-5}
@@ -137,6 +139,8 @@ services:
       OUTBOX_BASE_URL: ${OUTBOX_BASE_URL:-http://web:8000}
       OUTBOX_CONSUMER: graph
       OUTBOX_AUTH_HEADER: ${OUTBOX_AUTH_HEADER:-}
+      GRAPH_OUTBOX_AUTH_HEADER: ${GRAPH_OUTBOX_AUTH_HEADER:-}
+      GRAPH_OUTBOX_SERVICE_TOKEN: ${GRAPH_OUTBOX_SERVICE_TOKEN:-}
       OUTBOX_TIMEOUT_SEC: ${OUTBOX_TIMEOUT_SEC:-10}
       OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-100}
       OUTBOX_POLL_INTERVAL_SEC: ${OUTBOX_POLL_INTERVAL_SEC:-5}
@@ -164,16 +168,20 @@ services:
     depends_on:
       web:
         condition: service_healthy
+    environment:
+      DOLLAR: "$"
+      NGINX_PUBLIC_HOST: ${NGINX_PUBLIC_HOST:?NGINX_PUBLIC_HOST is required}
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${NGINX_CONF_TEMPLATE:-./nginx/templates/default.https.conf.template}:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/acme:/var/www/certbot:ro
       - staticfiles-staging:/var/www/staticfiles:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     read_only: true
     tmpfs:
+      - /etc/nginx/conf.d:rw,size=2m
       - /var/cache/nginx:rw,size=32m
       - /var/run:rw,size=8m
       - /tmp:rw,size=16m

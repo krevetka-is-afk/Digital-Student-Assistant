@@ -99,6 +99,7 @@ def test_project_admin_actions_registered():
     assert "publish_selected" in project_admin.actions
     assert "archive_selected" in project_admin.actions
     assert "export_selected_as_csv" in project_admin.actions
+    assert "export_selected_as_epp_xlsx" in project_admin.actions
 
 
 def test_project_admin_publish_action_updates_status():

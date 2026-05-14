@@ -38,13 +38,13 @@
           onclick="switchTab('articles')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
     Статьи
-    <span class="ml-1 text-xs text-gray-400">{{ sample_articles|length }}</span>
+    <span class="ml-1 text-xs text-gray-400">{% if using_faculty_data %}{{ faculty_articles_total }}{% else %}{{ sample_articles|length }}{% endif %}</span>
   </button>
   <button id="tab-btn-staff"
           onclick="switchTab('staff')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
     Сотрудники
-    <span class="ml-1 text-xs text-gray-400">{{ sample_staff|length }}</span>
+    <span class="ml-1 text-xs text-gray-400">{% if using_faculty_data %}{{ faculty_staff_total }}{% else %}{{ sample_staff|length }}{% endif %}</span>
   </button>
   <button id="tab-btn-graph"
           onclick="switchTab('graph')"
@@ -361,7 +361,11 @@
   <div class="flex flex-wrap items-center gap-3 mb-5">
     <p class="text-sm text-gray-500 flex-1 min-w-0">
       Научные публикации по тематике ваших проектов.
-      <span class="text-gray-400">Данные будут загружены из внешнего источника.</span>
+      {% if using_faculty_data %}
+      <span class="text-gray-400">Показано {{ faculty_articles_displayed }} из {{ faculty_articles_total }} публикаций локального зеркала faculty service.</span>
+      {% else %}
+      <span class="text-gray-400">Показаны демонстрационные данные.</span>
+      {% endif %}
     </p>
     {% if article_years or article_directions %}
     <div class="flex flex-wrap gap-2 flex-shrink-0">
@@ -477,7 +481,11 @@
 
   <p class="text-sm text-gray-500 mb-5">
     Научные сотрудники и преподаватели НИУ ВШЭ.
-    <span class="text-gray-400">Данные будут загружены из внешнего источника.</span>
+    {% if using_faculty_data %}
+    <span class="text-gray-400">Показано {{ faculty_staff_displayed }} из {{ faculty_staff_total }} сотрудников; курсов в зеркале: {{ faculty_courses_total }}.</span>
+    {% else %}
+    <span class="text-gray-400">Показаны демонстрационные данные.</span>
+    {% endif %}
   </p>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
@@ -548,7 +556,11 @@
     Размер узла пропорционален числу публикаций в выборке.
   </p>
   <p class="text-xs text-gray-400 mb-5">
-    Данные демонстрационные. После подключения faculty service граф будет построен по реальным публикациям НИУ ВШЭ.
+    {% if using_faculty_data %}
+    Граф построен по публикациям из локального зеркала faculty service. Для стабильной отрисовки используется ограниченная выборка.
+    {% else %}
+    Данные демонстрационные. После синхронизации faculty service граф будет построен по реальным публикациям НИУ ВШЭ.
+    {% endif %}
   </p>
 
   <!-- Legend -->
@@ -579,7 +591,7 @@
       <p class="text-xs text-gray-500">связей</p>
     </div>
     <div class="text-center">
-      <p class="text-lg font-bold text-gray-900" id="graph-stat-articles">{{ sample_articles|length }}</p>
+      <p class="text-lg font-bold text-gray-900" id="graph-stat-articles">{{ graph_articles_count }}</p>
       <p class="text-xs text-gray-500">публикаций в выборке</p>
     </div>
   </div>

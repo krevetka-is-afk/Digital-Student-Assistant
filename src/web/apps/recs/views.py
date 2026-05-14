@@ -34,6 +34,8 @@ class SearchProxyAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(
+        tags=["Recommendations"],
+        summary="Поиск проектов через recommendations-сервис",
         parameters=[SearchRequestSerializer],
         responses=RecommendationResponseSerializer,
     )
@@ -52,6 +54,8 @@ class RecommendationListAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
+        tags=["Recommendations"],
+        summary="Получить рекомендации проектов",
         parameters=[RecommendationRequestSerializer],
         responses=RecommendationResponseSerializer,
     )
@@ -69,6 +73,8 @@ class RecommendationReindexAPIView(APIView):
     permission_classes = [IsCpprpOrStaff]
 
     @extend_schema(
+        tags=["Recommendations"],
+        summary="Запросить переиндексацию рекомендаций",
         request=RecommendationReindexRequestSerializer,
         responses=RecommendationReindexResponseSerializer,
     )

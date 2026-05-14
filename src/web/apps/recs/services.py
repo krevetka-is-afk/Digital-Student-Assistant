@@ -37,17 +37,38 @@ def _tokenize(value: str) -> set[str]:
     return {token.lower() for token in TOKEN_RE.findall(value or "")}
 
 
-def _project_text(project: Project) -> str:
-    parts: list[str] = [
-        project.title or "",
-        project.description or "",
-        project.vacancy_title or "",
-        project.thesis_title or "",
-        project.implementation_features or "",
-        project.selection_criteria or "",
-        " ".join(project.get_tags_list()),
-    ]
-    return " ".join(parts)
+def _weighted_overlap_score(*, project: Project, query_tokens: set[str]) -> tuple[float, set[str]]:
+    title_tokens = _tokenize(project.title or "")
+    description_tokens = _tokenize(project.description or "")
+    tags_tokens = _tokenize(" ".join(project.get_tags_list()))
+    other_tokens = _tokenize(
+        " ".join(
+            [
+                project.vacancy_title or "",
+                project.thesis_title or "",
+                project.implementation_features or "",
+                project.selection_criteria or "",
+            ]
+        )
+    )
+    all_tokens = title_tokens | description_tokens | tags_tokens | other_tokens
+    overlap = query_tokens & all_tokens
+    if not overlap:
+        return 0.0, set()
+
+    score = 0.0
+    for token in overlap:
+        token_weight = 0.0
+        if token in title_tokens:
+            token_weight += 4.0
+        if token in description_tokens:
+            token_weight += 2.0
+        if token in tags_tokens:
+            token_weight += 1.0
+        if token in other_tokens:
+            token_weight += 1.0
+        score += token_weight
+    return score, overlap
 
 
 def _heuristic_rank(
@@ -59,9 +80,7 @@ def _heuristic_rank(
 ) -> list[dict[str, object]]:
     ranked: list[dict[str, object]] = []
     for project in projects:
-        project_tokens = _tokenize(_project_text(project))
-        overlap = query_tokens & project_tokens
-        score = float(len(overlap))
+        score, overlap = _weighted_overlap_score(project=project, query_tokens=query_tokens)
         if score <= 0:
             continue
         ranked.append(

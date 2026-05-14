@@ -230,7 +230,7 @@ def project_list(request):
 
         # Suggest interests from activity when student has none set
         if not has_interests:
-            fav_ids = list(request.user.profile.favorite_project_ids)
+            fav_ids = request.user.profile.get_favorite_project_ids()
             applied_ids = [a.project_id for a in my_applications]
             activity_ids = list({*fav_ids, *applied_ids})[:20]
             if activity_ids:
@@ -248,7 +248,7 @@ def project_list(request):
 
     if request.user.is_authenticated:
         show_bookmarks_tab = True
-        fav_ids = list(request.user.profile.favorite_project_ids)
+        fav_ids = request.user.profile.get_favorite_project_ids()
         bookmarked_ids = set(fav_ids)
         if fav_ids:
             bm_queryset = (
@@ -416,14 +416,19 @@ def _customer_project_list(request):
         "projects_with_pending": projects_with_pending,
     }
 
-    # Real data from faculty service (teammate's API); fallback to sample data
-    articles = _fetch_faculty_publications() or _get_sample_articles()
-    staff = _fetch_faculty_staff() or _get_sample_staff()
+    # Real data from faculty service mirror; fallback to sample data when sync has not run yet.
+    faculty_counts = _get_faculty_counts()
+    articles = _fetch_faculty_publications(limit=_FACULTY_ARTICLE_LIST_LIMIT)
+    staff = _fetch_faculty_staff(limit=_FACULTY_STAFF_LIST_LIMIT)
+    using_faculty_data = bool(articles or staff)
+    articles = articles or _get_sample_articles()
+    staff = staff or _get_sample_staff()
 
-    # Co-authorship graph: faculty service publications don't include author
-    # names in the list endpoint, so use sample articles for the graph when
-    # real publications have no author data.
-    graph_source = articles if any(a.get("authors") for a in articles) else _get_sample_articles()
+    graph_source = [article for article in articles if article.get("authors")][
+        :_FACULTY_GRAPH_ARTICLE_LIMIT
+    ]
+    if not graph_source:
+        graph_source = _get_sample_articles()
     graph_nodes, graph_edges = _build_graph_data(graph_source)
 
     article_years = sorted(
@@ -446,9 +451,16 @@ def _customer_project_list(request):
             "total_count": base_qs.count(),
             "dashboard": dashboard,
             "sample_articles": articles,
+            "faculty_articles_total": faculty_counts["publications"],
+            "faculty_articles_displayed": len(articles),
             "article_years": article_years,
             "article_directions": article_directions,
             "sample_staff": staff,
+            "faculty_staff_total": faculty_counts["persons"],
+            "faculty_staff_displayed": len(staff),
+            "faculty_courses_total": faculty_counts["courses"],
+            "using_faculty_data": using_faculty_data,
+            "graph_articles_count": len(graph_source),
             "graph_nodes_json": json.dumps(graph_nodes, ensure_ascii=False),
             "graph_edges_json": json.dumps(graph_edges, ensure_ascii=False),
         },
@@ -459,7 +471,10 @@ def _customer_project_list(request):
 # Faculty Service integration
 # ---------------------------------------------------------------------------
 
-_FACULTY_CACHE_TTL = 3600  # 1 hour — faculty data doesn't change often
+_FACULTY_CACHE_TTL = 60
+_FACULTY_ARTICLE_LIST_LIMIT = 200
+_FACULTY_STAFF_LIST_LIMIT = 200
+_FACULTY_GRAPH_ARTICLE_LIMIT = 80
 
 _PUB_TYPE_RU = {
     "ARTICLE": "Статья",
@@ -470,6 +485,20 @@ _PUB_TYPE_RU = {
     "THESIS": "Диссертация",
     "OTHER": "Прочее",
 }
+
+
+def _get_faculty_counts() -> dict[str, int]:
+    from apps.faculty.models import FacultyCourse, FacultyPerson, FacultyPublication
+
+    try:
+        return {
+            "persons": FacultyPerson.objects.filter(is_stale=False).count(),
+            "publications": FacultyPublication.objects.count(),
+            "courses": FacultyCourse.objects.count(),
+        }
+    except Exception:
+        logger.warning("faculty ORM count query failed", exc_info=True)
+        return {"persons": 0, "publications": 0, "courses": 0}
 
 
 def _fetch_faculty_publications(limit: int = 8) -> list[dict]:
@@ -1062,7 +1091,7 @@ def toggle_bookmark(request, pk):
 
     get_object_or_404(Project, pk=pk)
     profile = request.user.profile
-    favorites = list(profile.favorite_project_ids)
+    favorites = profile.get_favorite_project_ids()
 
     if pk in favorites:
         favorites.remove(pk)

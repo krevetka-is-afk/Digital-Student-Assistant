@@ -6,7 +6,7 @@ Provides a unified tabbed interface for:
   - All applications (paginated, filterable)
   - Platform deadlines (CRUD)
   - Document templates (CRUD)
-  - CSV exports
+  - CSV and XLSX exports
 """
 
 import csv
@@ -16,6 +16,7 @@ import re
 from apps.account.models import DeadlineAudience, DocumentTemplate, PlatformDeadline
 from apps.applications.models import Application, ApplicationStatus
 from apps.frontend.decorators import moderator_required
+from apps.projects.export_epp_xlsx import LegacyVariant, build_projects_xlsx_bytes
 from apps.projects.models import Project, ProjectStatus
 from apps.users.models import (
     ExternalAccessAllowlist,
@@ -297,8 +298,25 @@ def cpprp_template_delete(request, pk):
 
 
 # ---------------------------------------------------------------------------
-# CSV Exports
+# CSV / XLSX Exports
 # ---------------------------------------------------------------------------
+
+@login_required(login_url="/auth/")
+@moderator_required
+def cpprp_export_projects_xlsx(request):
+    """Download projects as XLSX (EPP-compatible sheet + optional extended sheet)."""
+    variant_raw = (request.GET.get("variant") or "both").lower()
+    variant: LegacyVariant = (
+        variant_raw if variant_raw in ("compatible", "extended", "both") else "both"
+    )
+    payload = build_projects_xlsx_bytes(Project.objects.all(), variant=variant)
+    response = HttpResponse(
+        payload,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="projects-export-{variant}.xlsx"'
+    return response
+
 
 @login_required(login_url="/auth/")
 @moderator_required
