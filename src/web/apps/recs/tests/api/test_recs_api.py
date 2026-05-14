@@ -159,6 +159,48 @@ def test_recommendations_endpoint_falls_back_on_ml_timeout(monkeypatch):
     assert f"Timeout fallback {token}" in titles
 
 
+def test_recommendations_endpoint_ignores_blank_interests_query_value():
+    token = f"blank-{uuid4().hex[:8]}"
+    Project.objects.create(
+        title=f"Blank fallback {token}",
+        description=f"machine learning with python {token}",
+        status=ProjectStatus.PUBLISHED,
+        tech_tags=["python", token],
+    )
+    client = Client()
+    client.force_login(_make_student(interests=[token]))
+
+    response = client.get(reverse("api-v1-recs-recommendations"), data={"interests": ""})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "keyword-fallback"
+    titles = [item["project"]["title"] for item in payload["items"]]
+    assert f"Blank fallback {token}" in titles
+
+
+def test_recommendations_endpoint_survives_malformed_favorites_in_profile():
+    token = f"malformed-favs-{uuid4().hex[:8]}"
+    Project.objects.create(
+        title=f"Malformed favorites {token}",
+        description=f"machine learning with python {token}",
+        status=ProjectStatus.PUBLISHED,
+        tech_tags=["python", token],
+    )
+    student = _make_student(interests=[token])
+    UserProfile.objects.filter(pk=student.profile.pk).update(favorite_project_ids="string")
+    client = Client()
+    client.force_login(student)
+
+    response = client.get(reverse("api-v1-recs-recommendations"))
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "keyword-fallback"
+    titles = [item["project"]["title"] for item in payload["items"]]
+    assert f"Malformed favorites {token}" in titles
+
+
 def test_recs_search_endpoint_falls_back_on_ml_timeout(monkeypatch):
     token = f"search-timeout-{uuid4().hex[:8]}"
     Project.objects.create(

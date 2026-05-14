@@ -1,15 +1,20 @@
+from apps.projects.normalization import normalize_technology_tags
 from apps.projects.serializers import PrimaryProjectSerializer
 from rest_framework import serializers
 
 
 class RecommendationRequestSerializer(serializers.Serializer):
     interests = serializers.ListField(
-        child=serializers.CharField(),
+        child=serializers.CharField(allow_blank=True, trim_whitespace=True),
         required=False,
         allow_empty=True,
         default=list,
     )
     limit = serializers.IntegerField(required=False, min_value=1, max_value=50, default=10)
+
+    def validate_interests(self, value):
+        cleaned = [item for item in value if item and item.strip()]
+        return normalize_technology_tags(cleaned)
 
 
 class SearchRequestSerializer(serializers.Serializer):
