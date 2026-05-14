@@ -155,11 +155,9 @@ def moderate_initiative_proposal(
         )
 
     with transaction.atomic():
-        proposal = (
-            InitiativeProposal.objects.select_for_update()
-            .select_related("published_project")
-            .get(pk=proposal.pk)
-        )
+        # Keep the row lock on the proposal itself only. Joining a nullable
+        # published_project relation under FOR UPDATE breaks on PostgreSQL.
+        proposal = InitiativeProposal.objects.select_for_update().get(pk=proposal.pk)
         submission = proposal.submissions.select_for_update().order_by("-submission_number").first()
         if (
             submission is None

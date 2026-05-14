@@ -1,3 +1,5 @@
+import logging
+
 from apps.account.permissions import IsCustomerOrStaff, IsStudentOrStaff
 from apps.notifications.services import NotificationSpec, create_notifications
 from apps.outbox.services import emit_event
@@ -13,6 +15,8 @@ from rest_framework.views import APIView
 from .models import Application, ApplicationStatus
 from .serializers import ApplicationSerializer
 from .transitions import review_application
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -32,7 +36,7 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
             return queryset
         return queryset.filter(applicant=user)
 
-    def perform_create(self, serializer):
+    def _save_application(self, serializer):
         project = serializer.validated_data["project"]
         if project.status not in ProjectStatus.catalog_values():
             raise ValidationError(
@@ -49,10 +53,12 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
                     ]
                 }
             )
-        application = serializer.save(
+        return serializer.save(
             applicant=self.request.user,
             status=ApplicationStatus.SUBMITTED,
         )
+
+    def _run_post_create_side_effects(self, application):
         create_notifications(
             recipients=[application.applicant],
             spec=NotificationSpec(
@@ -88,6 +94,23 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
             payload=ApplicationSerializer(application, context={"request": self.request}).data,
             idempotency_key=f"application.changed:{application.pk}:{application.updated_at.isoformat()}:create",
         )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        application = self._save_application(serializer)
+        response_serializer = self.get_serializer(application)
+        headers = self.get_success_headers(response_serializer.data)
+
+        try:
+            self._run_post_create_side_effects(application)
+        except Exception:
+            logger.exception(
+                "Application post-create side effects failed",
+                extra={"application_id": application.pk, "applicant_id": application.applicant_id},
+            )
+
+        return Response(response_serializer.data, status=201, headers=headers)
 
 
 @extend_schema_view(

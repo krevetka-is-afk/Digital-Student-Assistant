@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 from apps.applications.models import Application, ApplicationStatus
@@ -58,6 +59,28 @@ def test_application_create_forces_submitted_status():
     ).exists()
 
 
+def test_application_create_returns_201_when_outbox_side_effect_fails():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+
+    client = Client()
+    client.force_login(student)
+    with patch("apps.applications.views.emit_event", side_effect=RuntimeError("boom")):
+        response = client.post(
+            reverse("application-list"),
+            data={"project": project.pk},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 201
+    application = Application.objects.get(pk=response.json()["id"])
+    assert application.status == ApplicationStatus.SUBMITTED
+    assert Notification.objects.filter(
+        recipient=student, event_type="application.created", target_type="application"
+    ).exists()
+
+
 def test_application_create_rejected_for_non_catalog_project():
     owner = _make_user(role=UserRole.CUSTOMER)
     student = _make_user(role=UserRole.STUDENT)
@@ -89,6 +112,43 @@ def test_customer_cannot_create_application():
     )
 
     assert response.status_code == 403
+
+
+def test_application_create_succeeds_with_malformed_favorites_in_profile():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+    UserProfile.objects.filter(pk=student.profile.pk).update(favorite_project_ids="string")
+
+    client = Client()
+    client.force_login(student)
+    response = client.post(
+        reverse("application-list"),
+        data={"project": project.pk},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["id"] > 0
+
+
+def test_application_list_succeeds_with_malformed_favorites_in_profile():
+    owner = _make_user(role=UserRole.CUSTOMER)
+    student = _make_user(role=UserRole.STUDENT)
+    project = _make_project(owner, status=ProjectStatus.PUBLISHED)
+    application = _make_application(project, student)
+    UserProfile.objects.filter(pk=student.profile.pk).update(favorite_project_ids="string")
+
+    client = Client()
+    client.force_login(student)
+    response = client.get(reverse("application-list"))
+
+    assert response.status_code == 200
+    payload = response.json()
+    if isinstance(payload, list):
+        assert payload[0]["id"] == application.pk
+    else:
+        assert payload["results"][0]["id"] == application.pk
 
 
 def test_customer_cannot_list_applications_from_student_endpoint():
