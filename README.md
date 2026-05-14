@@ -7,8 +7,8 @@ Digital Student Assistant - платформа для подбора и сопр
 ## Быстрый старт
 
 ```bash
-git submodule update --init --recursive  # или клонируйте с флагом --recurse-submodules
-# python3 -m venv .venv
+# submodule с шаблонами ТЗ нужен только для документации и не требуется для runtime/deploy
+git submodule update --init --recursive  # опционально, только если нужны материалы из docs/technical-specification
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 python -m pip install --upgrade uv

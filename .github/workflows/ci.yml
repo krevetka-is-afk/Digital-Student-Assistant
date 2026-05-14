@@ -501,19 +501,34 @@ jobs:
             cd "$APP_DIR"
             test -d .git
 
-            git fetch --all --prune --tags
-            if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
-              echo "Discarding tracked local changes in deploy worktree"
-              git reset --hard HEAD
-            fi
-            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
-              git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
-              git pull --ff-only origin "$TARGET_REF"
-            else
-              git checkout --detach "$TARGET_REF"
-            fi
+            git_safe() {
+              git -c fetch.recurseSubmodules=false -c submodule.recurse=false "$@"
+            }
 
-            ACTUAL_SHA="$(git rev-parse HEAD)"
+            cleanup_deploy_only_submodules() {
+              local path
+              for path in "docs/technical-specification/technical-specification-3"; do
+                rm -rf "$path" ".git/modules/$path"
+                git config --local --remove-section "submodule.$path" >/dev/null 2>&1 || true
+              done
+            }
+
+            cleanup_deploy_only_submodules
+
+            git_safe fetch --all --prune --tags --no-recurse-submodules
+            if ! git_safe diff --quiet --ignore-submodules -- || ! git_safe diff --cached --quiet --ignore-submodules --; then
+              echo "Discarding tracked local changes in deploy worktree"
+              git_safe reset --hard HEAD
+            fi
+            if git_safe show-ref --verify --quiet "refs/remotes/origin/$TARGET_REF"; then
+              git_safe checkout -B "$TARGET_REF" "origin/$TARGET_REF"
+              git_safe pull --ff-only --no-recurse-submodules origin "$TARGET_REF"
+            else
+              git_safe checkout --detach "$TARGET_REF"
+            fi
+            cleanup_deploy_only_submodules
+
+            ACTUAL_SHA="$(git_safe rev-parse HEAD)"
             if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
               echo "Ref mismatch: expected $EXPECTED_SHA, got $ACTUAL_SHA" >&2
               exit 1

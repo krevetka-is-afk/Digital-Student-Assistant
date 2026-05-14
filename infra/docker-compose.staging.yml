@@ -169,6 +169,7 @@ services:
       web:
         condition: service_healthy
     environment:
+      DOLLAR: "$"
       NGINX_PUBLIC_HOST: ${NGINX_PUBLIC_HOST:?NGINX_PUBLIC_HOST is required}
     ports:
       - "80:80"
