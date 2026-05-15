@@ -72,7 +72,7 @@ class OutboxEventListAPIView(generics.ListAPIView):
                 location=OpenApiParameter.QUERY,
                 description="Inclusive lower bound for replay mode.",
             ),
-        ]
+        ],
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)

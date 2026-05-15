@@ -14,18 +14,22 @@ User = get_user_model()
 
 pytestmark = pytest.mark.django_db
 
+
 def _uid():
     return uuid4().hex[:8]
+
 
 def _make_student():
     user = User.objects.create_user(username=f"stu-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.STUDENT)
     return user
 
+
 def _make_cpprp():
     user = User.objects.create_user(username=f"cpprp-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.CPPRP)
     return user
+
 
 def _make_faculty_person(*, is_stale=False, full_name=None):
     key = _uid()
@@ -39,11 +43,12 @@ def _make_faculty_person(*, is_stale=False, full_name=None):
         is_stale=is_stale,
     )
 
+
 def _make_stale_faculty_person():
     return _make_faculty_person(is_stale=True)
 
-class TestFacultyList:
 
+class TestFacultyList:
     def test_unauth_redirects_to_login(self):
         response = Client().get(reverse("frontend:faculty_list"))
         assert response.status_code == 302
@@ -84,9 +89,7 @@ class TestFacultyList:
         person = _make_faculty_person(full_name=unique_name)
         client = Client()
         client.force_login(_make_student())
-        response = client.get(
-            reverse("frontend:faculty_list"), {"q": unique_name[:10]}
-        )
+        response = client.get(reverse("frontend:faculty_list"), {"q": unique_name[:10]})
         assert response.status_code == 200
         pks = {p.pk for p in response.context["page_obj"]}
         assert person.pk in pks
@@ -95,9 +98,7 @@ class TestFacultyList:
         _make_faculty_person(full_name=f"Иванов {_uid()}")
         client = Client()
         client.force_login(_make_student())
-        response = client.get(
-            reverse("frontend:faculty_list"), {"q": "ZZZNOMATCHZZZ"}
-        )
+        response = client.get(reverse("frontend:faculty_list"), {"q": "ZZZNOMATCHZZZ"})
         assert response.status_code == 200
         assert response.context["total"] == 0
 
@@ -121,8 +122,8 @@ class TestFacultyList:
         assert "page_obj" in ctx
         assert ctx["total"] >= 2
 
-class TestFacultyDetail:
 
+class TestFacultyDetail:
     def test_unauth_redirects_to_login(self):
         person = _make_faculty_person()
         response = Client().get(

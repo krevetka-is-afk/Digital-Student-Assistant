@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("projects", "0006_project_accepted_participants_count_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

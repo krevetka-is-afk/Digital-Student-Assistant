@@ -11,10 +11,8 @@ class TechnologyStatus(models.TextChoices):
     REJECTED: ClassVar[str]
     values: ClassVar[list[str]]
 
-
 class TechnologyQuerySet(models.QuerySet[Technology]):
     def approved(self) -> TechnologyQuerySet: ...
-
 
 class TechnologyManager(models.Manager[Technology]):
     def get_queryset(self) -> TechnologyQuerySet: ...
@@ -26,7 +24,6 @@ class TechnologyManager(models.Manager[Technology]):
         status: str = TechnologyStatus.PENDING,
         created_by: Any | None = None,
     ) -> tuple[Technology, bool]: ...
-
 
 class Technology(models.Model):
     objects: ClassVar[TechnologyManager]
@@ -45,7 +42,6 @@ class Technology(models.Model):
     def __str__(self) -> str: ...
     def save(self, *args: Any, **kwargs: Any) -> None: ...
 
-
 class ProjectStatus(models.TextChoices):
     CREATED: ClassVar[str]
     DRAFT: ClassVar[str]
@@ -63,14 +59,12 @@ class ProjectStatus(models.TextChoices):
     @classmethod
     def catalog_values(cls) -> tuple[str, ...]: ...
 
-
 class ProjectSourceType(models.TextChoices):
     SUPERVISOR: ClassVar[str]
     INITIATIVE: ClassVar[str]
     EPP: ClassVar[str]
     MANUAL: ClassVar[str]
     values: ClassVar[list[str]]
-
 
 class EPP(models.Model):
     objects: ClassVar[models.Manager[EPP]]
@@ -93,17 +87,14 @@ class EPP(models.Model):
 
     def __str__(self) -> str: ...
 
-
 class ProjectQuerySet(models.QuerySet[Project]):
     def published(self) -> ProjectQuerySet: ...
     def search(self, query: str, user: Any | None = None) -> ProjectQuerySet: ...
-
 
 class ProjectManager(models.Manager[Project]):
     def get_queryset(self) -> ProjectQuerySet: ...
     def published(self) -> ProjectQuerySet: ...
     def search(self, query: str, user: Any | None = None) -> ProjectQuerySet: ...
-
 
 class Project(models.Model):
     objects: ClassVar[ProjectManager]
@@ -154,12 +145,9 @@ class Project(models.Model):
     def sync_technologies(self) -> None: ...
     def is_public(self) -> bool: ...
     def get_tags_list(self) -> list[str]: ...
-
     @property
     def is_team_project(self) -> bool: ...
-
     @property
     def staffing_state(self) -> str: ...
-
     @property
     def application_window_state(self) -> str: ...

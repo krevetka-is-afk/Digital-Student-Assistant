@@ -11,21 +11,17 @@ class UserRole(models.TextChoices):
     CPPRP: ClassVar[str]
     values: ClassVar[list[str]]
 
-
 def normalize_email(email: str) -> str: ...
-
 
 class EmailVerificationPurpose(models.TextChoices):
     SIGNUP: ClassVar[str]
     values: ClassVar[list[str]]
-
 
 class ExternalAccessRequestStatus(models.TextChoices):
     PENDING: ClassVar[str]
     APPROVED: ClassVar[str]
     REJECTED: ClassVar[str]
     values: ClassVar[list[str]]
-
 
 class UserProfile(models.Model):
     objects: ClassVar[models.Manager[UserProfile]]
@@ -46,17 +42,11 @@ class UserProfile(models.Model):
 
     @property
     def is_email_verified(self) -> bool: ...
-
     def __str__(self) -> str: ...
-
     def save(self, *args: Any, **kwargs: Any) -> None: ...
-
     def sync_interest_technologies(self) -> None: ...
-
     def mark_email_verified(self, verified_at: datetime | None = None) -> None: ...
-
     def set_favorite_project_ids(self, project_ids: list[int]) -> None: ...
-
 
 class EmailVerificationCode(models.Model):
     objects: ClassVar[models.Manager[EmailVerificationCode]]
@@ -76,12 +66,9 @@ class EmailVerificationCode(models.Model):
 
     @property
     def is_consumed(self) -> bool: ...
-
     @property
     def is_expired(self) -> bool: ...
-
     def __str__(self) -> str: ...
-
 
 class ExternalAccessAllowlist(models.Model):
     objects: ClassVar[models.Manager[ExternalAccessAllowlist]]
@@ -99,9 +86,7 @@ class ExternalAccessAllowlist(models.Model):
     updated_at: datetime
 
     def __str__(self) -> str: ...
-
     def save(self, *args: Any, **kwargs: Any) -> None: ...
-
 
 class ExternalAccessRequest(models.Model):
     objects: ClassVar[models.Manager[ExternalAccessRequest]]
@@ -121,5 +106,4 @@ class ExternalAccessRequest(models.Model):
     updated_at: datetime
 
     def __str__(self) -> str: ...
-
     def save(self, *args: Any, **kwargs: Any) -> None: ...

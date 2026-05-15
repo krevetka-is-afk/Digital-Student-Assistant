@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, render
 def project_detail(request, pk):
     project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)
 
-    is_owner  = project.owner == request.user
+    is_owner = project.owner == request.user
     is_public = project.status in ProjectStatus.catalog_values()
 
     if not is_public and not is_owner and not request.user.is_staff:
@@ -25,11 +25,15 @@ def project_detail(request, pk):
 
     spots_left = max(0, project.team_size - project.accepted_participants_count)
 
-    return render(request, "frontend/project_detail.html", {
-        "project":           project,
-        "application":       application,
-        "is_owner":          is_owner,
-        "spots_left":        spots_left,
-        "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
-    })
+    return render(
+        request,
+        "frontend/project_detail.html",
+        {
+            "project": project,
+            "application": application,
+            "is_owner": is_owner,
+            "spots_left": spots_left,
+            "ApplicationStatus": ApplicationStatus,
+            "ProjectStatus": ProjectStatus,
+        },
+    )

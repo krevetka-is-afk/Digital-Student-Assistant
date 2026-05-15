@@ -19,29 +19,34 @@ def technology_list(request):
         .order_by("-project_count", "normalized_name")
     )
 
-    is_mod       = user_is_moderator(request.user)
+    is_mod = user_is_moderator(request.user)
     pending_list = (
         list(
-            Technology.objects
-            .filter(status=TechnologyStatus.PENDING)
+            Technology.objects.filter(status=TechnologyStatus.PENDING)
             .annotate(project_count=Count("projects", filter=live_filter, distinct=True))
             .order_by("-project_count", "normalized_name")
         )
-        if is_mod else []
+        if is_mod
+        else []
     )
 
-    return render(request, "frontend/technology_list.html", {
-        "approved_technologies": approved_list,
-        "pending_technologies":  pending_list,
-        "is_moderator":          is_mod,
-        "total_approved":        len(approved_list),
-    })
+    return render(
+        request,
+        "frontend/technology_list.html",
+        {
+            "approved_technologies": approved_list,
+            "pending_technologies": pending_list,
+            "is_moderator": is_mod,
+            "total_approved": len(approved_list),
+        },
+    )
+
 
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 @require_POST
 def technology_moderate(request, pk):
-    tech   = get_object_or_404(Technology, pk=pk, status=TechnologyStatus.PENDING)
+    tech = get_object_or_404(Technology, pk=pk, status=TechnologyStatus.PENDING)
     action = request.POST.get("action", "").strip()
 
     if action == "approve":

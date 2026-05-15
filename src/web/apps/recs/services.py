@@ -102,7 +102,6 @@ def _published_projects() -> list[Project]:
     )
 
 
-
 def _ml_timeout_seconds() -> float:
     raw_timeout = os.getenv("ML_SERVICE_TIMEOUT", str(ML_DEFAULT_TIMEOUT_SECONDS))
     try:
@@ -138,9 +137,7 @@ def _normalize_remote_items(items: object) -> list[MLRankedItem] | None:
     return normalized
 
 
-def _call_remote_ml(
-    path: str, payload: dict[str, object], *, operation: str
-) -> _RemoteCallResult:
+def _call_remote_ml(path: str, payload: dict[str, object], *, operation: str) -> _RemoteCallResult:
     base_url = os.getenv("ML_SERVICE_URL", "").rstrip("/")
     if not base_url:
         logger.info(

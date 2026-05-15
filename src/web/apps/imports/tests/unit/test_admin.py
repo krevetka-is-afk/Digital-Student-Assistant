@@ -36,7 +36,7 @@ def test_epp_upload_admin_page_renders_file_picker():
     response = client.get(reverse("admin:imports_importrun_epp_upload"))
 
     assert response.status_code == 200
-    assert b'Drop epp.xlsx here' in response.content
+    assert b"Drop epp.xlsx here" in response.content
     assert b'type="file"' in response.content
     assert b'accept=".xlsx' in response.content
 

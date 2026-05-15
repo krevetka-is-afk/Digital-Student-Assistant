@@ -221,8 +221,7 @@ def _apply_project_filters(queryset, params):
                 location=OpenApiParameter.QUERY,
                 enum=["open", "closed", "upcoming"],
                 description=(
-                    "Canonical application window filter; "
-                    "preferred over legacy application_state."
+                    "Canonical application window filter; preferred over legacy application_state."
                 ),
             ),
             OpenApiParameter(
@@ -235,7 +234,7 @@ def _apply_project_filters(queryset, params):
                 type=OpenApiTypes.BOOL,
                 location=OpenApiParameter.QUERY,
             ),
-        ]
+        ],
     ),
     post=extend_schema(tags=["Projects"], summary="Создать проект"),
 )
@@ -333,8 +332,6 @@ class ProjectUpdateAPIView(generics.UpdateAPIView):
 
 
 project_update_view = ProjectUpdateAPIView.as_view()
-
-
 
 
 class ProjectDestroyAPIView(generics.DestroyAPIView):

@@ -12,7 +12,6 @@ class ApplicationStatus(models.TextChoices):
     REJECTED: ClassVar[str]
     values: ClassVar[list[str]]
 
-
 class Application(models.Model):
     objects: ClassVar[models.Manager[Application]]
     _meta: ClassVar[Any]

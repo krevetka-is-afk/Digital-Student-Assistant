@@ -7,8 +7,10 @@ from django.core.cache import cache
 
 pytestmark = pytest.mark.django_db
 
+
 def _uid():
     return uuid4().hex[:8]
+
 
 def _make_publication(**overrides):
     defaults = {
@@ -23,14 +25,15 @@ def _make_publication(**overrides):
     defaults.update(overrides)
     return FacultyPublication.objects.create(**defaults)
 
+
 @pytest.fixture(autouse=True)
 def clear_faculty_cache():
     cache.clear()
     yield
     cache.clear()
 
-class TestFetchFacultyPublications:
 
+class TestFetchFacultyPublications:
     def test_returns_empty_when_no_publications(self):
         assert _fetch_faculty_publications() == []
 
@@ -94,7 +97,7 @@ class TestFetchFacultyPublications:
 
     def test_result_cached_on_second_call(self):
         _make_publication(raw_payload={"venue": "Cached Journal"})
-        first  = _fetch_faculty_publications()
+        first = _fetch_faculty_publications()
         second = _fetch_faculty_publications()
         assert first == second
         assert first[0]["venue"] == "Cached Journal"

@@ -10,8 +10,10 @@ User = get_user_model()
 
 pytestmark = pytest.mark.django_db
 
+
 def _uid():
     return uuid4().hex[:8]
+
 
 def _make_student(*, email=None, password="pass"):
     uid = _uid()
@@ -23,6 +25,7 @@ def _make_student(*, email=None, password="pass"):
     )
     UserProfile.objects.create(user=user, role=UserRole.STUDENT)
     return user
+
 
 def _register_payload(**overrides):
     uid = _uid()
@@ -37,9 +40,11 @@ def _register_payload(**overrides):
     payload.update(overrides)
     return payload
 
+
 def test_auth_get_renders_for_anonymous():
     response = Client().get(reverse("frontend:auth"))
     assert response.status_code == 200
+
 
 def test_auth_get_redirects_authenticated_to_project_list():
     student = _make_student()
@@ -48,6 +53,7 @@ def test_auth_get_redirects_authenticated_to_project_list():
     response = client.get(reverse("frontend:auth"))
     assert response.status_code == 302
     assert response["Location"] == reverse("frontend:project_list")
+
 
 def test_login_success_redirects_to_project_list():
     uid = _uid()
@@ -61,6 +67,7 @@ def test_login_success_redirects_to_project_list():
     assert response.status_code == 302
     assert response["Location"] == reverse("frontend:project_list")
 
+
 def test_login_wrong_password_rerenders_form():
     uid = _uid()
     email = f"err-{uid}@edu.hse.ru"
@@ -73,6 +80,7 @@ def test_login_wrong_password_rerenders_form():
     assert response.status_code == 200
     assert response.context["login_form"].errors
 
+
 def test_login_rejects_invalid_email_format():
     response = Client().post(
         reverse("frontend:auth"),
@@ -80,6 +88,7 @@ def test_login_rejects_invalid_email_format():
     )
     assert response.status_code == 200
     assert "Enter a valid email address" in response.content.decode()
+
 
 def test_auth_login_ignores_external_next_redirect():
     uid = _uid()
@@ -101,6 +110,7 @@ def test_auth_login_ignores_external_next_redirect():
     assert response.status_code == 302
     assert response["Location"] == reverse("frontend:project_list")
 
+
 def test_register_rejects_invalid_email():
     response = Client().post(
         reverse("frontend:auth"),
@@ -110,6 +120,7 @@ def test_register_rejects_invalid_email():
     assert "Enter a valid email address" in response.content.decode()
     assert not User.objects.filter(email="sdfsdf").exists()
 
+
 def test_register_rejects_email_missing_domain():
     response = Client().post(
         reverse("frontend:auth"),
@@ -118,12 +129,14 @@ def test_register_rejects_email_missing_domain():
     assert response.status_code == 200
     assert "Enter a valid email address" in response.content.decode()
 
+
 def test_register_accepts_valid_email():
     uid = _uid()
     email = f"valid-{uid}@edu.hse.ru"
     response = Client().post(reverse("frontend:auth"), _register_payload(email=email))
     assert response.status_code == 302
     assert User.objects.filter(email=email).exists()
+
 
 def test_register_rejects_short_password():
     response = Client().post(
@@ -133,6 +146,7 @@ def test_register_rejects_short_password():
     assert response.status_code == 200
     assert "Password is too short" in response.content.decode()
 
+
 def test_register_rejects_duplicate_email():
     uid = _uid()
     email = f"dup-{uid}@edu.hse.ru"
@@ -140,6 +154,7 @@ def test_register_rejects_duplicate_email():
     response = Client().post(reverse("frontend:auth"), _register_payload(email=email))
     assert response.status_code == 200
     assert "A user with this email already exists" in response.content.decode()
+
 
 def test_register_mismatched_passwords():
     response = Client().post(
@@ -150,6 +165,7 @@ def test_register_mismatched_passwords():
     assert "Passwords do not match" in response.content.decode()
     assert not User.objects.filter(email=_register_payload()["email"]).exists()
 
+
 def test_register_without_consent():
     uid = _uid()
     response = Client().post(
@@ -158,6 +174,7 @@ def test_register_without_consent():
     )
     assert response.status_code == 200
     assert not User.objects.filter(email=f"noconsent-{uid}@edu.hse.ru").exists()
+
 
 def test_register_external_customer_creates_access_request():
     uid = _uid()
@@ -170,6 +187,7 @@ def test_register_external_customer_creates_access_request():
     assert not User.objects.filter(email=external_email).exists()
     assert ExternalAccessRequest.objects.filter(email=external_email).exists()
 
+
 def test_logout_redirects_to_auth():
     student = _make_student()
     client = Client()
@@ -177,6 +195,7 @@ def test_logout_redirects_to_auth():
     response = client.post(reverse("frontend:logout"))
     assert response.status_code == 302
     assert "/auth/" in response["Location"]
+
 
 def test_logout_ends_session():
     student = _make_student()

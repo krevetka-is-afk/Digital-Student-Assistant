@@ -81,7 +81,4 @@ class Command(BaseCommand):
 
 
 def _description(*, tick: int, timestamp) -> str:
-    return (
-        "Outbox tester heartbeat project. "
-        f"Tick #{tick} generated at {timestamp.isoformat()}."
-    )
+    return f"Outbox tester heartbeat project. Tick #{tick} generated at {timestamp.isoformat()}."

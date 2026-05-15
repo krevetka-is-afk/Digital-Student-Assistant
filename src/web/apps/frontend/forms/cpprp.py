@@ -26,6 +26,7 @@ class DeadlineForm(forms.Form):
     )
     is_active = forms.BooleanField(required=False, initial=True)
 
+
 class TemplateForm(forms.Form):
     slug = forms.SlugField(
         max_length=80,
@@ -41,6 +42,7 @@ class TemplateForm(forms.Form):
     audience = forms.ChoiceField(choices=DeadlineAudience.choices)
     description = forms.CharField(widget=forms.Textarea, required=False)
     is_active = forms.BooleanField(required=False, initial=True)
+
 
 class ExternalAllowlistBulkForm(forms.Form):
     emails = forms.CharField(

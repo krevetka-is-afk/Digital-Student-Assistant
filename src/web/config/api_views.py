@@ -83,7 +83,7 @@ class ApiV1RootView(APIView):
                 "outbox_ack": reverse("api-v1-outbox-events-ack", request=request),
                 "outbox_checkpoint_template": (
                     f"{
-                    reverse('api-v1-root', request=request)
+                        reverse('api-v1-root', request=request)
                     }outbox/consumers/<consumer>/checkpoint/"
                 ),
                 "projects": reverse("api-v1-project-list", request=request),

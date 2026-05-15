@@ -1,4 +1,3 @@
-
 import re
 
 from apps.users.models import UserRole, normalize_email
@@ -17,12 +16,14 @@ _VALIDATOR_MESSAGE_MAP: dict[str, str] = {
     "too similar": "Password is too similar to the email or user name.",
 }
 
+
 def _translate_validator_message(msg: str) -> str:
     lower = msg.lower()
     for fragment, translation in _VALIDATOR_MESSAGE_MAP.items():
         if fragment in lower:
             return translation
     return msg
+
 
 class LoginForm(forms.Form):
     email = forms.EmailField(
@@ -39,6 +40,7 @@ class LoginForm(forms.Form):
 
     def clean_email(self) -> str:
         return normalize_email(self.cleaned_data["email"])
+
 
 class RegisterForm(forms.Form):
     name = forms.CharField(

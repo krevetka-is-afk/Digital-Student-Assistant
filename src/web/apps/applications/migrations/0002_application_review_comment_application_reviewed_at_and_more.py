@@ -18,7 +18,6 @@ def rollback_legacy_application_statuses(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("applications", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

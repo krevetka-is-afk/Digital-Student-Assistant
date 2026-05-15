@@ -12,6 +12,7 @@ functions instead of touching the ORM or emit_event directly.
 This guarantees that every state change produces an outbox event
 regardless of which entry-point triggered it.
 """
+
 from __future__ import annotations
 
 from apps.outbox.services import emit_event
@@ -24,6 +25,7 @@ from .transitions import review_application as _review_application
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
+
 def _application_payload(application: Application) -> dict:
     """
     Serialize an Application to a plain dict suitable for an outbox payload.
@@ -32,16 +34,16 @@ def _application_payload(application: Application) -> dict:
     dependency on an HTTP request object and can be used from any context.
     """
     return {
-        "id":             application.pk,
-        "project":        application.project_id,
-        "applicant":      application.applicant_id,
-        "status":         application.status,
-        "motivation":     application.motivation,
+        "id": application.pk,
+        "project": application.project_id,
+        "applicant": application.applicant_id,
+        "status": application.status,
+        "motivation": application.motivation,
         "review_comment": application.review_comment,
-        "reviewed_by":    application.reviewed_by_id,
-        "reviewed_at":    application.reviewed_at.isoformat() if application.reviewed_at else None,
-        "created_at":     application.created_at.isoformat() if application.created_at else None,
-        "updated_at":     application.updated_at.isoformat() if application.updated_at else None,
+        "reviewed_by": application.reviewed_by_id,
+        "reviewed_at": application.reviewed_at.isoformat() if application.reviewed_at else None,
+        "created_at": application.created_at.isoformat() if application.created_at else None,
+        "updated_at": application.updated_at.isoformat() if application.updated_at else None,
     }
 
 
@@ -60,17 +62,18 @@ def _assert_project_accepts_applications(project) -> None:
         )
     if project.application_window_state != "open":
         raise ValidationError(
-            {"project": [
-                "Applications are allowed only while the project application window is open."
-            ]}
+            {
+                "project": [
+                    "Applications are allowed only while the project application window is open."
+                ]
+            }
         )
     if project.staffing_state == "full":
-        raise ValidationError(
-            {"project": ["The project team is already full."]}
-        )
+        raise ValidationError({"project": ["The project team is already full."]})
 
 
 # ── Public service functions ──────────────────────────────────────────────────
+
 
 def create_application(
     *,
@@ -94,7 +97,7 @@ def create_application(
         applicant=applicant,
         defaults={
             "motivation": motivation,
-            "status":     ApplicationStatus.SUBMITTED,
+            "status": ApplicationStatus.SUBMITTED,
         },
     )
 
@@ -105,8 +108,7 @@ def create_application(
             aggregate_id=application.pk,
             payload=_application_payload(application),
             idempotency_key=(
-                f"application.changed:{application.pk}:"
-                f"{application.updated_at.isoformat()}:create"
+                f"application.changed:{application.pk}:{application.updated_at.isoformat()}:create"
             ),
         )
 
@@ -121,13 +123,13 @@ def delete_application(application: Application) -> None:
     actor is the applicant or a staff member).
     """
     aggregate_id = application.pk
-    deleted_at   = timezone.now().isoformat()
+    deleted_at = timezone.now().isoformat()
     payload = {
-        "id":         aggregate_id,
-        "project":    application.project_id,
-        "applicant":  application.applicant_id,
-        "status":     "deleted",
-        "tombstone":  True,
+        "id": aggregate_id,
+        "project": application.project_id,
+        "applicant": application.applicant_id,
+        "status": "deleted",
+        "tombstone": True,
         "created_at": application.created_at.isoformat() if application.created_at else None,
         "updated_at": application.updated_at.isoformat() if application.updated_at else None,
         "deleted_at": deleted_at,
@@ -162,8 +164,7 @@ def review_application_service(
         aggregate_id=application.pk,
         payload=_application_payload(application),
         idempotency_key=(
-            f"application.changed:{application.pk}:"
-            f"{application.updated_at.isoformat()}:review"
+            f"application.changed:{application.pk}:{application.updated_at.isoformat()}:review"
         ),
     )
     return application
@@ -184,8 +185,7 @@ def update_motivation(application: Application, motivation: str) -> Application:
         aggregate_id=application.pk,
         payload=_application_payload(application),
         idempotency_key=(
-            f"application.changed:{application.pk}:"
-            f"{application.updated_at.isoformat()}:motivation"
+            f"application.changed:{application.pk}:{application.updated_at.isoformat()}:motivation"
         ),
     )
     return application

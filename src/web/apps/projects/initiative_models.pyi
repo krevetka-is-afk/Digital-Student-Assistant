@@ -14,7 +14,6 @@ class InitiativeProposalStatus(models.TextChoices):
     PUBLISHED: ClassVar[str]
     values: ClassVar[list[str]]
 
-
 class InitiativeProposal(models.Model):
     objects: ClassVar[models.Manager[InitiativeProposal]]
     _meta: ClassVar[Any]
@@ -47,7 +46,6 @@ class InitiativeProposal(models.Model):
 
     def __str__(self) -> str: ...
     def build_submission_snapshot(self) -> dict[str, object]: ...
-
 
 class InitiativeProposalSubmission(models.Model):
     objects: ClassVar[models.Manager[InitiativeProposalSubmission]]

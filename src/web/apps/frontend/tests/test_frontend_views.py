@@ -1,4 +1,3 @@
-
 from uuid import uuid4
 
 import pytest
@@ -14,8 +13,10 @@ User = get_user_model()
 
 pytestmark = pytest.mark.django_db
 
+
 def _uid():
     return uuid4().hex[:8]
+
 
 def _make_student(interests=None):
     user = User.objects.create_user(username=f"stu-{_uid()}", password="pass")
@@ -26,10 +27,12 @@ def _make_student(interests=None):
     )
     return user
 
+
 def _make_customer():
     user = User.objects.create_user(username=f"cust-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.CUSTOMER)
     return user
+
 
 def _make_project(**kwargs):
     defaults = {
@@ -39,6 +42,7 @@ def _make_project(**kwargs):
     }
     defaults.update(kwargs)
     return Project.objects.create(**defaults)
+
 
 def test_project_list_shows_tabs_for_student():
     client = Client()
@@ -50,12 +54,14 @@ def test_project_list_shows_tabs_for_student():
     assert "tab-btn-bookmarks" in content
     assert "tab-btn-applications" in content
 
+
 def test_project_list_redirects_anonymous_to_auth():
 
     client = Client()
     response = client.get(reverse("frontend:project_list"))
     assert response.status_code == 302
     assert "/auth/" in response["Location"]
+
 
 def test_toggle_bookmark_creates_and_removes():
     student = _make_student()
@@ -78,12 +84,14 @@ def test_toggle_bookmark_creates_and_removes():
     student.profile.refresh_from_db()
     assert project.pk not in student.profile.favorite_project_ids
 
+
 def test_project_detail_redirects_anonymous_to_auth():
     project = _make_project()
     client = Client()
     response = client.get(reverse("frontend:project_detail", kwargs={"pk": project.pk}))
     assert response.status_code == 302
     assert "/auth/" in response["Location"]
+
 
 def test_project_detail_accessible_for_authenticated_student():
     student = _make_student()
@@ -94,6 +102,7 @@ def test_project_detail_accessible_for_authenticated_student():
     assert response.status_code == 200
     assert project.title in response.content.decode()
 
+
 def test_project_detail_non_public_forbidden_for_non_owner():
     student = _make_student()
     project = _make_project(status=ProjectStatus.DRAFT)
@@ -101,6 +110,7 @@ def test_project_detail_non_public_forbidden_for_non_owner():
     client.force_login(student)
     response = client.get(reverse("frontend:project_detail", kwargs={"pk": project.pk}))
     assert response.status_code == 403
+
 
 def test_toggle_bookmark_requires_login():
     project = _make_project()
@@ -110,12 +120,14 @@ def test_toggle_bookmark_requires_login():
 
     assert response.status_code in (302, 403)
 
+
 def test_toggle_bookmark_nonexistent_project_returns_404():
     student = _make_student()
     client = Client()
     client.force_login(student)
     response = client.post(reverse("frontend:toggle_bookmark", kwargs={"pk": 999999}))
     assert response.status_code == 404
+
 
 def test_bookmarked_project_appears_in_bookmarks_tab():
     student = _make_student()
@@ -130,6 +142,7 @@ def test_bookmarked_project_appears_in_bookmarks_tab():
     assert "tab-panel-bookmarks" in content
     assert project.title in content
 
+
 def test_initiative_form_get_renders_for_student():
     student = _make_student()
     client = Client()
@@ -138,6 +151,7 @@ def test_initiative_form_get_renders_for_student():
     assert response.status_code == 200
     assert "Инициативный проект" in response.content.decode()
 
+
 def test_initiative_form_get_redirects_for_customer():
     customer = _make_customer()
     client = Client()
@@ -145,6 +159,7 @@ def test_initiative_form_get_redirects_for_customer():
     response = client.get(reverse("frontend:initiative_project_create"))
 
     assert response.status_code == 302
+
 
 def test_initiative_project_create_post_valid():
     student = _make_student()
@@ -168,6 +183,7 @@ def test_initiative_project_create_post_valid():
     assert proposal is not None
     assert proposal.title == "My Initiative"
 
+
 def test_initiative_project_create_post_invalid_no_title():
     student = _make_student()
     client = Client()
@@ -185,6 +201,7 @@ def test_initiative_project_create_post_invalid_no_title():
 
     assert response.status_code == 200
     assert "Название обязательно" in response.content.decode()
+
 
 def test_initiative_project_with_supervisor():
     student = _make_student()
@@ -207,6 +224,7 @@ def test_initiative_project_with_supervisor():
     assert proposal is not None
     assert proposal.supervisor_name == "Иванов Иван Иванович"
 
+
 def test_initiative_project_supervisor_without_consent_rejected():
     student = _make_student()
     client = Client()
@@ -227,11 +245,13 @@ def test_initiative_project_supervisor_without_consent_rejected():
         owner=student, source_type=ProjectSourceType.INITIATIVE
     ).exists()
 
+
 def test_initiative_project_create_redirects_anonymous():
     client = Client()
     response = client.get(reverse("frontend:initiative_project_create"))
     assert response.status_code == 302
     assert "/auth/" in response["Location"]
+
 
 def test_initiative_projects_visible_in_applications_tab():
     student = _make_student()
@@ -246,6 +266,7 @@ def test_initiative_projects_visible_in_applications_tab():
     assert response.status_code == 200
     assert project.title in response.content.decode()
 
+
 def test_recommendations_view_redirects_to_projects_tab():
     student = _make_student()
     client = Client()
@@ -253,6 +274,7 @@ def test_recommendations_view_redirects_to_projects_tab():
     response = client.get(reverse("frontend:recommendations"))
     assert response.status_code == 302
     assert "tab=recs" in response["Location"]
+
 
 def test_project_create_get_renders_for_customer():
     customer = _make_customer()
@@ -263,12 +285,14 @@ def test_project_create_get_renders_for_customer():
     content = response.content.decode()
     assert "form" in content.lower()
 
+
 def test_project_create_redirects_student():
     student = _make_student()
     client = Client()
     client.force_login(student)
     response = client.get(reverse("frontend:project_create"))
     assert response.status_code == 302
+
 
 def test_project_create_post_valid():
     customer = _make_customer()
@@ -290,6 +314,7 @@ def test_project_create_post_valid():
     assert "python" in project.tech_tags
     assert "django" in project.tech_tags
 
+
 def test_project_create_post_invalid_no_title():
     customer = _make_customer()
     client = Client()
@@ -301,6 +326,7 @@ def test_project_create_post_invalid_no_title():
     assert response.status_code == 200
     assert "Название обязательно" in response.content.decode()
 
+
 def test_project_create_post_invalid_team_size_zero():
     customer = _make_customer()
     client = Client()
@@ -311,6 +337,7 @@ def test_project_create_post_invalid_team_size_zero():
     )
     assert response.status_code == 200
 
+
 def test_project_edit_get_renders_for_owner():
     customer = _make_customer()
     project = _make_project(owner=customer, status=ProjectStatus.DRAFT)
@@ -320,6 +347,7 @@ def test_project_edit_get_renders_for_owner():
     assert response.status_code == 200
     assert project.title in response.content.decode()
 
+
 def test_project_edit_forbidden_for_non_owner():
     owner = _make_customer()
     other = _make_customer()
@@ -328,6 +356,7 @@ def test_project_edit_forbidden_for_non_owner():
     client.force_login(other)
     response = client.get(reverse("frontend:project_edit", kwargs={"pk": project.pk}))
     assert response.status_code in (403, 404)
+
 
 def test_project_edit_post_updates_project():
     customer = _make_customer()
@@ -349,6 +378,7 @@ def test_project_edit_post_updates_project():
     assert project.team_size == 5
     assert "go" in project.tech_tags
 
+
 def test_project_edit_locked_for_published_project():
 
     customer = _make_customer()
@@ -358,6 +388,7 @@ def test_project_edit_locked_for_published_project():
     response = client.get(reverse("frontend:project_edit", kwargs={"pk": project.pk}))
 
     assert response.status_code in (302, 404)
+
 
 def test_project_delete_by_owner():
     customer = _make_customer()
@@ -369,6 +400,7 @@ def test_project_delete_by_owner():
     assert response.status_code == 302
     assert not Project.objects.filter(pk=pk).exists()
 
+
 def test_project_delete_forbidden_for_non_owner():
     owner = _make_customer()
     other = _make_customer()
@@ -379,6 +411,7 @@ def test_project_delete_forbidden_for_non_owner():
     assert response.status_code in (403, 404)
     assert Project.objects.filter(pk=project.pk).exists()
 
+
 def test_project_submit_moderation_by_owner():
     customer = _make_customer()
     project = _make_project(owner=customer, status=ProjectStatus.DRAFT)
@@ -388,6 +421,7 @@ def test_project_submit_moderation_by_owner():
     assert response.status_code == 302
     project.refresh_from_db()
     assert project.status == ProjectStatus.ON_MODERATION
+
 
 def test_project_submit_moderation_forbidden_for_non_owner():
     owner = _make_customer()
@@ -400,6 +434,7 @@ def test_project_submit_moderation_forbidden_for_non_owner():
     project.refresh_from_db()
     assert project.status == ProjectStatus.DRAFT
 
+
 def test_project_submit_moderation_invalid_state_returns_error():
     customer = _make_customer()
     project = _make_project(owner=customer, status=ProjectStatus.PUBLISHED)
@@ -410,6 +445,7 @@ def test_project_submit_moderation_invalid_state_returns_error():
     project.refresh_from_db()
     assert project.status == ProjectStatus.PUBLISHED
 
+
 def test_project_delete_non_deletable_status_redirects():
     customer = _make_customer()
     project = _make_project(owner=customer, status=ProjectStatus.PUBLISHED)
@@ -418,6 +454,7 @@ def test_project_delete_non_deletable_status_redirects():
     response = client.post(reverse("frontend:project_delete", kwargs={"pk": project.pk}))
     assert response.status_code == 302
     assert Project.objects.filter(pk=project.pk).exists()
+
 
 def test_project_list_search_by_title():
 
@@ -437,6 +474,7 @@ def test_project_list_search_by_title():
     content = response.content.decode()
     assert "Unique Alpha Project XYZ" in content
     assert "Beta Project ABC" not in content
+
 
 @pytest.mark.skipif(
     "sqlite3" in settings.DATABASES["default"]["ENGINE"],
@@ -460,12 +498,14 @@ def test_project_list_filter_by_tag():
     assert "Tagged Project" in content
     assert "Untagged Project" not in content
 
+
 def test_project_list_search_no_results():
     student = _make_student()
     client = Client()
     client.force_login(student)
     response = client.get(reverse("frontend:project_list"), {"q": "zzz_nonexistent_query_xyz"})
     assert response.status_code == 200
+
 
 def test_customer_sees_own_projects():
     customer = _make_customer()
@@ -480,6 +520,7 @@ def test_customer_sees_own_projects():
     assert own.title in content
     assert other.title not in content
 
+
 def test_customer_project_list_total_count_in_context():
     customer = _make_customer()
     _make_project(owner=customer, status=ProjectStatus.DRAFT)
@@ -489,6 +530,7 @@ def test_customer_project_list_total_count_in_context():
     response = client.get(reverse("frontend:project_list"))
     assert response.status_code == 200
     assert response.context["total_count"] == 2
+
 
 def test_initiative_project_invalid_tag_rejected():
     student = _make_student()
@@ -504,6 +546,7 @@ def test_initiative_project_invalid_tag_rejected():
         },
     )
     assert response.status_code == 200
+
 
 def test_project_create_duplicate_tags_deduplicated():
     customer = _make_customer()

@@ -32,7 +32,7 @@ def submit_application(request, pk):
     form = MotivationForm(request.POST)
     if not form.is_valid():
         error_msg = next(iter(form.errors.values()))[0]
-        response  = HttpResponse(status=422)
+        response = HttpResponse(status=422)
         response["HX-Trigger"] = _toast_trigger(error_msg, "error")
         return response
 
@@ -60,9 +60,10 @@ def submit_application(request, pk):
     response["HX-Trigger"] = _toast_trigger(toast_msg, toast_type)
     return response
 
+
 @method_decorator(require_POST, name="dispatch")
 class WithdrawApplicationView(LoginRequiredMixin, OwnedSubmittedApplicationMixin, View):
-    login_url            = LOGIN_URL
+    login_url = LOGIN_URL
     status_error_message = "Отозвать можно только заявку со статусом «На рассмотрении»."
 
     def post(self, request, pk):
@@ -71,9 +72,10 @@ class WithdrawApplicationView(LoginRequiredMixin, OwnedSubmittedApplicationMixin
         messages.success(request, f"Заявка на проект «{project_title}» отозвана.")
         return redirect("frontend:project_list")
 
+
 class EditApplicationView(LoginRequiredMixin, OwnedSubmittedApplicationMixin, View):
-    login_url            = LOGIN_URL
-    template_name        = "frontend/edit_application.html"
+    login_url = LOGIN_URL
+    template_name = "frontend/edit_application.html"
     status_error_message = "Редактировать можно только заявку со статусом «На рассмотрении»."
 
     def get(self, request, pk):
@@ -91,6 +93,6 @@ class EditApplicationView(LoginRequiredMixin, OwnedSubmittedApplicationMixin, Vi
     def _build_context(self, *, form: MotivationForm) -> dict:
         return {
             "application": self.application,
-            "project":     self.application.project,
-            "form":        form,
+            "project": self.application.project,
+            "form": form,
         }

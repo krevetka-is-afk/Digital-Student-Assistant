@@ -10,9 +10,10 @@ _INTERESTS_MAX = 20
 _INTEREST_ITEM_MIN = 2
 _INTEREST_ITEM_MAX = 50
 
+
 class ProfileEditForm(forms.Form):
-    full_name    = forms.CharField(required=False, max_length=_NAME_MAX)
-    bio          = forms.CharField(required=False, widget=forms.Textarea, max_length=_BIO_MAX)
+    full_name = forms.CharField(required=False, max_length=_NAME_MAX)
+    bio = forms.CharField(required=False, widget=forms.Textarea, max_length=_BIO_MAX)
     interests_raw = forms.CharField(required=False)
 
     def clean_bio(self):
@@ -24,11 +25,11 @@ class ProfileEditForm(forms.Form):
         return bio
 
     def clean_interests_raw(self):
-        raw       = self.cleaned_data.get("interests_raw", "")
+        raw = self.cleaned_data.get("interests_raw", "")
         interests = normalize_technology_tags(raw.split(",")) if raw.strip() else []
 
-        short   = [t for t in interests if len(t) < _INTEREST_ITEM_MIN]
-        long_   = [t for t in interests if len(t) > _INTEREST_ITEM_MAX]
+        short = [t for t in interests if len(t) < _INTEREST_ITEM_MIN]
+        long_ = [t for t in interests if len(t) > _INTEREST_ITEM_MAX]
         invalid = [t for t in interests if not TAG_RE.match(t)]
 
         if short:
@@ -41,8 +42,7 @@ class ProfileEditForm(forms.Form):
             )
         if invalid:
             raise forms.ValidationError(
-                f"Недопустимый тег: «{invalid[0]}». "
-                "Используйте буквы, цифры, дефис, точку, +, #."
+                f"Недопустимый тег: «{invalid[0]}». Используйте буквы, цифры, дефис, точку, +, #."
             )
         if len(interests) > _INTERESTS_MAX:
             raise forms.ValidationError(f"Максимум {_INTERESTS_MAX} интересов.")

@@ -166,7 +166,7 @@ class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
 
 class ApplicationReviewInputSerializer(drf_serializers.Serializer):
     decision = drf_serializers.ChoiceField(choices=["accept", "reject"])
-    comment  = drf_serializers.CharField(required=False, allow_blank=True, default="")
+    comment = drf_serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class ApplicationReviewAPIView(APIView):

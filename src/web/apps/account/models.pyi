@@ -12,7 +12,6 @@ class DeadlineAudience(models.TextChoices):
     GLOBAL: ClassVar[str]
     values: ClassVar[list[str]]
 
-
 class PlatformDeadline(models.Model):
     objects: ClassVar[models.Manager[PlatformDeadline]]
     _meta: ClassVar[Any]
@@ -30,7 +29,6 @@ class PlatformDeadline(models.Model):
     updated_at: datetime
 
     def __str__(self) -> str: ...
-
 
 class DocumentTemplate(models.Model):
     objects: ClassVar[models.Manager[DocumentTemplate]]

@@ -16,7 +16,6 @@ class MLSettings:
     index_state_path: str
 
 
-
 def _parse_bool(value: str | None, *, default: bool) -> bool:
     if value is None:
         return default
@@ -33,7 +32,6 @@ def _auth_header_from_env(*, header_env: str, token_env: str) -> str:
         return f"Bearer {specific_token}"
 
     return os.getenv("OUTBOX_AUTH_HEADER", "").strip()
-
 
 
 def load_settings() -> MLSettings:

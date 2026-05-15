@@ -83,8 +83,7 @@ def test_register_api_creates_external_customer_access_request():
     assert response.json()["status"] == "access_request_created"
     assert ExternalAccessRequest.objects.filter(email=email).exists()
     assert (
-        ExternalAccessRequest.objects.get(email=email).status
-        == ExternalAccessRequestStatus.PENDING
+        ExternalAccessRequest.objects.get(email=email).status == ExternalAccessRequestStatus.PENDING
     )
     assert not User.objects.filter(email=email).exists()
 

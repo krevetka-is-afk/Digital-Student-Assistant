@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("projects", "0005_alter_project_options_remove_project_content_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

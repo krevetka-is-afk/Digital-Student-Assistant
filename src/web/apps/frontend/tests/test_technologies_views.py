@@ -11,25 +11,29 @@ User = get_user_model()
 
 pytestmark = pytest.mark.django_db
 
+
 def _uid():
     return uuid4().hex[:8]
+
 
 def _make_student():
     user = User.objects.create_user(username=f"stu-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.STUDENT)
     return user
 
+
 def _make_cpprp():
     user = User.objects.create_user(username=f"cpprp-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.CPPRP)
     return user
 
+
 def _make_technology(*, status=TechnologyStatus.PENDING, name=None):
     n = name or f"tech-{_uid()}"
     return Technology.objects.create(name=n, normalized_name=n, status=status)
 
-class TestTechnologyList:
 
+class TestTechnologyList:
     def test_unauth_redirects_to_login(self):
         response = Client().get(reverse("frontend:technology_list"))
         assert response.status_code == 302
@@ -80,8 +84,8 @@ class TestTechnologyList:
             list(response.context["approved_technologies"])
         )
 
-class TestTechnologyModerate:
 
+class TestTechnologyModerate:
     def test_unauth_redirects_to_login(self):
         tech = _make_technology()
         response = Client().post(
@@ -95,9 +99,7 @@ class TestTechnologyModerate:
         tech = _make_technology()
         client = Client()
         client.force_login(_make_cpprp())
-        response = client.get(
-            reverse("frontend:technology_moderate", kwargs={"pk": tech.pk})
-        )
+        response = client.get(reverse("frontend:technology_moderate", kwargs={"pk": tech.pk}))
         assert response.status_code == 405
 
     def test_forbidden_for_student(self):

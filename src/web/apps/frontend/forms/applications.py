@@ -1,4 +1,3 @@
-
 from apps.applications.models import ApplicationStatus
 from apps.applications.transitions import REVIEW_COMMENT_MIN_LEN
 from django import forms
@@ -6,8 +5,8 @@ from django import forms
 _MOTIVATION_MIN = 30
 _MOTIVATION_MAX = 3000
 
-class MotivationForm(forms.Form):
 
+class MotivationForm(forms.Form):
     motivation = forms.CharField(
         required=False,
         max_length=_MOTIVATION_MAX,
@@ -26,13 +25,13 @@ class MotivationForm(forms.Form):
             )
         return motivation
 
-class ApplicationFilterForm(forms.Form):
 
+class ApplicationFilterForm(forms.Form):
     STATUS_CHOICES = [
         ("", "Все"),
         (ApplicationStatus.SUBMITTED, "На рассмотрении"),
-        (ApplicationStatus.ACCEPTED,  "Принятые"),
-        (ApplicationStatus.REJECTED,  "Отклонённые"),
+        (ApplicationStatus.ACCEPTED, "Принятые"),
+        (ApplicationStatus.REJECTED, "Отклонённые"),
     ]
 
     status = forms.ChoiceField(
@@ -43,8 +42,8 @@ class ApplicationFilterForm(forms.Form):
     def clean_status(self) -> str:
         return self.cleaned_data.get("status", "")
 
-class ReviewApplicationForm(forms.Form):
 
+class ReviewApplicationForm(forms.Form):
     DECISION_CHOICES = [
         ("accept", "Принять"),
         ("reject", "Отклонить"),
@@ -53,7 +52,7 @@ class ReviewApplicationForm(forms.Form):
     decision = forms.ChoiceField(
         choices=DECISION_CHOICES,
         error_messages={
-            "required":       "Укажите решение.",
+            "required": "Укажите решение.",
             "invalid_choice": "Недопустимое решение: %(value)s.",
         },
     )
@@ -65,7 +64,7 @@ class ReviewApplicationForm(forms.Form):
     def clean(self) -> dict:
         cleaned_data = super().clean()
         decision = cleaned_data.get("decision")
-        comment  = cleaned_data.get("comment", "").strip()
+        comment = cleaned_data.get("comment", "").strip()
         if decision == "reject":
             if not comment:
                 self.add_error("comment", "При отклонении укажите причину.")

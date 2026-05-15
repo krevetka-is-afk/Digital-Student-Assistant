@@ -35,22 +35,24 @@ def cpprp_template_create(request):
         flash_form_errors(request, form)
     return _cpprp_tab_redirect("templates")
 
+
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 @require_POST
 def cpprp_template_toggle(request, pk):
-    tpl           = get_object_or_404(DocumentTemplate, pk=pk)
+    tpl = get_object_or_404(DocumentTemplate, pk=pk)
     tpl.is_active = not tpl.is_active
     tpl.save(update_fields=["is_active", "updated_at"])
     state = "активирован" if tpl.is_active else "деактивирован"
     messages.success(request, f"Шаблон «{tpl.title}» {state}.")
     return _cpprp_tab_redirect("templates")
 
+
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 @require_POST
 def cpprp_template_delete(request, pk):
-    tpl   = get_object_or_404(DocumentTemplate, pk=pk)
+    tpl = get_object_or_404(DocumentTemplate, pk=pk)
     title = tpl.title
     tpl.delete()
     messages.success(request, f"Шаблон «{title}» удалён.")

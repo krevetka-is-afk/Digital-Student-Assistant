@@ -130,9 +130,7 @@ def register_user(
     if not password:
         field_errors["password"] = ["Введите пароль."]
     elif len(password) < PASSWORD_MIN:
-        field_errors["password"] = [
-            f"Пароль должен содержать не менее {PASSWORD_MIN} символов."
-        ]
+        field_errors["password"] = [f"Пароль должен содержать не менее {PASSWORD_MIN} символов."]
 
     if normalized_name and len(normalized_name) > NAME_MAX:
         field_errors["name"] = [f"Имя не может превышать {NAME_MAX} символов."]

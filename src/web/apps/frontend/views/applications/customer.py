@@ -22,6 +22,7 @@ from ..projects import PAGE_SIZE
 def application_list(request):
     return redirect(reverse("frontend:project_list") + "?tab=applications")
 
+
 @login_required(login_url=LOGIN_URL)
 def project_applications(request, pk):
     project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)
@@ -29,14 +30,13 @@ def project_applications(request, pk):
     if project.owner != request.user and not request.user.is_staff:
         raise Http404
 
-    filter_form   = ApplicationFilterForm(request.GET)
+    filter_form = ApplicationFilterForm(request.GET)
     filter_form.is_valid()
     status_filter = filter_form.cleaned_data.get("status", "")
-    page_number   = request.GET.get("page", 1)
+    page_number = request.GET.get("page", 1)
 
     queryset = (
-        Application.objects
-        .filter(project=project)
+        Application.objects.filter(project=project)
         .select_related("applicant", "reviewed_by")
         .order_by("-created_at")
     )
@@ -44,26 +44,31 @@ def project_applications(request, pk):
         queryset = queryset.filter(status=status_filter)
 
     paginator = Paginator(queryset, PAGE_SIZE)
-    page_obj  = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
     counts = Application.objects.filter(project=project).aggregate(
         total=Count("pk"),
         submitted=Count("pk", filter=Q(status=ApplicationStatus.SUBMITTED)),
-        accepted=Count("pk",  filter=Q(status=ApplicationStatus.ACCEPTED)),
-        rejected=Count("pk",  filter=Q(status=ApplicationStatus.REJECTED)),
+        accepted=Count("pk", filter=Q(status=ApplicationStatus.ACCEPTED)),
+        rejected=Count("pk", filter=Q(status=ApplicationStatus.REJECTED)),
     )
 
-    return render(request, "frontend/project_applications.html", {
-        "project":           project,
-        "page_obj":          page_obj,
-        "status_filter":     status_filter,
-        "filter_form":       filter_form,
-        "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
-        "counts":            counts,
-        "total_count":       counts["total"],
-        "spots_left":        max(0, project.team_size - project.accepted_participants_count),
-    })
+    return render(
+        request,
+        "frontend/project_applications.html",
+        {
+            "project": project,
+            "page_obj": page_obj,
+            "status_filter": status_filter,
+            "filter_form": filter_form,
+            "ApplicationStatus": ApplicationStatus,
+            "ProjectStatus": ProjectStatus,
+            "counts": counts,
+            "total_count": counts["total"],
+            "spots_left": max(0, project.team_size - project.accepted_participants_count),
+        },
+    )
+
 
 @login_required(login_url=LOGIN_URL)
 @require_POST
@@ -82,7 +87,7 @@ def review_application_view(request, pk):
         return redirect("frontend:project_applications", pk=application.project.pk)
 
     decision = form.cleaned_data["decision"]
-    comment  = form.cleaned_data["comment"]
+    comment = form.cleaned_data["comment"]
 
     try:
         review_application_service(application, request.user, decision, comment)

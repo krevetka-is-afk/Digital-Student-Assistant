@@ -30,6 +30,7 @@ from django.views.decorators.http import require_POST
 
 User = get_user_model()
 
+
 def _safe_redirect_target(raw_next_url: str) -> str:
     candidate = (raw_next_url or "").strip()
     if not candidate:
@@ -39,6 +40,7 @@ def _safe_redirect_target(raw_next_url: str) -> str:
         return path
     return reverse("frontend:project_list")
 
+
 def _build_unique_username(email: str) -> str:
     base = email.split("@")[0]
     username, n = base, 1
@@ -47,20 +49,24 @@ def _build_unique_username(email: str) -> str:
         n += 1
     return username
 
+
 def _verification_redirect_url(email: str, next_url: str = "") -> str:
     query = {"email": email}
     if next_url:
         query["next"] = next_url
     return f"{reverse('frontend:verify_email')}?{urlencode(query)}"
 
+
 def _corporate_email_domains() -> set[str]:
     configured = getattr(settings, "ALLOWED_CORPORATE_EMAIL_DOMAINS", ["edu.hse.ru"])
     return {domain.strip().lower() for domain in configured if domain.strip()}
+
 
 def _is_corporate_email(email: str) -> bool:
     normalized = normalize_email(email)
     _, _, domain = normalized.partition("@")
     return bool(domain) and domain in _corporate_email_domains()
+
 
 def _external_email_is_allowlisted(email: str, role: str) -> bool:
     return ExternalAccessAllowlist.objects.filter(
@@ -68,6 +74,7 @@ def _external_email_is_allowlisted(email: str, role: str) -> bool:
         allowed_role=role,
         is_active=True,
     ).exists()
+
 
 def _create_or_refresh_external_access_request(
     *,
@@ -78,17 +85,17 @@ def _create_or_refresh_external_access_request(
     ExternalAccessRequest.objects.update_or_create(
         email=normalize_email(email),
         defaults={
-            "full_name":      full_name,
+            "full_name": full_name,
             "requested_role": requested_role,
-            "status":         ExternalAccessRequestStatus.PENDING,
-            "decision_note":  "",
-            "reviewed_by":    None,
-            "reviewed_at":    None,
+            "status": ExternalAccessRequestStatus.PENDING,
+            "decision_note": "",
+            "reviewed_by": None,
+            "reviewed_at": None,
         },
     )
 
-class AuthView(View):
 
+class AuthView(View):
     template_name = "frontend/auth.html"
 
     def dispatch(self, request, *args, **kwargs):
@@ -98,21 +105,25 @@ class AuthView(View):
 
     def get(self, request):
         next_url = request.GET.get("next", "").strip()
-        return render(request, self.template_name, self._build_context(
-            active_tab="login",
-            next_url=next_url,
-            login_form=LoginForm(),
-            register_form=RegisterForm(),
-        ))
+        return render(
+            request,
+            self.template_name,
+            self._build_context(
+                active_tab="login",
+                next_url=next_url,
+                login_form=LoginForm(),
+                register_form=RegisterForm(),
+            ),
+        )
 
     def post(self, request):
         active_tab = request.POST.get("tab", "login")
-        next_url   = request.POST.get("next", request.GET.get("next", "")).strip()
+        next_url = request.POST.get("next", request.GET.get("next", "")).strip()
 
-        is_login_post    = active_tab == "login"
+        is_login_post = active_tab == "login"
         is_register_post = active_tab == "register"
 
-        login_form    = LoginForm(request.POST if is_login_post    else None)
+        login_form = LoginForm(request.POST if is_login_post else None)
         register_form = RegisterForm(request.POST if is_register_post else None)
 
         login_requires_email_verification = False
@@ -131,14 +142,18 @@ class AuthView(View):
 
         login_email = login_form["email"].value() or "" if login_form.is_bound else ""
 
-        return render(request, self.template_name, self._build_context(
-            active_tab=active_tab,
-            next_url=next_url,
-            login_form=login_form,
-            register_form=register_form,
-            login_requires_email_verification=login_requires_email_verification,
-            login_email=login_email,
-        ))
+        return render(
+            request,
+            self.template_name,
+            self._build_context(
+                active_tab=active_tab,
+                next_url=next_url,
+                login_form=login_form,
+                register_form=register_form,
+                login_requires_email_verification=login_requires_email_verification,
+                login_email=login_email,
+            ),
+        )
 
     @staticmethod
     def _handle_login(
@@ -146,13 +161,14 @@ class AuthView(View):
         form: LoginForm,
         next_url: str,
     ) -> tuple[HttpResponse | None, bool]:
-        email    = form.cleaned_data["email"]
+        email = form.cleaned_data["email"]
         password = form.cleaned_data["password"]
 
         user_obj = User.objects.filter(email__iexact=email).first()
-        user     = (
+        user = (
             authenticate(request, username=user_obj.username, password=password)
-            if user_obj else None
+            if user_obj
+            else None
         )
 
         if user is not None:
@@ -176,10 +192,10 @@ class AuthView(View):
         form: RegisterForm,
         next_url: str,
     ) -> HttpResponse | None:
-        email    = form.cleaned_data["email"]
+        email = form.cleaned_data["email"]
         password = form.cleaned_data["password"]
-        name     = form.cleaned_data["name"]
-        role     = form.cleaned_data["role"]
+        name = form.cleaned_data["name"]
+        role = form.cleaned_data["role"]
 
         if (
             role == UserRole.CUSTOMER
@@ -208,7 +224,7 @@ class AuthView(View):
             parts = name.split(None, 1)
             if parts:
                 new_user.first_name = parts[0]
-                new_user.last_name  = parts[1] if len(parts) > 1 else ""
+                new_user.last_name = parts[1] if len(parts) > 1 else ""
                 new_user.save(update_fields=["first_name", "last_name"])
 
             UserProfile.objects.create(user=new_user, role=role)
@@ -228,17 +244,17 @@ class AuthView(View):
         login_email: str = "",
     ) -> dict:
         return {
-            "active_tab":    active_tab,
-            "next":          next_url,
-            "login_form":    login_form or LoginForm(),
+            "active_tab": active_tab,
+            "next": next_url,
+            "login_form": login_form or LoginForm(),
             "register_form": register_form or RegisterForm(),
             "login_requires_email_verification": login_requires_email_verification,
-            "login_email":   login_email,
-            "UserRole":      UserRole,
+            "login_email": login_email,
+            "UserRole": UserRole,
         }
 
-class VerifyEmailView(View):
 
+class VerifyEmailView(View):
     template_name = "frontend/verify_email.html"
 
     def dispatch(self, request, *args, **kwargs):
@@ -247,14 +263,18 @@ class VerifyEmailView(View):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        return render(request, self.template_name, self._build_context(
-            email=request.GET.get("email", "").strip().lower(),
-            next_url=request.GET.get("next", "").strip(),
-        ))
+        return render(
+            request,
+            self.template_name,
+            self._build_context(
+                email=request.GET.get("email", "").strip().lower(),
+                next_url=request.GET.get("next", "").strip(),
+            ),
+        )
 
     def post(self, request):
-        email    = request.POST.get("email", "").strip().lower()
-        code     = request.POST.get("code", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        code = request.POST.get("code", "").strip()
         next_url = request.POST.get("next", "").strip()
         errors: dict[str, str] = {}
 
@@ -272,12 +292,16 @@ class VerifyEmailView(View):
         else:
             errors["general"] = result.message
 
-        return render(request, self.template_name, self._build_context(
-            email=email,
-            code=code,
-            next_url=next_url,
-            errors=errors,
-        ))
+        return render(
+            request,
+            self.template_name,
+            self._build_context(
+                email=email,
+                code=code,
+                next_url=next_url,
+                errors=errors,
+            ),
+        )
 
     def _build_context(
         self,
@@ -288,16 +312,17 @@ class VerifyEmailView(View):
         errors: dict[str, str] | None = None,
     ) -> dict:
         return {
-            "email":   email,
-            "code":    code,
-            "next":    next_url,
-            "errors":  errors or {},
+            "email": email,
+            "code": code,
+            "next": next_url,
+            "errors": errors or {},
             "generic_resend_message": VERIFICATION_GENERIC_RESEND_MESSAGE,
         }
 
+
 @require_POST
 def resend_email_code_view(request):
-    email    = request.POST.get("email", "").strip().lower()
+    email = request.POST.get("email", "").strip().lower()
     next_url = request.POST.get("next", "").strip()
 
     result = resend_signup_code(email)
@@ -310,6 +335,7 @@ def resend_email_code_view(request):
     else:
         messages.info(request, result.message)
     return redirect(_verification_redirect_url(email, next_url))
+
 
 @require_POST
 def logout_view(request):

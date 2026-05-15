@@ -301,10 +301,14 @@ def upsert_course(person: FacultyPerson, payload: dict[str, Any]) -> tuple[Facul
         "source_hash": source_hash,
     }
     course, created = FacultyCourse.objects.get_or_create(course_key=key, defaults=defaults)
-    changed = created or course.source_hash != source_hash or any(
-        getattr(course, field_name) != value
-        for field_name, value in defaults.items()
-        if field_name != "person"
+    changed = (
+        created
+        or course.source_hash != source_hash
+        or any(
+            getattr(course, field_name) != value
+            for field_name, value in defaults.items()
+            if field_name != "person"
+        )
     )
     if changed:
         for field_name, value in defaults.items():

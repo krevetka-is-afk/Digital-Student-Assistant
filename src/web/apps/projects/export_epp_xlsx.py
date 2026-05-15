@@ -126,7 +126,7 @@ def synthesize_legacy_payload(project: Project) -> dict[str, str]:
     row["Формат участия студентов"] = _cell_str(project.student_participation_format)
     row["Формат представления и защиты результатов"] = _cell_str(
         project.results_presentation_format
-        )
+    )
     row["Формула оценки результатов"] = _cell_str(project.grading_formula)
     row["Особенности реализации"] = _cell_str(project.implementation_features)
     row["Критерии отбора"] = _cell_str(project.selection_criteria)
@@ -211,9 +211,11 @@ def extended_row(project: Project) -> list[object]:
 
 
 def projects_export_queryset(queryset: QuerySet[Project]) -> QuerySet[Project]:
-    return queryset.select_related("owner", "epp", "moderated_by").prefetch_related(
-        "technologies"
-    ).annotate(_applications_total=Count("applications", distinct=True))
+    return (
+        queryset.select_related("owner", "epp", "moderated_by")
+        .prefetch_related("technologies")
+        .annotate(_applications_total=Count("applications", distinct=True))
+    )
 
 
 def build_projects_xlsx_bytes(

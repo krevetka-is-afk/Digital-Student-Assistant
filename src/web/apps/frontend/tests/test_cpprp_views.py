@@ -1,4 +1,3 @@
-
 from uuid import uuid4
 
 import pytest
@@ -20,23 +19,28 @@ User = get_user_model()
 
 pytestmark = pytest.mark.django_db
 
+
 def _uid():
     return uuid4().hex[:8]
+
 
 def _make_student():
     user = User.objects.create_user(username=f"stu-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.STUDENT)
     return user
 
+
 def _make_customer():
     user = User.objects.create_user(username=f"cust-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.CUSTOMER)
     return user
 
+
 def _make_cpprp():
     user = User.objects.create_user(username=f"cpprp-{_uid()}", password="pass")
     UserProfile.objects.create(user=user, role=UserRole.CPPRP)
     return user
+
 
 def _make_project(owner=None, **kwargs):
     if owner is None:
@@ -45,8 +49,8 @@ def _make_project(owner=None, **kwargs):
     defaults.update(kwargs)
     return Project.objects.create(owner=owner, **defaults)
 
-class TestCpprpDashboard:
 
+class TestCpprpDashboard:
     def test_unauth_redirects_to_login(self):
         response = Client().get(reverse("frontend:cpprp_dashboard"))
         assert response.status_code == 302
@@ -98,8 +102,8 @@ class TestCpprpDashboard:
         assert totals["total"] >= 1
         assert totals["submitted"] >= 1
 
-class TestCpprpDeadlineCRUD:
 
+class TestCpprpDeadlineCRUD:
     def test_create_deadline_success(self):
         cpprp = _make_cpprp()
         client = Client()
@@ -121,7 +125,9 @@ class TestCpprpDeadlineCRUD:
         cpprp = _make_cpprp()
         slug = f"dl-{_uid()}"
         PlatformDeadline.objects.create(
-            slug=slug, title="Existing", audience=DeadlineAudience.GLOBAL,
+            slug=slug,
+            title="Existing",
+            audience=DeadlineAudience.GLOBAL,
         )
         client = Client()
         client.force_login(cpprp)
@@ -150,14 +156,14 @@ class TestCpprpDeadlineCRUD:
     def test_toggle_deadline_deactivates(self):
         cpprp = _make_cpprp()
         dl = PlatformDeadline.objects.create(
-            slug=f"dl-{_uid()}", title="Toggle me",
-            audience=DeadlineAudience.GLOBAL, is_active=True,
+            slug=f"dl-{_uid()}",
+            title="Toggle me",
+            audience=DeadlineAudience.GLOBAL,
+            is_active=True,
         )
         client = Client()
         client.force_login(cpprp)
-        response = client.post(
-            reverse("frontend:cpprp_deadline_toggle", kwargs={"pk": dl.pk})
-        )
+        response = client.post(reverse("frontend:cpprp_deadline_toggle", kwargs={"pk": dl.pk}))
         assert response.status_code == 302
         dl.refresh_from_db()
         assert dl.is_active is False
@@ -165,8 +171,10 @@ class TestCpprpDeadlineCRUD:
     def test_toggle_deadline_activates(self):
         cpprp = _make_cpprp()
         dl = PlatformDeadline.objects.create(
-            slug=f"dl-{_uid()}", title="Activate me",
-            audience=DeadlineAudience.GLOBAL, is_active=False,
+            slug=f"dl-{_uid()}",
+            title="Activate me",
+            audience=DeadlineAudience.GLOBAL,
+            is_active=False,
         )
         client = Client()
         client.force_login(cpprp)
@@ -177,20 +185,19 @@ class TestCpprpDeadlineCRUD:
     def test_delete_deadline(self):
         cpprp = _make_cpprp()
         dl = PlatformDeadline.objects.create(
-            slug=f"dl-{_uid()}", title="Delete me",
+            slug=f"dl-{_uid()}",
+            title="Delete me",
             audience=DeadlineAudience.GLOBAL,
         )
         pk = dl.pk
         client = Client()
         client.force_login(cpprp)
-        response = client.post(
-            reverse("frontend:cpprp_deadline_delete", kwargs={"pk": pk})
-        )
+        response = client.post(reverse("frontend:cpprp_deadline_delete", kwargs={"pk": pk}))
         assert response.status_code == 302
         assert not PlatformDeadline.objects.filter(pk=pk).exists()
 
-class TestCpprpTemplateCRUD:
 
+class TestCpprpTemplateCRUD:
     def test_create_template_success(self):
         cpprp = _make_cpprp()
         client = Client()
@@ -213,8 +220,10 @@ class TestCpprpTemplateCRUD:
         cpprp = _make_cpprp()
         slug = f"tpl-{_uid()}"
         DocumentTemplate.objects.create(
-            slug=slug, title="Existing",
-            url="https://example.com/a.docx", audience=DeadlineAudience.GLOBAL,
+            slug=slug,
+            title="Existing",
+            url="https://example.com/a.docx",
+            audience=DeadlineAudience.GLOBAL,
         )
         client = Client()
         client.force_login(cpprp)
@@ -235,15 +244,15 @@ class TestCpprpTemplateCRUD:
     def test_toggle_template_deactivates(self):
         cpprp = _make_cpprp()
         tpl = DocumentTemplate.objects.create(
-            slug=f"tpl-{_uid()}", title="Toggle me",
+            slug=f"tpl-{_uid()}",
+            title="Toggle me",
             url="https://example.com/t.docx",
-            audience=DeadlineAudience.GLOBAL, is_active=True,
+            audience=DeadlineAudience.GLOBAL,
+            is_active=True,
         )
         client = Client()
         client.force_login(cpprp)
-        response = client.post(
-            reverse("frontend:cpprp_template_toggle", kwargs={"pk": tpl.pk})
-        )
+        response = client.post(reverse("frontend:cpprp_template_toggle", kwargs={"pk": tpl.pk}))
         assert response.status_code == 302
         tpl.refresh_from_db()
         assert tpl.is_active is False
@@ -251,20 +260,20 @@ class TestCpprpTemplateCRUD:
     def test_delete_template(self):
         cpprp = _make_cpprp()
         tpl = DocumentTemplate.objects.create(
-            slug=f"tpl-{_uid()}", title="Delete me",
-            url="https://example.com/d.docx", audience=DeadlineAudience.GLOBAL,
+            slug=f"tpl-{_uid()}",
+            title="Delete me",
+            url="https://example.com/d.docx",
+            audience=DeadlineAudience.GLOBAL,
         )
         pk = tpl.pk
         client = Client()
         client.force_login(cpprp)
-        response = client.post(
-            reverse("frontend:cpprp_template_delete", kwargs={"pk": pk})
-        )
+        response = client.post(reverse("frontend:cpprp_template_delete", kwargs={"pk": pk}))
         assert response.status_code == 302
         assert not DocumentTemplate.objects.filter(pk=pk).exists()
 
-class TestCpprpExport:
 
+class TestCpprpExport:
     def test_export_projects_returns_csv(self):
         _make_project()
         client = Client()
@@ -300,8 +309,8 @@ class TestCpprpExport:
         response = client.get(reverse("frontend:cpprp_export_projects"))
         assert response.status_code in (302, 403)
 
-class TestCpprpExternalAccess:
 
+class TestCpprpExternalAccess:
     def test_bulk_add_creates_new_allowlist_entry(self):
         cpprp = _make_cpprp()
         client = Client()

@@ -38,11 +38,14 @@ def test_tick_outbox_tester_creates_single_published_project_and_changed_event()
     assert project.extra_data["outbox_tester"] is True
     assert project.extra_data["tick"] == 1
     assert project.tech_tags == ["outbox", "ml", "graph", "django"]
-    assert OutboxEvent.objects.filter(
-        event_type="project.changed",
-        aggregate_type="project",
-        aggregate_id=str(project.pk),
-    ).count() == 1
+    assert (
+        OutboxEvent.objects.filter(
+            event_type="project.changed",
+            aggregate_type="project",
+            aggregate_id=str(project.pk),
+        ).count()
+        == 1
+    )
 
 
 def test_tick_outbox_tester_reuses_project_and_emits_one_changed_event_per_run():
@@ -63,10 +66,13 @@ def test_tick_outbox_tester_reuses_project_and_emits_one_changed_event_per_run()
     assert first_payload["project_id"] == second_payload["project_id"] == project.pk
     assert second_payload["created"] is False
     assert second_payload["event_count"] == 2
-    assert Project.objects.filter(
-        source_type=ProjectSourceType.MANUAL,
-        source_ref=TESTER_SOURCE_REF,
-    ).count() == 1
+    assert (
+        Project.objects.filter(
+            source_type=ProjectSourceType.MANUAL,
+            source_ref=TESTER_SOURCE_REF,
+        ).count()
+        == 1
+    )
     assert events.count() == 2
     assert project.status == ProjectStatus.PUBLISHED
     assert project.extra_data["tick"] == 2

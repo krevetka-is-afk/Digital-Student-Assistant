@@ -241,8 +241,8 @@ class ResendVerificationAPIView(APIView):
         request=ResendVerificationRequestSerializer,
         responses={
             200: ResendVerificationResponseSerializer,
-            429: ResendVerificationResponseSerializer
-            },
+            429: ResendVerificationResponseSerializer,
+        },
     )
     def post(self, request):
         serializer = ResendVerificationRequestSerializer(data=request.data)

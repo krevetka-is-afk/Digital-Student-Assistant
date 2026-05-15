@@ -144,8 +144,7 @@ def test_initiative_project_reject_revision_publish_and_application_reject_flow(
     customer_applications_response = customer_client.get(reverse("account-customer-applications"))
     assert customer_applications_response.status_code == 200
     assert (
-        customer_applications_response.json()["results"][0]["status"]
-        == ApplicationStatus.REJECTED
+        customer_applications_response.json()["results"][0]["status"] == ApplicationStatus.REJECTED
     )
 
     new_event_types = list(
@@ -243,9 +242,7 @@ def test_role_dashboards_states_and_template_download_flow():
     customer_projects_response = customer_client.get(reverse("account-customer-projects"))
     assert customer_projects_response.status_code == 200
     customer_project = next(
-        item
-        for item in customer_projects_response.json()["results"]
-        if item["pk"] == project_id
+        item for item in customer_projects_response.json()["results"] if item["pk"] == project_id
     )
     assert customer_project["applications_count"] == 1
     assert customer_project["submitted_applications_count"] == 1
@@ -277,8 +274,7 @@ def test_role_dashboards_states_and_template_download_flow():
     assert student_overview_response.status_code == 200
     overview_payload = student_overview_response.json()
     assert any(
-        item["slug"] == f"student-deadline-{suffix}"
-        for item in overview_payload["deadlines"]
+        item["slug"] == f"student-deadline-{suffix}" for item in overview_payload["deadlines"]
     )
     overview_template = next(
         item for item in overview_payload["templates"] if item["slug"] == student_template.slug

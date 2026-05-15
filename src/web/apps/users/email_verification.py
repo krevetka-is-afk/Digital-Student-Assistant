@@ -104,9 +104,7 @@ def pending_email_verification_user_for_credentials(identifier: str, password: s
         return None
 
     user = (
-        User.objects.select_related("profile")
-        .filter(email__iexact=normalized_identifier)
-        .first()
+        User.objects.select_related("profile").filter(email__iexact=normalized_identifier).first()
     )
     if user is None:
         user = User.objects.select_related("profile").filter(username=normalized_identifier).first()

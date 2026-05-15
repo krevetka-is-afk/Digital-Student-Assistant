@@ -68,13 +68,11 @@ class FakeOutboxClient:
         }
 
 
-
 def _make_client(app_factory, *, events: list[OutboxEvent], initial_checkpoint: int = 0):
     index_store = RecommendationIndexStore(consumer="ml", state_path=None)
     outbox_client = FakeOutboxClient(events=events, initial_checkpoint=initial_checkpoint)
     app = app_factory(index_store=index_store, outbox_client=outbox_client)
     return TestClient(app), index_store, outbox_client
-
 
 
 def test_sync_uses_outbox_poll_and_populates_local_index(app_factory):
@@ -131,7 +129,6 @@ def test_sync_uses_outbox_poll_and_populates_local_index(app_factory):
         assert search.json()["items"][0]["project_id"] == 11
 
 
-
 def test_replay_mode_reprocesses_from_offset_and_acks(app_factory):
     client, _, outbox_client = _make_client(
         app_factory,
@@ -173,7 +170,6 @@ def test_replay_mode_reprocesses_from_offset_and_acks(app_factory):
         assert payload["last_event_id"] == 8
         assert payload["ack"]["ack_status"] == "already_acked"
         assert outbox_client.calls == [{"mode": "replay", "batch_size": 10, "replay_from_id": 3}]
-
 
 
 def test_ready_reports_checkpoint_and_degraded_outbox_status(app_factory):

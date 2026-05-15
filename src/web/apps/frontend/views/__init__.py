@@ -1,4 +1,3 @@
-
 from .applications.customer import (
     application_list,
     project_applications,
@@ -71,16 +70,13 @@ from .student import student_overview
 from .technologies import technology_list, technology_moderate
 
 __all__ = [
-
     "AuthView",
     "VerifyEmailView",
     "resend_email_code_view",
     "logout_view",
-
     "error_403",
     "error_404",
     "error_500",
-
     "my_projects",
     "project_list",
     "project_detail",
@@ -98,17 +94,14 @@ __all__ = [
     "initiative_moderation_list",
     "initiative_moderation_detail",
     "initiative_moderate_decide",
-
     "faculty_list",
     "faculty_detail",
-
     "submit_application",
     "application_list",
     "project_applications",
     "review_application_view",
     "WithdrawApplicationView",
     "EditApplicationView",
-
     "cpprp_dashboard",
     "cpprp_deadline_create",
     "cpprp_deadline_toggle",
@@ -123,19 +116,14 @@ __all__ = [
     "cpprp_external_request_approve",
     "cpprp_external_request_reject",
     "cpprp_external_allowlist_toggle",
-
     "privacy_policy_view",
     "personal_data_consent_view",
-
     "moderation_list",
     "moderation_detail",
     "moderation_update_fields",
     "moderate_project_decide",
-
     "profile_view",
-
     "technology_list",
     "technology_moderate",
-
     "student_overview",
 ]

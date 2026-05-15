@@ -455,9 +455,7 @@ def test_projects_list_is_query_efficient():
 
 def test_project_delete_emits_tombstone_event():
     owner = _make_user(role=UserRole.CUSTOMER)
-    project = _make_project(
-        title=_title("Delete me"), owner=owner, status=ProjectStatus.PUBLISHED
-    )
+    project = _make_project(title=_title("Delete me"), owner=owner, status=ProjectStatus.PUBLISHED)
     client = Client()
     client.force_login(owner)
 

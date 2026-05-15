@@ -89,10 +89,12 @@ def moderate_project(project: Project, actor, decision: str, comment: str = "") 
 
     if normalized_decision == "reject" and len(normalized_comment) < MODERATION_COMMENT_MIN_LEN:
         raise ValidationError(
-            {"comment": [
-                f"Comment is required and must be at least "
-                f"{MODERATION_COMMENT_MIN_LEN} characters for rejection."
-            ]}
+            {
+                "comment": [
+                    f"Comment is required and must be at least "
+                    f"{MODERATION_COMMENT_MIN_LEN} characters for rejection."
+                ]
+            }
         )
 
     project.status = (

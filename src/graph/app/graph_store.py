@@ -521,25 +521,26 @@ class Neo4jGraphStore:
             ):
                 if key not in node_by_key:
                     node_by_key[key] = {
-                        "id":    len(node_by_key),
+                        "id": len(node_by_key),
                         "label": name,
                         "value": max(1, int(pubs or 1)),
                         "title": f"{name}<br/>Публикаций: {pubs or '—'}",
                     }
 
-            a_id   = node_by_key[r["a_key"]]["id"]
-            b_id   = node_by_key[r["b_key"]]["id"]
+            a_id = node_by_key[r["a_key"]]["id"]
+            b_id = node_by_key[r["b_key"]]["id"]
             shared = int(r["shared_count"])
             tooltip_lines = "<br/>".join(
-                (t[:60] + "…") if len(t) > 60 else t
-                for t in (r["pub_titles"] or [])
+                (t[:60] + "…") if len(t) > 60 else t for t in (r["pub_titles"] or [])
             )
-            edges.append({
-                "from":  a_id,
-                "to":    b_id,
-                "value": shared,
-                "title": f"Совместных статей: {shared}<br/>{tooltip_lines}",
-            })
+            edges.append(
+                {
+                    "from": a_id,
+                    "to": b_id,
+                    "value": shared,
+                    "title": f"Совместных статей: {shared}<br/>{tooltip_lines}",
+                }
+            )
 
         return {"nodes": list(node_by_key.values()), "edges": edges}
 
@@ -617,9 +618,9 @@ class Neo4jGraphStore:
                 ).consume()
 
         return {
-            "persons_written":      len(persons),
+            "persons_written": len(persons),
             "publications_written": len(pub_rows),
-            "authorships_written":  len(authorship_rows),
+            "authorships_written": len(authorship_rows),
         }
 
     def _project_application(self, event: GraphEvent) -> None:

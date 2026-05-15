@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("projects", "0009_project_projects_status_updated_idx_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

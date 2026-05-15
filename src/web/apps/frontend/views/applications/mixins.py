@@ -19,6 +19,7 @@ def _require_student(request) -> HttpResponse | None:
         return response
     return None
 
+
 def _htmx_unauth_response(request, pk: int) -> HttpResponse:
     if request.headers.get("HX-Request"):
         response = HttpResponse(status=204)
@@ -32,24 +33,35 @@ def _htmx_unauth_response(request, pk: int) -> HttpResponse:
         status=401,
     )
 
+
 def _toast_trigger(message: str, toast_type: str = "info") -> str:
     return json.dumps({"showToast": {"message": message, "type": toast_type}})
 
+
 def _build_apply_response(request, source: str, project, application) -> HttpResponse:
     if source == "card":
-        return render(request, "frontend/partials/apply_button.html", {
-            "project":            project,
-            "application_status": application.status,
-            "ApplicationStatus":  ApplicationStatus,
-            "ProjectStatus":      ProjectStatus,
-        })
-    return render(request, "frontend/partials/apply_action_detail.html", {
-        "project":           project,
-        "application":       application,
-        "is_owner":          False,
-        "ApplicationStatus": ApplicationStatus,
-        "ProjectStatus":     ProjectStatus,
-    })
+        return render(
+            request,
+            "frontend/partials/apply_button.html",
+            {
+                "project": project,
+                "application_status": application.status,
+                "ApplicationStatus": ApplicationStatus,
+                "ProjectStatus": ProjectStatus,
+            },
+        )
+    return render(
+        request,
+        "frontend/partials/apply_action_detail.html",
+        {
+            "project": project,
+            "application": application,
+            "is_owner": False,
+            "ApplicationStatus": ApplicationStatus,
+            "ProjectStatus": ProjectStatus,
+        },
+    )
+
 
 class OwnedSubmittedApplicationMixin:
     status_error_message: str = "Действие доступно только для заявки со статусом «На рассмотрении»."

@@ -22,7 +22,6 @@ class OutboxEvent(models.Model):
 
     def __str__(self) -> str: ...
 
-
 class OutboxConsumerCheckpoint(models.Model):
     objects: ClassVar[models.Manager[OutboxConsumerCheckpoint]]
     _meta: ClassVar[Any]

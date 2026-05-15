@@ -65,9 +65,7 @@ def _email_body(notification: Notification) -> str:
 
 def _send_email_for_notification(notification_id: int) -> None:
     notification = (
-        Notification.objects.select_related("recipient")
-        .filter(pk=notification_id)
-        .first()
+        Notification.objects.select_related("recipient").filter(pk=notification_id).first()
     )
     if notification is None:
         return
@@ -100,10 +98,8 @@ def _send_email_for_notification(notification_id: int) -> None:
 
 
 def create_notifications(
-    *,
-    recipients: Iterable[object],
-    spec: NotificationSpec
-    ) -> list[Notification]:
+    *, recipients: Iterable[object], spec: NotificationSpec
+) -> list[Notification]:
     recipient_ids = _normalize_recipients(recipients)
     if not recipient_ids:
         return []

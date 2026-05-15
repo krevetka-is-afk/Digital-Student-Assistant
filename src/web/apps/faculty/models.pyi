@@ -14,7 +14,6 @@ class FacultyMatchStatus(models.TextChoices):
     AMBIGUOUS: str
     UNMATCHED: str
 
-
 class FacultyPerson(models.Model):
     objects: models.Manager[FacultyPerson]
     source_person_id: str
@@ -47,7 +46,6 @@ class FacultyPerson(models.Model):
 
     def __str__(self) -> str: ...
 
-
 class FacultyPublication(models.Model):
     objects: models.Manager[FacultyPublication]
     source_publication_id: str
@@ -66,7 +64,6 @@ class FacultyPublication(models.Model):
 
     def __str__(self) -> str: ...
 
-
 class FacultyAuthorship(models.Model):
     objects: models.Manager[FacultyAuthorship]
     publication: FacultyPublication
@@ -76,7 +73,6 @@ class FacultyAuthorship(models.Model):
     position: int
     display_name: str
     href: str
-
 
 class FacultyCourse(models.Model):
     objects: models.Manager[FacultyCourse]
@@ -96,7 +92,6 @@ class FacultyCourse(models.Model):
 
     def __str__(self) -> str: ...
 
-
 class FacultySyncState(models.Model):
     objects: models.Manager[FacultySyncState]
     resource: str
@@ -109,7 +104,6 @@ class FacultySyncState(models.Model):
     updated_at: datetime
 
     def __str__(self) -> str: ...
-
 
 class ProjectFacultyMatch(models.Model):
     objects: models.Manager[ProjectFacultyMatch]

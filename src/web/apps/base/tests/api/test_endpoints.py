@@ -84,8 +84,7 @@ def test_metrics_root_exposes_outbox_lag_and_project_counts():
     assert _metric_value(content, "dsa_web_outbox_latest_event_id") == latest_id
     assert _metric_value(content, "dsa_web_outbox_events_total") == OutboxEvent.objects.count()
     assert (
-        _metric_value(content, "dsa_web_outbox_consumer_checkpoint", 'consumer="ml"')
-        == latest_id
+        _metric_value(content, "dsa_web_outbox_consumer_checkpoint", 'consumer="ml"') == latest_id
     )
     assert _metric_value(content, "dsa_web_outbox_consumer_lag", 'consumer="ml"') == 0
     assert _metric_value(content, "dsa_web_outbox_consumer_checkpoint", 'consumer="graph"') == 0
@@ -203,9 +202,9 @@ def test_api_schema_exposes_auth_registration_and_email_token_paths():
     assert "/api/v1/auth/verify-email/resend/" in paths
     assert "/api/v1/auth/token/" in paths
 
-    token_request_schema_ref = (
-        paths["/api/v1/auth/token/"]["post"]["requestBody"]["content"]["application/json"]["schema"]
-    )
+    token_request_schema_ref = paths["/api/v1/auth/token/"]["post"]["requestBody"]["content"][
+        "application/json"
+    ]["schema"]
     schema_name = token_request_schema_ref["$ref"].rsplit("/", 1)[-1]
     token_request_schema = payload["components"]["schemas"][schema_name]
     token_properties = token_request_schema["properties"]

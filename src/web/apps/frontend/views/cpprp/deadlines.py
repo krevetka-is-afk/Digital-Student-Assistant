@@ -36,22 +36,24 @@ def cpprp_deadline_create(request):
         flash_form_errors(request, form)
     return _cpprp_tab_redirect("deadlines")
 
+
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 @require_POST
 def cpprp_deadline_toggle(request, pk):
-    dl           = get_object_or_404(PlatformDeadline, pk=pk)
+    dl = get_object_or_404(PlatformDeadline, pk=pk)
     dl.is_active = not dl.is_active
     dl.save(update_fields=["is_active", "updated_at"])
     state = "активирован" if dl.is_active else "деактивирован"
     messages.success(request, f"Дедлайн «{dl.title}» {state}.")
     return _cpprp_tab_redirect("deadlines")
 
+
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 @require_POST
 def cpprp_deadline_delete(request, pk):
-    dl    = get_object_or_404(PlatformDeadline, pk=pk)
+    dl = get_object_or_404(PlatformDeadline, pk=pk)
     title = dl.title
     dl.delete()
     messages.success(request, f"Дедлайн «{title}» удалён.")

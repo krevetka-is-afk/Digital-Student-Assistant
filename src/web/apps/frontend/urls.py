@@ -5,14 +5,12 @@ from . import views
 app_name = "frontend"
 
 urlpatterns = [
-
     path("legal/privacy/", views.privacy_policy_view, name="privacy_policy"),
     path("legal/consent/", views.personal_data_consent_view, name="personal_data_consent"),
     path("auth/", views.AuthView.as_view(), name="auth"),
     path("auth/verify/", views.VerifyEmailView.as_view(), name="verify_email"),
     path("auth/verify/resend/", views.resend_email_code_view, name="resend_email_code"),
     path("logout/", views.logout_view, name="logout"),
-
     path("projects/", views.project_list, name="project_list"),
     path("customer/", views.my_projects, name="my_projects"),
     path("projects/create/", views.project_create, name="project_create"),
@@ -35,7 +33,6 @@ urlpatterns = [
         views.initiative_project_create,
         name="initiative_project_create",
     ),
-
     path("initiatives/", views.initiative_proposal_list, name="initiative_proposal_list"),
     path(
         "initiatives/<int:pk>/edit/",
@@ -52,7 +49,6 @@ urlpatterns = [
         views.initiative_proposal_delete,
         name="initiative_proposal_delete",
     ),
-
     path("applications/", views.application_list, name="application_list"),
     path(
         "applications/<int:pk>/review/",
@@ -69,20 +65,17 @@ urlpatterns = [
         views.EditApplicationView.as_view(),
         name="edit_application",
     ),
-
     path(
         "projects/<int:pk>/applications/",
         views.project_applications,
         name="project_applications",
     ),
-
     path("technologies/", views.technology_list, name="technology_list"),
     path(
         "technologies/<int:pk>/moderate/",
         views.technology_moderate,
         name="technology_moderate",
     ),
-
     path("cpprp/", views.cpprp_dashboard, name="cpprp_dashboard"),
     path(
         "cpprp/deadlines/create/",
@@ -149,7 +142,6 @@ urlpatterns = [
         views.cpprp_export_applications,
         name="cpprp_export_applications",
     ),
-
     path(
         "cpprp/initiatives/",
         views.initiative_moderation_list,
@@ -165,10 +157,8 @@ urlpatterns = [
         views.initiative_moderate_decide,
         name="initiative_moderate_decide",
     ),
-
     path("faculty/", views.faculty_list, name="faculty_list"),
     path("faculty/<str:source_key>/", views.faculty_detail, name="faculty_detail"),
-
     path("moderation/", views.moderation_list, name="moderation_list"),
     path("moderation/<int:pk>/", views.moderation_detail, name="moderation_detail"),
     path(
@@ -181,10 +171,7 @@ urlpatterns = [
         views.moderate_project_decide,
         name="moderate_project_decide",
     ),
-
     path("student/", views.student_overview, name="student_overview"),
-
     path("recommendations/", views.recommendations_view, name="recommendations"),
-
     path("profile/", views.profile_view, name="profile"),
 ]

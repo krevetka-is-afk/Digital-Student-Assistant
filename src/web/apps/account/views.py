@@ -186,9 +186,7 @@ class CustomerApplicationsAPIView(generics.ListAPIView):
         )
         if status_filter is not None:
             queryset = queryset.filter(status=status_filter)
-        return (
-            queryset.order_by("-created_at")
-        )
+        return queryset.order_by("-created_at")
 
 
 @extend_schema_view(
@@ -326,16 +324,12 @@ class CPPRPProjectsExportAPIView(APIView):
 
             variant_raw = (request.query_params.get("variant") or "both").lower()
             variant: LegacyVariant = (
-                variant_raw
-                if variant_raw in ("compatible", "extended", "both")
-                else "both"
+                variant_raw if variant_raw in ("compatible", "extended", "both") else "both"
             )
             payload = build_projects_xlsx_bytes(Project.objects.all(), variant=variant)
             response = HttpResponse(
                 payload,
-                content_type=(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                ),
+                content_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
             )
             response["Content-Disposition"] = (
                 f'attachment; filename="projects-export-{variant}.xlsx"'

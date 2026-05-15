@@ -72,7 +72,7 @@ class InitiativeProposalModerationInputSerializer(serializers.Serializer):
                 enum=list(InitiativeProposalStatus.values),
                 description="Filter by initiative proposal status.",
             )
-        ]
+        ],
     ),
     post=extend_schema(tags=["Projects"], summary="Создать инициативное предложение"),
 )

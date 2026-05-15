@@ -13,6 +13,7 @@ synthetic source_key derived from their display_name. This ensures that all
 co-authorship pairs — including those with external / unsynced authors — appear
 as edges in the Neo4j graph.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -63,13 +64,12 @@ class Command(BaseCommand):
         base_url = (options["graph_url"] or os.getenv("GRAPH_SERVICE_URL", "")).rstrip("/")
         if not base_url:
             raise CommandError(
-                "GRAPH_SERVICE_URL is not configured. "
-                "Set the env variable or pass --graph-url."
+                "GRAPH_SERVICE_URL is not configured. Set the env variable or pass --graph-url."
             )
 
         endpoint = f"{base_url}/faculty/import"
-        dry_run  = options["dry_run"]
-        timeout  = options["timeout"]
+        dry_run = options["dry_run"]
+        timeout = options["timeout"]
 
         # ── 1. Load known persons ────────────────────────────────────────────
         real_persons = list(
@@ -89,9 +89,9 @@ class Command(BaseCommand):
             .prefetch_related(
                 Prefetch(
                     "authorships",
-                    queryset=FacultyAuthorship.objects
-                    .select_related("person")
-                    .order_by("position"),
+                    queryset=FacultyAuthorship.objects.select_related("person").order_by(
+                        "position"
+                    ),
                 )
             )
         )
@@ -112,25 +112,29 @@ class Command(BaseCommand):
                     source_key = _virtual_source_key(a.display_name)
                     if source_key not in known_source_keys and source_key not in virtual_persons:
                         virtual_persons[source_key] = {
-                            "source_key":        source_key,
-                            "full_name":         a.display_name,
-                            "primary_unit":      "",
+                            "source_key": source_key,
+                            "full_name": a.display_name,
+                            "primary_unit": "",
                             "publications_total": 0,
                         }
 
-                authors.append({
-                    "person_source_key": source_key,
-                    "display_name":      a.display_name,
-                    "position":          a.position,
-                })
+                authors.append(
+                    {
+                        "person_source_key": source_key,
+                        "display_name": a.display_name,
+                        "position": a.position,
+                    }
+                )
 
-            if len(authors) >= 2:          # only keep publications with 2+ authors
-                publications.append({
-                    "source_publication_id": pub.source_publication_id,
-                    "title":                 pub.title,
-                    "year":                  pub.year,
-                    "authors":               authors,
-                })
+            if len(authors) >= 2:  # only keep publications with 2+ authors
+                publications.append(
+                    {
+                        "source_publication_id": pub.source_publication_id,
+                        "title": pub.title,
+                        "year": pub.year,
+                        "authors": authors,
+                    }
+                )
 
         all_persons = real_persons + list(virtual_persons.values())
         total_authorships = sum(len(p["authors"]) for p in publications)
@@ -150,13 +154,13 @@ class Command(BaseCommand):
         totals = {"persons_written": 0, "publications_written": 0, "authorships_written": 0}
 
         batches = [
-            publications[i:i + _PUB_BATCH_SIZE]
+            publications[i : i + _PUB_BATCH_SIZE]
             for i in range(0, max(1, len(publications)), _PUB_BATCH_SIZE)
         ]
 
         for batch_idx, pub_batch in enumerate(batches):
             payload = {
-                "persons":      all_persons if batch_idx == 0 else [],
+                "persons": all_persons if batch_idx == 0 else [],
                 "publications": pub_batch,
             }
             try:
@@ -169,7 +173,7 @@ class Command(BaseCommand):
             if batch_idx == 0:
                 totals["persons_written"] = int(data.get("persons_written", 0))
             totals["publications_written"] += int(data.get("publications_written", 0))
-            totals["authorships_written"]  += int(data.get("authorships_written", 0))
+            totals["authorships_written"] += int(data.get("authorships_written", 0))
 
             self.stdout.write(
                 f"  batch {batch_idx + 1}/{len(batches)}: "
