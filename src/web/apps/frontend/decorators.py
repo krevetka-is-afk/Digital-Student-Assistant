@@ -1,9 +1,11 @@
 import functools
+
 from apps.users.models import UserRole
 from apps.users.utils import user_is_moderator
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
+
 
 def _get_role(user) -> str:
     try:

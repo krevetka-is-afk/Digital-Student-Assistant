@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
+
 @require_POST
 @login_required(login_url=LOGIN_URL)
 def toggle_bookmark(request, pk):

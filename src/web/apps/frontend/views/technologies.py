@@ -8,6 +8,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+
 @login_required(login_url=LOGIN_URL)
 def technology_list(request):
     live_filter = Q(projects__status__in=ProjectStatus.catalog_values())

@@ -2,6 +2,7 @@ from apps.account.models import DeadlineAudience
 from apps.users.models import UserRole, normalize_email
 from django import forms
 
+
 class DeadlineForm(forms.Form):
     slug = forms.SlugField(
         max_length=80,

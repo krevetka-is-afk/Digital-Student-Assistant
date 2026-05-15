@@ -16,11 +16,9 @@ from apps.users.models import (
     UserRole,
     normalize_email,
 )
-from apps.users.registration import register_user
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.db import transaction

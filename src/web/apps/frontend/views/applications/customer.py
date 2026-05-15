@@ -17,6 +17,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from ..projects import PAGE_SIZE
 
+
 @login_required(login_url=LOGIN_URL)
 def application_list(request):
     return redirect(reverse("frontend:project_list") + "?tab=applications")

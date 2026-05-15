@@ -393,9 +393,13 @@ def my_projects(request):
         "graph_source":               _graph_source_label,
         "graph_articles_count":       _graph_articles_count,
         "faculty_articles_displayed": len(articles),
-        "faculty_articles_total":     FacultyPublication.objects.count() if using_faculty_data else 0,
+        "faculty_articles_total": (
+            FacultyPublication.objects.count() if using_faculty_data else 0
+        ),
         "faculty_staff_displayed":    len(staff),
-        "faculty_staff_total":        FacultyPerson.objects.filter(is_stale=False).count() if using_faculty_data else 0,
+        "faculty_staff_total": (
+            FacultyPerson.objects.filter(is_stale=False).count() if using_faculty_data else 0
+        ),
         "faculty_courses_total":      0,
     })
 
@@ -584,7 +588,9 @@ def _get_sample_articles() -> list[dict]:
             "direction": "Статья",
         },
         {
-            "title": "Безопасность программного обеспечения: автоматическое обнаружение уязвимостей",
+            "title": (
+            "Безопасность программного обеспечения: автоматическое обнаружение уязвимостей"
+        ),
             "authors": ["Новикова А.И.", "Иванов А.С."],
             "venue": "Information Security and Cryptography",
             "year": 2024,

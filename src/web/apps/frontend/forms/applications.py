@@ -1,8 +1,7 @@
 
-from django import forms
-
 from apps.applications.models import ApplicationStatus
 from apps.applications.transitions import REVIEW_COMMENT_MIN_LEN
+from django import forms
 
 _MOTIVATION_MIN = 30
 _MOTIVATION_MAX = 3000

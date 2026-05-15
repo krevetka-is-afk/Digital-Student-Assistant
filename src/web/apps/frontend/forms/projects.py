@@ -120,7 +120,11 @@ class ModerationProjectFieldsForm(forms.Form):
         required=False,
         min_value=1,
         max_value=6,
-        error_messages={"min_value": "Курс от 1 до 6.", "max_value": "Курс от 1 до 6.", "invalid": "Введите число."},
+        error_messages={
+            "min_value": "Курс от 1 до 6.",
+            "max_value": "Курс от 1 до 6.",
+            "invalid": "Введите число.",
+        },
     )
     education_program = forms.CharField(required=False, max_length=255)
     credits = forms.DecimalField(
@@ -132,7 +136,9 @@ class ModerationProjectFieldsForm(forms.Form):
     )
     activity_type = forms.CharField(required=False, max_length=255)
     control_form = forms.CharField(required=False, max_length=255)
-    results_presentation_format = forms.CharField(required=False, widget=forms.Textarea, max_length=2000)
+    results_presentation_format = forms.CharField(
+        required=False, widget=forms.Textarea, max_length=2000
+    )
     grading_formula = forms.CharField(required=False, widget=forms.Textarea, max_length=2000)
     student_participation_format = forms.CharField(required=False, max_length=255)
 

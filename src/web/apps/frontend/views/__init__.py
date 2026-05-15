@@ -38,6 +38,7 @@ from .cpprp.external_access import (
     cpprp_external_request_reject,
 )
 from .errors import error_403, error_404, error_500
+from .faculty import faculty_detail, faculty_list
 from .legal import personal_data_consent_view, privacy_policy_view
 from .profile import profile_view
 from .projects.bookmarks import toggle_bookmark
@@ -49,7 +50,6 @@ from .projects.customer import (
     project_submit_moderation,
 )
 from .projects.detail import project_detail
-from .faculty import faculty_detail, faculty_list
 from .projects.initiative import (
     initiative_moderate_decide,
     initiative_moderation_detail,
@@ -61,10 +61,10 @@ from .projects.initiative import (
     initiative_proposal_submit,
 )
 from .projects.moderation import (
+    moderate_project_decide,
     moderation_detail,
     moderation_list,
     moderation_update_fields,
-    moderate_project_decide,
 )
 from .projects.recommendations import recommendations_view
 from .student import student_overview

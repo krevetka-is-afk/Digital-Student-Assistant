@@ -96,7 +96,9 @@ def project_edit(request, pk):
             "team_size":            project.team_size,
             "work_format":          project.work_format,
             "hours_per_week":       project.hours_per_week,
-            "is_paid":              "yes" if project.is_paid is True else "no" if project.is_paid is False else "",
+            "is_paid": (
+                "yes" if project.is_paid is True else "no" if project.is_paid is False else ""
+            ),
             "application_deadline": project.application_deadline,
             "selection_criteria":   project.selection_criteria,
             "supervisor_name":      project.supervisor_name,

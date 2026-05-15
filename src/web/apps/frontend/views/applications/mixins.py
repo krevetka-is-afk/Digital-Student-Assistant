@@ -10,6 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+
 def _require_student(request) -> HttpResponse | None:
 
     if not has_any_role(request.user, allowed={UserRole.STUDENT}, allow_staff=False):

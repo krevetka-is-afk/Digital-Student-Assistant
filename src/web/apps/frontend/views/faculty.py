@@ -1,4 +1,9 @@
-from apps.faculty.models import FacultyCourse, FacultyMatchStatus, FacultyPerson, ProjectFacultyMatch
+from apps.faculty.models import (
+    FacultyCourse,
+    FacultyMatchStatus,
+    FacultyPerson,
+    ProjectFacultyMatch,
+)
 from apps.frontend.utils import LOGIN_URL
 from apps.projects.models import ProjectStatus
 from django.contrib.auth.decorators import login_required

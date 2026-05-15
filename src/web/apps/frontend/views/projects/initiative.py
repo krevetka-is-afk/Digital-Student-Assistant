@@ -1,5 +1,3 @@
-from django.db import models
-
 from apps.frontend.decorators import moderator_required, student_required
 from apps.frontend.forms import InitiativeProjectForm, InitiativeProposalModerationForm
 from apps.frontend.utils import LOGIN_URL, flash_form_errors
@@ -12,6 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from rest_framework.exceptions import ValidationError as DRFValidationError

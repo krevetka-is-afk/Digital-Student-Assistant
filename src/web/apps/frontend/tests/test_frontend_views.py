@@ -223,7 +223,9 @@ def test_initiative_project_supervisor_without_consent_rejected():
         },
     )
     assert response.status_code == 200
-    assert not Project.objects.filter(owner=student, source_type=ProjectSourceType.INITIATIVE).exists()
+    assert not Project.objects.filter(
+        owner=student, source_type=ProjectSourceType.INITIATIVE
+    ).exists()
 
 def test_initiative_project_create_redirects_anonymous():
     client = Client()

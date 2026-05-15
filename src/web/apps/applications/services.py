@@ -14,15 +14,13 @@ regardless of which entry-point triggered it.
 """
 from __future__ import annotations
 
+from apps.outbox.services import emit_event
+from apps.projects.models import ProjectStatus
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from apps.outbox.services import emit_event
-from apps.projects.models import ProjectStatus
-
 from .models import Application, ApplicationStatus
 from .transitions import review_application as _review_application
-
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -62,7 +60,9 @@ def _assert_project_accepts_applications(project) -> None:
         )
     if project.application_window_state != "open":
         raise ValidationError(
-            {"project": ["Applications are allowed only while the project application window is open."]}
+            {"project": [
+                "Applications are allowed only while the project application window is open."
+            ]}
         )
     if project.staffing_state == "full":
         raise ValidationError(

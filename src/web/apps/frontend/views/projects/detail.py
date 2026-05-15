@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render
 
+
 @login_required(login_url=LOGIN_URL)
 def project_detail(request, pk):
     project = get_object_or_404(Project.objects.select_related("owner"), pk=pk)

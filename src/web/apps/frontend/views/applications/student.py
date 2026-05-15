@@ -19,6 +19,7 @@ from .mixins import (
     _toast_trigger,
 )
 
+
 @require_POST
 def submit_application(request, pk):
     if not request.user.is_authenticated:
@@ -48,7 +49,9 @@ def submit_application(request, pk):
         )
         return response
 
-    toast_msg  = "Заявка успешно отправлена!" if created else "Вы уже подавали заявку на этот проект."
+    toast_msg = (
+        "Заявка успешно отправлена!" if created else "Вы уже подавали заявку на этот проект."
+    )
     toast_type = "success" if created else "info"
 
     response = _build_apply_response(

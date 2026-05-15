@@ -1,8 +1,10 @@
 from uuid import uuid4
 
 import pytest
-from apps.faculty.models import FacultyCourse, FacultyMatchStatus, FacultyPerson, ProjectFacultyMatch
-from apps.projects.models import Project, ProjectSourceType, ProjectStatus
+from apps.faculty.models import (
+    FacultyCourse,
+    FacultyPerson,
+)
 from apps.users.models import UserProfile, UserRole
 from django.contrib.auth import get_user_model
 from django.test import Client

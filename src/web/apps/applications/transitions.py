@@ -37,7 +37,10 @@ def review_application(
 
     if normalized_decision == "reject" and len(normalized_comment) < REVIEW_COMMENT_MIN_LEN:
         raise ValidationError(
-            {"comment": [f"Comment is required and must be at least {REVIEW_COMMENT_MIN_LEN} characters for rejection."]}
+            {"comment": [
+                f"Comment is required and must be at least {REVIEW_COMMENT_MIN_LEN}"
+                " characters for rejection."
+            ]}
         )
 
     application.status = (

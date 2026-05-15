@@ -104,6 +104,9 @@ def moderate_project_decide(request, pk):
         else:
             messages.success(request, f"Проект «{project.title}» отклонён.")
     except DRFValidationError:
-        messages.error(request, "Проект уже прошёл модерацию или находится в недопустимом состоянии.")
+        messages.error(
+            request,
+            "Проект уже прошёл модерацию или находится в недопустимом состоянии.",
+        )
 
     return redirect("frontend:moderation_list")

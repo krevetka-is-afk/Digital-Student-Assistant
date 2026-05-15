@@ -7,6 +7,7 @@ from apps.projects.models import Project
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 
+
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 def cpprp_export_projects(request):

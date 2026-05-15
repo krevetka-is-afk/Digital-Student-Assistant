@@ -6,13 +6,12 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics
 from rest_framework import serializers as drf_serializers
-from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Application, ApplicationStatus
 from .serializers import ApplicationSerializer
-from .services import create_application, delete_application, review_application_service
+from .services import review_application_service
 
 
 @extend_schema_view(
@@ -62,7 +61,10 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
                 target_type="application",
                 target_id=str(application.pk),
                 actor_id=getattr(self.request.user, "id", None),
-                dedupe_key=f"application.created:{application.pk}:{application.created_at.isoformat() if application.created_at else ''}",
+                dedupe_key=(
+                    f"application.created:{application.pk}:"
+                    f"{application.created_at.isoformat() if application.created_at else ''}"
+                ),
             ),
         )
         create_notifications(
@@ -74,7 +76,10 @@ class ApplicationListCreateAPIView(generics.ListCreateAPIView):
                 target_type="application",
                 target_id=str(application.pk),
                 actor_id=getattr(self.request.user, "id", None),
-                dedupe_key=f"application.received:{application.pk}:{application.created_at.isoformat() if application.created_at else ''}",
+                dedupe_key=(
+                    f"application.received:{application.pk}:"
+                    f"{application.created_at.isoformat() if application.created_at else ''}"
+                ),
             ),
         )
         emit_event(
@@ -129,7 +134,10 @@ class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
                 target_type="application",
                 target_id=str(aggregate_id),
                 actor_id=getattr(self.request.user, "id", None),
-                dedupe_key=f"application.deleted:{aggregate_id}:{updated_at.isoformat() if updated_at else payload['deleted_at']}",
+                dedupe_key=(
+                    f"application.deleted:{aggregate_id}:"
+                    f"{updated_at.isoformat() if updated_at else payload['deleted_at']}"
+                ),
             ),
         )
         create_notifications(
@@ -141,7 +149,10 @@ class ApplicationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
                 target_type="application",
                 target_id=str(aggregate_id),
                 actor_id=getattr(self.request.user, "id", None),
-                dedupe_key=f"application.withdrawn:{aggregate_id}:{updated_at.isoformat() if updated_at else payload['deleted_at']}",
+                dedupe_key=(
+                    f"application.withdrawn:{aggregate_id}:"
+                    f"{updated_at.isoformat() if updated_at else payload['deleted_at']}"
+                ),
             ),
         )
         emit_event(
@@ -202,7 +213,10 @@ class ApplicationReviewAPIView(APIView):
                 target_type="application",
                 target_id=str(application.pk),
                 actor_id=getattr(request.user, "id", None),
-                dedupe_key=f"{event_type}:{application.pk}:{application.reviewed_at.isoformat() if application.reviewed_at else ''}",
+                dedupe_key=(
+                    f"{event_type}:{application.pk}:"
+                    f"{application.reviewed_at.isoformat() if application.reviewed_at else ''}"
+                ),
             ),
         )
         create_notifications(
@@ -214,7 +228,10 @@ class ApplicationReviewAPIView(APIView):
                 target_type="application",
                 target_id=str(application.pk),
                 actor_id=getattr(request.user, "id", None),
-                dedupe_key=f"application.reviewed:{application.pk}:{application.reviewed_at.isoformat() if application.reviewed_at else ''}",
+                dedupe_key=(
+                    f"application.reviewed:{application.pk}:"
+                    f"{application.reviewed_at.isoformat() if application.reviewed_at else ''}"
+                ),
             ),
         )
         emit_event(

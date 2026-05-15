@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 
 from .dashboard import _cpprp_tab_redirect
 
+
 @login_required(login_url=LOGIN_URL)
 @moderator_required
 @require_POST

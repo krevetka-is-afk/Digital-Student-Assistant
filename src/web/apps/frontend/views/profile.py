@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import redirect, render
 
+
 @login_required(login_url=LOGIN_URL)
 def profile_view(request):
     user    = request.user
