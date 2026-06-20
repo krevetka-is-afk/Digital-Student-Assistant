@@ -32,7 +32,7 @@ jobs:
       target_ref: ${{ steps.meta.outputs.target_ref }}
     steps:
       - name: Checkout target ref
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.ref || github.sha }}
 
