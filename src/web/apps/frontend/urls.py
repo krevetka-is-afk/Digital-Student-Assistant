@@ -175,6 +175,12 @@ urlpatterns = [
     path("recommendations/", views.recommendations_view, name="recommendations"),
     path("profile/", views.profile_view, name="profile"),
     path("notifications/stream/", views.notification_stream, name="notification_stream"),
+    path("notifications/", views.notifications_page, name="notifications_page"),
+    path(
+        "notifications/mark-all-read/",
+        views.notifications_mark_all_read,
+        name="notifications_mark_all_read",
+    ),
     path("auth/sso/hse/", views.sso_hse_redirect, name="sso_hse_redirect"),
     path("auth/sso/hse/callback/", views.sso_hse_callback, name="sso_hse_callback"),
 ]

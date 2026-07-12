@@ -64,6 +64,21 @@ def _email_body(notification: Notification) -> str:
     return notification.title
 
 
+_EVENT_TEMPLATE_MAP: dict[str, str] = {
+    "application.review.accepted": "notifications/email/application_approved.html",
+    "initiative.moderation.approved": "notifications/email/application_approved.html",
+    "project.moderation.approved": "notifications/email/application_approved.html",
+    "application.review.rejected": "notifications/email/application_rejected.html",
+    "initiative.moderation.rejected": "notifications/email/application_rejected.html",
+    "project.moderation.rejected": "notifications/email/application_rejected.html",
+    "messaging.new_message": "notifications/email/message_received.html",
+}
+
+
+def _template_for_notification(notification: Notification) -> str:
+    return _EVENT_TEMPLATE_MAP.get(notification.event_type, "notifications/email/notification.html")
+
+
 def _send_email_for_notification(notification_id: int) -> None:
     notification = (
         Notification.objects.select_related("recipient").filter(pk=notification_id).first()
@@ -81,7 +96,7 @@ def _send_email_for_notification(notification_id: int) -> None:
     try:
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
         html_body = render_to_string(
-            "notifications/email/notification.html",
+            _template_for_notification(notification),
             {"notification": notification, "site_url": site_url},
         )
         plain_body = _email_body(notification)

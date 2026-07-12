@@ -39,6 +39,7 @@ from .cpprp.external_access import (
 from .errors import error_403, error_404, error_500
 from .faculty import faculty_detail, faculty_list
 from .legal import personal_data_consent_view, privacy_policy_view
+from .notifications_page import notifications_mark_all_read, notifications_page
 from .profile import profile_view
 from .projects.bookmarks import toggle_bookmark
 from .projects.catalog import my_projects, project_list
@@ -129,6 +130,8 @@ __all__ = [
     "technology_moderate",
     "student_overview",
     "notification_stream",
+    "notifications_page",
+    "notifications_mark_all_read",
     "sso_hse_redirect",
     "sso_hse_callback",
 ]

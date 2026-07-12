@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from apps.notifications.services import NotificationSpec, create_notifications
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -40,6 +41,18 @@ def thread_detail(request, pk):
         if body:
             Message.objects.create(thread=thread, sender=request.user, body=body)
             thread.save()
+            other_participants = thread.participants.exclude(pk=request.user.pk)
+            create_notifications(
+                recipients=list(other_participants),
+                spec=NotificationSpec(
+                    event_type="messaging.new_message",
+                    title=f"Новое сообщение в «{thread.subject}»",
+                    body=body[:120],
+                    target_type="thread",
+                    target_id=str(thread.pk),
+                    actor_id=request.user.pk,
+                ),
+            )
             return redirect("messaging:thread_detail", pk=pk)
 
     return render(
@@ -66,6 +79,17 @@ def thread_create(request):
             thread = Thread.objects.create(subject=subject)
             thread.participants.add(request.user, recipient)
             Message.objects.create(thread=thread, sender=request.user, body=body)
+            create_notifications(
+                recipients=[recipient],
+                spec=NotificationSpec(
+                    event_type="messaging.new_message",
+                    title=f"Новое сообщение: «{subject}»",
+                    body=body[:120],
+                    target_type="thread",
+                    target_id=str(thread.pk),
+                    actor_id=request.user.pk,
+                ),
+            )
             return redirect("messaging:thread_detail", pk=thread.pk)
 
     return render(request, "messaging/thread_create.html", {"users": users})

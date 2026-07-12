@@ -13,7 +13,6 @@
   <style>
     @keyframes toast-in  { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
     @keyframes toast-out { from { opacity:1; } to { opacity:0; } }
-    /* Reserve scrollbar space to prevent layout shift when it appears/disappears */
     html { scrollbar-gutter: stable; }
     @supports not (scrollbar-gutter: stable) { html { overflow-y: scroll; } }
     .toast-enter { animation: toast-in 0.2s ease forwards; }
@@ -21,10 +20,32 @@
     .htmx-indicator          { display: none; }
     .htmx-request .htmx-indicator     { display: inline-flex; }
     .htmx-request .htmx-not-indicator { display: none; }
+    /* Skip link (WCAG 2.1 SC 2.4.1) */
+    .skip-link {
+      position: absolute; top: -100%; left: 1rem;
+      background: #1a56db; color: #fff; padding: 8px 16px;
+      border-radius: 0 0 6px 6px; font-size: 0.875rem; font-weight: 600;
+      text-decoration: none; z-index: 9999;
+      transition: top 0.1s;
+    }
+    .skip-link:focus { top: 0; outline: 3px solid #f59e0b; outline-offset: 2px; }
+    /* Visible keyboard focus ring (WCAG 2.4.7) */
+    :focus-visible {
+      outline: 3px solid #2563eb;
+      outline-offset: 2px;
+    }
+    button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid #2563eb;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 font-sans text-gray-900 antialiased">
+
+  <!-- Skip to main content (WCAG 2.4.1) -->
+  <a href="#main-content" class="skip-link">Перейти к основному содержимому</a>
 
   <!-- Toast container -->
   <div id="toast-container"
@@ -140,8 +161,13 @@
             {% if user.is_authenticated %}
             <a href="/messages/"
                class="px-3 py-1 rounded-md transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-               aria-label="Личные сообщения">
+               aria-label="Личные сообщения{% if unread_messages_count > 0 %}, {{ unread_messages_count }} непрочитанных{% endif %}"
+               style="position:relative;display:inline-flex;align-items:center;gap:0.375rem;">
               Сообщения
+              {% if unread_messages_count > 0 %}
+              <span style="min-width:16px;height:16px;border-radius:8px;background:#ef4444;font-size:0.6rem;font-weight:700;color:#fff;line-height:16px;text-align:center;padding:0 3px;"
+                    aria-hidden="true">{{ unread_messages_count }}</span>
+              {% endif %}
             </a>
             {% endif %}
 
@@ -171,8 +197,8 @@
                       d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
               </svg>
               <span id="notif-badge" aria-live="polite"
-                    style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ef4444;border:2px solid #fff;"
-                    aria-label="Есть непрочитанные уведомления"></span>
+                    style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;border-radius:8px;background:#ef4444;border:2px solid #fff;font-size:0.6rem;font-weight:700;color:#fff;line-height:12px;text-align:center;padding:0 2px;"
+                    aria-label="Непрочитанные уведомления"></span>
             </button>
             <!-- Notification panel -->
             <div id="notif-panel"
@@ -180,7 +206,14 @@
                  role="region" aria-label="Список уведомлений">
               <div style="padding:0.75rem 1rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
                 <p class="text-sm font-semibold text-gray-900">Уведомления</p>
-                <a href="/messages/" class="text-xs text-blue-600 hover:text-blue-700">Сообщения</a>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                  <button type="button" onclick="markAllReadBell()" id="bell-mark-all"
+                          style="font-size:0.75rem;color:#6b7280;background:none;border:none;cursor:pointer;padding:0;"
+                          aria-label="Отметить все как прочитанные">
+                    Прочитать все
+                  </button>
+                  <a href="{% url 'frontend:notifications_page' %}" style="font-size:0.75rem;color:#2563eb;text-decoration:none;">Все →</a>
+                </div>
               </div>
               <ul id="notif-list" style="max-height:320px;overflow-y:auto;"
                   aria-label="Уведомления">
@@ -341,7 +374,7 @@
   {% endwith %}
 
   <!-- Main -->
-  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main id="main-content" class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
 
@@ -433,10 +466,22 @@
     {% if user.is_authenticated %}
     (function() {
       var lastId = 0;
+      var unreadCount = 0;
       var badge = document.getElementById('notif-badge');
       var list  = document.getElementById('notif-list');
       var empty = document.getElementById('notif-empty');
       var items = [];
+
+      function updateBadge(count) {
+        unreadCount = count;
+        if (!badge) return;
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
 
       function addItem(n) {
         if (empty) { empty.style.display = 'none'; }
@@ -461,11 +506,11 @@
           try {
             var data = JSON.parse(e.data);
             if (data.type === 'init') {
-              if (data.unread_count > 0 && badge) badge.style.display = 'block';
+              updateBadge(data.unread_count || 0);
             } else if (data.type === 'notification') {
               lastId = data.id;
               addItem(data);
-              if (badge) badge.style.display = 'block';
+              updateBadge(unreadCount + 1);
               if (window.showToast) window.showToast(data.title, 'info');
             }
           } catch(err) {}
@@ -477,6 +522,18 @@
       }
       connect();
     })();
+
+    function markAllReadBell() {
+      fetch("{% url 'frontend:notifications_mark_all_read' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+      }).then(function(r) {
+        if (r.ok) {
+          var badge = document.getElementById('notif-badge');
+          if (badge) badge.style.display = 'none';
+        }
+      });
+    }
     {% endif %}
   </script>
 </body>

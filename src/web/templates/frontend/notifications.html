@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Уведомления — DSA{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;margin:0 auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="font-size:1.25rem;font-weight:700;color:#111827;margin:0;">Уведомления</h1>
+    <button id="mark-all-btn"
+            type="button"
+            onclick="markAllRead()"
+            style="padding:6px 14px;font-size:0.8125rem;font-weight:600;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;"
+            aria-label="Отметить все уведомления как прочитанные">
+      Отметить все как прочитанные
+    </button>
+  </div>
+
+  {% if notifications %}
+  <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.5rem;"
+      role="list" aria-label="Список уведомлений">
+    {% for n in notifications %}
+    <li id="notif-item-{{ n.pk }}"
+        style="background:#fff;border:1px solid {% if n.read_at %}#e5e7eb{% else %}#bfdbfe{% endif %};border-radius:0.75rem;padding:1rem 1.25rem;display:flex;align-items:flex-start;gap:0.75rem;"
+        role="listitem">
+      <!-- unread dot -->
+      <span style="flex-shrink:0;margin-top:5px;width:8px;height:8px;border-radius:50%;background:{% if n.read_at %}#d1d5db{% else %}#2563eb{% endif %};"
+            aria-hidden="true"></span>
+      <div style="flex:1;min-width:0;">
+        <p style="margin:0 0 2px;font-size:0.875rem;font-weight:{% if n.read_at %}400{% else %}600{% endif %};color:#111827;">
+          {{ n.title }}
+        </p>
+        {% if n.body %}
+        <p style="margin:0 0 4px;font-size:0.8125rem;color:#6b7280;">{{ n.body|truncatechars:120 }}</p>
+        {% endif %}
+        <p style="margin:0;font-size:0.75rem;color:#9ca3af;">
+          {{ n.created_at|date:"d.m.Y H:i" }}
+          {% if n.read_at %}&nbsp;·&nbsp;<span style="color:#9ca3af;">прочитано</span>{% endif %}
+        </p>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div style="text-align:center;padding:4rem 1rem;color:#9ca3af;" role="status">
+    <p style="font-size:0.875rem;">У вас пока нет уведомлений</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function markAllRead() {
+    fetch("{% url 'frontend:notifications_mark_all_read' %}", {
+      method: "POST",
+      headers: {"X-CSRFToken": "{{ csrf_token }}"},
+    }).then(function(r) {
+      if (r.ok) {
+        document.querySelectorAll('[id^="notif-item-"]').forEach(function(li) {
+          li.style.borderColor = "#e5e7eb";
+          var dot = li.querySelector('span[aria-hidden]');
+          if (dot) dot.style.background = "#d1d5db";
+          var title = li.querySelector('p');
+          if (title) title.style.fontWeight = "400";
+        });
+        var badge = document.getElementById("notif-badge");
+        if (badge) badge.style.display = "none";
+        var btn = document.getElementById("mark-all-btn");
+        if (btn) btn.disabled = true;
+      }
+    });
+  }
+</script>
+{% endblock %}
