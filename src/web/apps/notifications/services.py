@@ -5,8 +5,9 @@ from typing import Iterable
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .models import Notification, NotificationEmailStatus
@@ -78,12 +79,20 @@ def _send_email_for_notification(notification_id: int) -> None:
         return
 
     try:
-        send_mail(
-            subject=_email_subject(notification),
-            message=_email_body(notification),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@localhost"),
-            recipient_list=[user.email],
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        html_body = render_to_string(
+            "notifications/email/notification.html",
+            {"notification": notification, "site_url": site_url},
         )
+        plain_body = _email_body(notification)
+        msg = EmailMultiAlternatives(
+            subject=_email_subject(notification),
+            body=plain_body,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@localhost"),
+            to=[user.email],
+        )
+        msg.attach_alternative(html_body, "text/html")
+        msg.send()
     except Exception as exc:
         notification.email_status = NotificationEmailStatus.FAILED
         notification.email_sent_at = timezone.now()

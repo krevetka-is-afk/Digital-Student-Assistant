@@ -66,6 +66,8 @@ from .projects.moderation import (
     moderation_update_fields,
 )
 from .projects.recommendations import recommendations_view
+from .sse import notification_stream
+from .sso import sso_hse_callback, sso_hse_redirect
 from .student import student_overview
 from .technologies import technology_list, technology_moderate
 
@@ -126,4 +128,7 @@ __all__ = [
     "technology_list",
     "technology_moderate",
     "student_overview",
+    "notification_stream",
+    "sso_hse_redirect",
+    "sso_hse_callback",
 ]

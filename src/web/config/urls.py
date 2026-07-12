@@ -37,6 +37,7 @@ urlpatterns = [
     path("base/", include("apps.base.urls")),
     path("base/projects/", include("apps.projects.urls")),
     path("base/v2/", include("config.routers")),
+    path("messages/", include("apps.messaging.urls", namespace="messaging")),
 ]
 
 if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:

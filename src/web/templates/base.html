@@ -137,6 +137,14 @@
             {% endif %}
             {% endif %}
 
+            {% if user.is_authenticated %}
+            <a href="/messages/"
+               class="px-3 py-1 rounded-md transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+               aria-label="Личные сообщения">
+              Сообщения
+            </a>
+            {% endif %}
+
           {% else %}
             <!-- Анонимный: только Проекты -->
             <a href="{% url 'frontend:project_list' %}"
@@ -148,8 +156,45 @@
 
         <!-- Right side: profile dropdown or login -->
         <div class="flex items-center gap-2">
+          <!-- Notification bell (authenticated only) -->
+          {% if user.is_authenticated %}
+          <div class="relative" id="notif-bell-wrap">
+            <button type="button" id="notif-bell"
+                    onclick="toggleNotifPanel()"
+                    class="relative p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                    aria-label="Уведомления"
+                    aria-haspopup="true"
+                    aria-expanded="false">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                   stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <span id="notif-badge" aria-live="polite"
+                    style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ef4444;border:2px solid #fff;"
+                    aria-label="Есть непрочитанные уведомления"></span>
+            </button>
+            <!-- Notification panel -->
+            <div id="notif-panel"
+                 style="display:none;position:absolute;right:0;top:calc(100% + 6px);width:320px;background:#fff;border:1px solid #e5e7eb;border-radius:0.75rem;box-shadow:0 8px 24px rgba(0,0,0,0.1);z-index:50;overflow:hidden;"
+                 role="region" aria-label="Список уведомлений">
+              <div style="padding:0.75rem 1rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+                <p class="text-sm font-semibold text-gray-900">Уведомления</p>
+                <a href="/messages/" class="text-xs text-blue-600 hover:text-blue-700">Сообщения</a>
+              </div>
+              <ul id="notif-list" style="max-height:320px;overflow-y:auto;"
+                  aria-label="Уведомления">
+                <li id="notif-empty" style="padding:2rem 1rem;text-align:center;font-size:0.875rem;color:#9ca3af;">
+                  Нет новых уведомлений
+                </li>
+              </ul>
+            </div>
+          </div>
+          {% endif %}
+
           <!-- Hamburger (mobile only) -->
           <button type="button" onclick="toggleMobileMenu()" id="hamburger-btn"
+                  aria-label="Открыть меню навигации"
                   class="sm:hidden p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
             <svg id="hamburger-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
@@ -165,6 +210,9 @@
               <button id="profile-trigger"
                       type="button"
                       onclick="toggleProfileMenu()"
+                      aria-label="Меню пользователя"
+                      aria-haspopup="true"
+                      aria-expanded="false"
                       class="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors">
                 <!-- Avatar -->
                 <div class="flex items-center justify-center text-xs font-bold text-white bg-blue-600 flex-shrink-0"
@@ -365,7 +413,71 @@
       if (menu && dropdown && !menu.contains(e.target)) {
         dropdown.style.display = 'none';
       }
+      var bellWrap = document.getElementById('notif-bell-wrap');
+      var notifPanel = document.getElementById('notif-panel');
+      if (bellWrap && notifPanel && !bellWrap.contains(e.target)) {
+        notifPanel.style.display = 'none';
+        var bell = document.getElementById('notif-bell');
+        if (bell) bell.setAttribute('aria-expanded', 'false');
+      }
     });
+
+    function toggleNotifPanel() {
+      var panel = document.getElementById('notif-panel');
+      var bell = document.getElementById('notif-bell');
+      var open = panel && panel.style.display !== 'none';
+      if (panel) panel.style.display = open ? 'none' : 'block';
+      if (bell) bell.setAttribute('aria-expanded', String(!open));
+    }
+
+    {% if user.is_authenticated %}
+    (function() {
+      var lastId = 0;
+      var badge = document.getElementById('notif-badge');
+      var list  = document.getElementById('notif-list');
+      var empty = document.getElementById('notif-empty');
+      var items = [];
+
+      function addItem(n) {
+        if (empty) { empty.style.display = 'none'; }
+        var li = document.createElement('li');
+        li.style.cssText = 'padding:0.75rem 1rem;border-bottom:1px solid #f9fafb;';
+        li.innerHTML = '<p style="font-size:0.8125rem;font-weight:600;color:#111827;margin:0 0 2px;">' +
+          n.title + '</p>' +
+          (n.body ? '<p style="font-size:0.75rem;color:#6b7280;margin:0;">' + n.body.substring(0, 80) + '</p>' : '');
+        if (list) list.insertBefore(li, list.firstChild);
+        items.unshift(li);
+        if (items.length > 10) {
+          var old = items.pop();
+          if (old && old.parentNode) old.parentNode.removeChild(old);
+        }
+      }
+
+      function connect() {
+        if (!window.EventSource) return;
+        var url = '/notifications/stream/?lastId=' + lastId;
+        var es = new EventSource(url);
+        es.onmessage = function(e) {
+          try {
+            var data = JSON.parse(e.data);
+            if (data.type === 'init') {
+              if (data.unread_count > 0 && badge) badge.style.display = 'block';
+            } else if (data.type === 'notification') {
+              lastId = data.id;
+              addItem(data);
+              if (badge) badge.style.display = 'block';
+              if (window.showToast) window.showToast(data.title, 'info');
+            }
+          } catch(err) {}
+        };
+        es.onerror = function() {
+          es.close();
+          setTimeout(connect, 5000);
+        };
+      }
+      connect();
+    })();
+    {% endif %}
   </script>
 </body>
 </html>

@@ -141,6 +141,7 @@ INSTALLED_APPS = [
     "apps.imports",
     "apps.outbox",
     "apps.notifications",
+    "apps.messaging",
     "apps.recs",
     "apps.faculty",
     "apps.frontend",
@@ -325,6 +326,19 @@ OUTBOX_SERVICE_TOKENS = env_json_map("OUTBOX_SERVICE_TOKENS")
 AUTH_ENABLE_LOCAL_TOKEN_FALLBACK = env_bool("AUTH_ENABLE_LOCAL_TOKEN_FALLBACK", True)
 FACULTY_SERVICE_URL = (env_secret("FACULTY_SERVICE_URL") or "").rstrip("/")
 FACULTY_SERVICE_TIMEOUT = float(os.getenv("FACULTY_SERVICE_TIMEOUT", "10"))
+
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000").strip()
+
+HSE_OAUTH2_CLIENT_ID = os.getenv("HSE_OAUTH2_CLIENT_ID", "").strip()
+HSE_OAUTH2_CLIENT_SECRET = env_secret("HSE_OAUTH2_CLIENT_SECRET") or ""
+HSE_OAUTH2_AUTHORIZE_URL = os.getenv(
+    "HSE_OAUTH2_AUTHORIZE_URL",
+    "https://auth.hse.ru/adfs/oauth2/authorize",
+).strip()
+HSE_OAUTH2_TOKEN_URL = os.getenv(
+    "HSE_OAUTH2_TOKEN_URL",
+    "https://auth.hse.ru/adfs/oauth2/token",
+).strip()
 
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",

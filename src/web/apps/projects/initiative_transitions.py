@@ -156,7 +156,7 @@ def moderate_initiative_proposal(
 
     with transaction.atomic():
         proposal = (
-            InitiativeProposal.objects.select_for_update()
+            InitiativeProposal.objects.select_for_update(of=("self",))
             .select_related("published_project")
             .get(pk=proposal.pk)
         )
