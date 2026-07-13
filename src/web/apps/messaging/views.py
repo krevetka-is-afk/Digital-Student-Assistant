@@ -68,13 +68,23 @@ def thread_detail(request, pk):
 @login_required
 def thread_create(request):
     users = User.objects.exclude(pk=request.user.pk).order_by("username")
+    preselected_id = request.GET.get("to")
+    errors = {}
 
     if request.method == "POST":
-        recipient_id = request.POST.get("recipient")
+        recipient_id = request.POST.get("recipient", "").strip()
         subject = request.POST.get("subject", "").strip()
         body = request.POST.get("body", "").strip()
+        preselected_id = recipient_id
 
-        if recipient_id and subject and body:
+        if not recipient_id:
+            errors["recipient"] = "Выберите получателя."
+        if not subject:
+            errors["subject"] = "Укажите тему сообщения."
+        if not body:
+            errors["body"] = "Введите текст сообщения."
+
+        if not errors:
             recipient = get_object_or_404(User, pk=recipient_id)
             thread = Thread.objects.create(subject=subject)
             thread.participants.add(request.user, recipient)
@@ -92,4 +102,9 @@ def thread_create(request):
             )
             return redirect("messaging:thread_detail", pk=thread.pk)
 
-    return render(request, "messaging/thread_create.html", {"users": users})
+    return render(request, "messaging/thread_create.html", {
+        "users": users,
+        "errors": errors,
+        "post": request.POST if request.method == "POST" else {},
+        "preselected_id": int(preselected_id) if preselected_id and preselected_id.isdigit() else None,
+    })

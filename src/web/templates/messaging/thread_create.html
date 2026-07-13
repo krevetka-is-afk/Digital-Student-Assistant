@@ -26,14 +26,18 @@
         Получатель <span class="text-red-600" aria-hidden="true">*</span>
       </label>
       <select id="recipient" name="recipient" required aria-required="true"
-              class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+              {% if errors.recipient %}aria-describedby="recipient-error"{% endif %}
+              class="w-full px-3 py-2 text-sm border {% if errors.recipient %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
         <option value="">— Выберите пользователя —</option>
         {% for u in users %}
-          <option value="{{ u.pk }}">
+          <option value="{{ u.pk }}" {% if preselected_id == u.pk %}selected{% endif %}>
             {{ u.get_full_name|default:u.username }} ({{ u.email }})
           </option>
         {% endfor %}
       </select>
+      {% if errors.recipient %}
+        <p id="recipient-error" class="mt-1 text-xs text-red-600" role="alert">{{ errors.recipient }}</p>
+      {% endif %}
     </div>
 
     <div>
@@ -41,8 +45,13 @@
         Тема <span class="text-red-600" aria-hidden="true">*</span>
       </label>
       <input id="subject" type="text" name="subject" required aria-required="true"
+             value="{{ post.subject|default:'' }}"
              placeholder="Тема сообщения"
-             class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+             {% if errors.subject %}aria-describedby="subject-error"{% endif %}
+             class="w-full px-3 py-2 text-sm border {% if errors.subject %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+      {% if errors.subject %}
+        <p id="subject-error" class="mt-1 text-xs text-red-600" role="alert">{{ errors.subject }}</p>
+      {% endif %}
     </div>
 
     <div>
@@ -51,7 +60,11 @@
       </label>
       <textarea id="body" name="body" rows="5" required aria-required="true"
                 placeholder="Введите текст сообщения..."
-                class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"></textarea>
+                {% if errors.body %}aria-describedby="body-error"{% endif %}
+                class="w-full px-3 py-2 text-sm border {% if errors.body %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">{{ post.body|default:'' }}</textarea>
+      {% if errors.body %}
+        <p id="body-error" class="mt-1 text-xs text-red-600" role="alert">{{ errors.body }}</p>
+      {% endif %}
     </div>
 
     <div class="flex justify-end">
