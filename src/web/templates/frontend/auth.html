@@ -19,13 +19,13 @@
       </svg>
     </div>
     <h1 class="text-xl font-semibold text-gray-900">Digital Student Assistant</h1>
-    <p class="text-sm text-gray-500 mt-1">Платформа студенческих проектов</p>
+    <p class="text-sm text-gray-600 mt-1">Платформа студенческих проектов</p>
   </div>
 
-  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+  <div class="bg-white border border-gray-500 rounded-2xl overflow-hidden"
        style="box-shadow:0 4px 24px rgba(0,0,0,0.06);">
 
-    <div class="flex border-b border-gray-200"
+    <div class="flex border-b border-gray-500"
          role="tablist" aria-label="Форма авторизации">
       <button id="tab-login-btn" type="button" onclick="switchTab('login')"
               role="tab"
@@ -33,7 +33,7 @@
               aria-controls="panel-login"
               class="flex-1 py-3 text-sm font-medium transition-colors"
               style="border-bottom: 2px solid {% if active_tab == 'login' %}#2563eb{% else %}transparent{% endif %};
-                     color: {% if active_tab == 'login' %}#2563eb{% else %}#6b7280{% endif %};">
+                     color: {% if active_tab == 'login' %}#2563eb{% else %}#4b5563{% endif %};">
         Войти
       </button>
       <button id="tab-register-btn" type="button" onclick="switchTab('register')"
@@ -42,7 +42,7 @@
               aria-controls="panel-register"
               class="flex-1 py-3 text-sm font-medium transition-colors"
               style="border-bottom: 2px solid {% if active_tab == 'register' %}#2563eb{% else %}transparent{% endif %};
-                     color: {% if active_tab == 'register' %}#2563eb{% else %}#6b7280{% endif %};">
+                     color: {% if active_tab == 'register' %}#2563eb{% else %}#4b5563{% endif %};">
         Регистрация
       </button>
     </div>
@@ -52,7 +52,7 @@
 
       {% if login_form.non_field_errors %}
       <div class="flex items-center gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-lg">
-        <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg class="w-4 h-4 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <p class="text-sm text-red-700">{{ login_form.non_field_errors.0 }}</p>
@@ -93,7 +93,7 @@
                  autocomplete="email"
                  aria-required="true"
                  {% if login_form.email.errors %}aria-invalid="true" aria-describedby="login-email-error"{% endif %}
-                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if login_form.email.errors %}border-red-400{% else %}border-gray-400{% endif %}">
+                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if login_form.email.errors %}border-red-500{% else %}border-gray-500{% endif %}">
           {% if login_form.email.errors %}
             <p id="login-email-error" class="mt-1 text-xs text-red-600" role="alert">{{ login_form.email.errors.0 }}</p>
           {% endif %}
@@ -107,7 +107,7 @@
                    autocomplete="current-password"
                    aria-required="true"
                    {% if login_form.password.errors %}aria-invalid="true" aria-describedby="login-password-error"{% endif %}
-                   class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if login_form.password.errors %}border-red-400{% else %}border-gray-400{% endif %}">
+                   class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if login_form.password.errors %}border-red-500{% else %}border-gray-500{% endif %}">
           </div>
           {% if login_form.password.errors %}
             <p id="login-password-error" class="mt-1 text-xs text-red-600" role="alert">{{ login_form.password.errors.0 }}</p>
@@ -131,7 +131,7 @@
 
       {% if register_form.non_field_errors %}
       <div class="flex items-center gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-lg">
-        <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg class="w-4 h-4 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <p class="text-sm text-red-700">{{ register_form.non_field_errors.0 }}</p>
@@ -152,34 +152,34 @@
                  placeholder="Иван Иванов"
                  autocomplete="name"
                  {% if register_form.name.errors %}aria-invalid="true" aria-describedby="reg-name-error"{% endif %}
-                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.name.errors %}border-red-400{% else %}border-gray-400{% endif %}">
+                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.name.errors %}border-red-500{% else %}border-gray-500{% endif %}">
           {% if register_form.name.errors %}
             <p id="reg-name-error" class="mt-1 text-xs text-red-600" role="alert">{{ register_form.name.errors.0 }}</p>
           {% endif %}
         </div>
 
         <div class="mb-4">
-          <label for="reg-email" class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-400">*</span></label>
+          <label for="reg-email" class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-600">*</span></label>
           <input id="reg-email" type="email" name="email"
                  value="{{ register_form.email.value|default:'' }}"
                  placeholder="you@hse.ru"
                  autocomplete="email"
                  aria-required="true"
                  {% if register_form.email.errors %}aria-invalid="true" aria-describedby="reg-email-error"{% endif %}
-                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.email.errors %}border-red-400{% else %}border-gray-400{% endif %}">
+                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.email.errors %}border-red-500{% else %}border-gray-500{% endif %}">
           {% if register_form.email.errors %}
             <p id="reg-email-error" class="mt-1 text-xs text-red-600" role="alert">{{ register_form.email.errors.0 }}</p>
           {% endif %}
         </div>
 
         <div class="mb-4">
-          <label for="reg-password" class="block text-sm font-medium text-gray-700 mb-1">Пароль <span class="text-red-400">*</span></label>
+          <label for="reg-password" class="block text-sm font-medium text-gray-700 mb-1">Пароль <span class="text-red-600">*</span></label>
           <input id="reg-password" type="password" name="password"
                  placeholder="Не менее 8 символов"
                  autocomplete="new-password"
                  aria-required="true"
                  {% if register_form.password.errors %}aria-invalid="true" aria-describedby="reg-password-error"{% endif %}
-                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.password.errors %}border-red-400{% else %}border-gray-400{% endif %}">
+                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.password.errors %}border-red-500{% else %}border-gray-500{% endif %}">
           {% if register_form.password.errors %}
             <p id="reg-password-error" class="mt-1 text-xs text-red-600" role="alert">
               {% for error in register_form.password.errors %}{{ error }}{% if not forloop.last %} {% endif %}{% endfor %}
@@ -188,20 +188,20 @@
         </div>
 
         <div class="mb-4">
-          <label for="reg-password2" class="block text-sm font-medium text-gray-700 mb-1">Повторите пароль <span class="text-red-400">*</span></label>
+          <label for="reg-password2" class="block text-sm font-medium text-gray-700 mb-1">Повторите пароль <span class="text-red-600">*</span></label>
           <input id="reg-password2" type="password" name="password2"
                  placeholder="••••••••"
                  autocomplete="new-password"
                  aria-required="true"
                  {% if register_form.password2.errors %}aria-invalid="true" aria-describedby="reg-password2-error"{% endif %}
-                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.password2.errors %}border-red-400{% else %}border-gray-400{% endif %}">
+                 class="w-full px-3 py-2 text-sm border rounded-lg bg-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors {% if register_form.password2.errors %}border-red-500{% else %}border-gray-500{% endif %}">
           {% if register_form.password2.errors %}
             <p id="reg-password2-error" class="mt-1 text-xs text-red-600" role="alert">{{ register_form.password2.errors.0 }}</p>
           {% endif %}
         </div>
 
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Я регистрируюсь как <span class="text-red-400">*</span></label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Я регистрируюсь как <span class="text-red-600">*</span></label>
           <div class="grid grid-cols-2 gap-2">
 
             <label id="role-student-label"
@@ -209,7 +209,7 @@
               <input type="radio" name="role" value="student"
                      {% if register_form.role.value != 'customer' %}checked{% endif %}
                      class="sr-only" onchange="updateRoleUI()">
-              <svg style="width:22px;height:22px;color:{% if register_form.role.value == 'customer' %}#9ca3af{% else %}#2563eb{% endif %};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <svg style="width:22px;height:22px;color:{% if register_form.role.value == 'customer' %}#4b5563{% else %}#2563eb{% endif %};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
               </svg>
               <span style="font-size:0.8125rem;font-weight:600;color:{% if register_form.role.value == 'customer' %}#374151{% else %}#1d4ed8{% endif %};">Студент</span>
@@ -221,7 +221,7 @@
               <input type="radio" name="role" value="customer"
                      {% if register_form.role.value == 'customer' %}checked{% endif %}
                      class="sr-only" onchange="updateRoleUI()">
-              <svg style="width:22px;height:22px;color:{% if register_form.role.value == 'customer' %}#2563eb{% else %}#9ca3af{% endif %};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <svg style="width:22px;height:22px;color:{% if register_form.role.value == 'customer' %}#2563eb{% else %}#4b5563{% endif %};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               <span style="font-size:0.8125rem;font-weight:600;color:{% if register_form.role.value == 'customer' %}#1d4ed8{% else %}#374151{% endif %};">Заказчик</span>
@@ -246,7 +246,7 @@
             </span>
           </label>
           {% if register_form.personal_data_consent.errors %}
-            <p class="mt-2 text-xs text-red-500">{{ register_form.personal_data_consent.errors.0 }}</p>
+            <p class="mt-2 text-xs text-red-600">{{ register_form.personal_data_consent.errors.0 }}</p>
           {% endif %}
         </div>
 
@@ -267,12 +267,12 @@
   <div class="mt-4">
     <div class="relative flex items-center justify-center mb-4">
       <div class="absolute inset-0 flex items-center">
-        <div class="w-full border-t border-gray-200"></div>
+        <div class="w-full border-t border-gray-500"></div>
       </div>
       <span class="relative px-3 bg-gray-50 text-xs text-gray-600">или войдите через</span>
     </div>
     <a href="{% url 'frontend:sso_hse_redirect' %}"
-       class="flex items-center justify-center gap-2 w-full py-2 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+       class="flex items-center justify-center gap-2 w-full py-2 px-4 rounded-lg border border-gray-500 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
       <svg class="w-5 h-5 text-blue-700" viewBox="0 0 24 24" fill="currentColor"
            aria-hidden="true">
         <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2a8 8 0 110 16A8 8 0 0112 4zm-1 3v2H9v2h2v6h2V11h2V9h-2V7h-2z"/>
@@ -301,10 +301,10 @@
     var loginBtn = document.getElementById('tab-login-btn');
     var regBtn   = document.getElementById('tab-register-btn');
     loginBtn.style.borderBottom = isLogin ? '2px solid #2563eb' : '2px solid transparent';
-    loginBtn.style.color        = isLogin ? '#2563eb' : '#6b7280';
+    loginBtn.style.color        = isLogin ? '#2563eb' : '#4b5563';
     loginBtn.setAttribute('aria-selected', isLogin ? 'true' : 'false');
     regBtn.style.borderBottom   = isLogin ? '2px solid transparent' : '2px solid #2563eb';
-    regBtn.style.color          = isLogin ? '#6b7280' : '#2563eb';
+    regBtn.style.color          = isLogin ? '#4b5563' : '#2563eb';
     regBtn.setAttribute('aria-selected', isLogin ? 'false' : 'true');
   }
 
@@ -323,7 +323,7 @@
       } else {
         lbl.style.border     = '2px solid #e5e7eb';
         lbl.style.background = '#fff';
-        ico.style.color      = '#9ca3af';
+        ico.style.color      = '#4b5563';
         txt.style.color      = '#374151';
       }
     });

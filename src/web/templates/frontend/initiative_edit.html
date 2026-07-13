@@ -14,7 +14,7 @@
 
 <div class="mb-6">
   <a href="{% url 'frontend:initiative_proposal_list' %}"
-     class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+     class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -26,12 +26,12 @@
 
   <div class="mb-8">
     <h1 class="text-xl font-semibold text-gray-900">Редактировать предложение</h1>
-    <p class="mt-1 text-sm text-gray-500">{{ proposal.title }}</p>
+    <p class="mt-1 text-sm text-gray-600">{{ proposal.title }}</p>
   </div>
 
   {% if proposal.moderation_comment %}
   <div class="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg mb-6">
-    <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <svg class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
     <div>
@@ -46,32 +46,38 @@
 
     <div class="mb-5">
       <label for="id_title" class="block text-sm font-medium text-gray-700 mb-1">
-        Название <span class="text-red-500">*</span>
+        Название <span class="text-red-600" aria-hidden="true">*</span>
       </label>
       <input type="text" id="id_title" name="title"
              value="{{ form.title.value|default:'' }}"
              maxlength="255"
-             class="w-full px-3 py-2 text-sm border {% if form.title.errors %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-      {% for error in form.title.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+             aria-required="true"
+             aria-invalid="{% if form.title.errors %}true{% else %}false{% endif %}"
+             {% if form.title.errors %}aria-describedby="err-edit-title"{% endif %}
+             class="w-full px-3 py-2 text-sm border {% if form.title.errors %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+      {% for error in form.title.errors %}<p id="err-edit-title" class="field-error" role="alert">{{ error }}</p>{% endfor %}
     </div>
 
     <div class="mb-5">
       <label for="id_description" class="block text-sm font-medium text-gray-700 mb-1">
-        Описание <span class="text-red-500">*</span>
+        Описание <span class="text-red-600" aria-hidden="true">*</span>
       </label>
       <textarea id="id_description" name="description" rows="6"
-                class="w-full px-3 py-2 text-sm border {% if form.description.errors %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-colors"
+                aria-required="true"
+                aria-invalid="{% if form.description.errors %}true{% else %}false{% endif %}"
+                {% if form.description.errors %}aria-describedby="err-edit-desc"{% endif %}
+                class="w-full px-3 py-2 text-sm border {% if form.description.errors %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-colors"
                 style="font-family:inherit;line-height:1.6;min-height:140px;">{{ form.description.value|default:'' }}</textarea>
-      {% for error in form.description.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      {% for error in form.description.errors %}<p id="err-edit-desc" class="field-error" role="alert">{{ error }}</p>{% endfor %}
     </div>
 
     <div class="mb-5">
       <label for="id_tech_tags_raw" class="block text-sm font-medium text-gray-700 mb-1">Технологии</label>
-      <p class="text-xs text-gray-400 mb-2">Введите через запятую: Python, Django, React…</p>
+      <p class="text-xs text-gray-600 mb-2">Введите через запятую: Python, Django, React…</p>
       <input type="text" id="id_tech_tags_raw" name="tech_tags_raw"
              value="{{ tags_initial }}"
              placeholder="Python, FastAPI, PostgreSQL"
-             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+             class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
              oninput="renderTagPreview(this)">
       <div id="tag-preview" class="flex flex-wrap gap-1 mt-2"></div>
     </div>
@@ -79,23 +85,23 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
       <div>
         <label for="id_team_size" class="block text-sm font-medium text-gray-700 mb-1">
-          Размер команды <span class="text-red-500">*</span>
+          Размер команды <span class="text-red-600">*</span>
         </label>
         <input type="number" id="id_team_size" name="team_size"
                value="{{ form.team_size.value|default:'1' }}"
                min="1" max="10"
-               class="w-full px-3 py-2 text-sm border {% if form.team_size.errors %}border-red-400{% else %}border-gray-200{% endif %} rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+               class="w-full px-3 py-2 text-sm border {% if form.team_size.errors %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
         {% for error in form.team_size.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
       </div>
       <div>
         <label for="id_supervisor_name" class="block text-sm font-medium text-gray-700 mb-1">
-          Руководитель <span class="text-gray-400 font-normal">(необязательно)</span>
+          Руководитель <span class="text-gray-600 font-normal">(необязательно)</span>
         </label>
         <input type="text" id="id_supervisor_name" name="supervisor_name"
                value="{{ form.supervisor_name.value|default:'' }}"
                placeholder="Иванов Иван Иванович"
                maxlength="255"
-               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+               class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
       </div>
     </div>
 
@@ -106,7 +112,7 @@
                name="supervisor_personal_data_consent"
                value="1"
                {% if form.supervisor_personal_data_consent.value %}checked{% endif %}
-               class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+               class="mt-1 h-4 w-4 rounded border-gray-500 text-blue-600 focus:ring-blue-500">
         <span class="text-sm text-gray-600">
           Если я указываю ФИО научного руководителя, подтверждаю наличие законных оснований и, при необходимости, его согласия на такое предоставление.
         </span>

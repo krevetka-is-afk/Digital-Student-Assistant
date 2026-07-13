@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Модерация инициатив — Digital Student Assistant{% endblock %}
 
@@ -7,7 +7,7 @@
 <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem;">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Инициативные предложения</h1>
-    <p class="text-sm text-gray-500 mt-1">
+    <p class="text-sm text-gray-600 mt-1">
       {% if queue_count %}
         {{ queue_count }} предложени{% if queue_count == 1 %}е{% elif queue_count < 5 %}я{% else %}й{% endif %} ожидает проверки
       {% else %}
@@ -26,14 +26,14 @@
 <div style="display:flex;flex-direction:column;gap:16px;">
 
   {% for proposal in page_obj %}
-  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+  <div class="bg-white border border-gray-500 rounded-2xl overflow-hidden"
        style="box-shadow:0 2px 8px rgba(0,0,0,0.04);">
 
     <div class="px-6 py-4 border-b border-gray-100">
       <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
         <div>
           <p class="text-base font-semibold text-gray-900 mb-1">{{ proposal.title }}</p>
-          <div class="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+          <div class="flex items-center gap-3 text-xs text-gray-600 flex-wrap">
             <span>Студент: <span class="text-gray-600 font-medium">{{ proposal.owner.get_full_name|default:proposal.owner.username }}</span></span>
             {% if proposal.supervisor_name %}
             <span class="text-gray-200">·</span>
@@ -85,32 +85,32 @@
 <div class="flex items-center justify-center gap-1 mt-8">
   {% if page_obj.has_previous %}
   <a href="?page={{ page_obj.previous_page_number }}"
-     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">←</a>
+     class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">←</a>
   {% endif %}
   {% for num in page_obj.paginator.page_range %}
     {% if page_obj.number == num %}
     <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
     {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
     <a href="?page={{ num }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+       class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
     {% endif %}
   {% endfor %}
   {% if page_obj.has_next %}
   <a href="?page={{ page_obj.next_page_number }}"
-     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">→</a>
+     class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">→</a>
   {% endif %}
 </div>
 {% endif %}
 
 {% else %}
-<div class="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+<div class="text-center py-20 bg-white border border-gray-500 rounded-2xl">
   <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
     <svg class="w-7 h-7 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
   </div>
   <p class="text-gray-900 font-semibold mb-1">Очередь пуста</p>
-  <p class="text-gray-400 text-sm">Все инициативные предложения проверены.</p>
+  <p class="text-gray-600 text-sm">Все инициативные предложения проверены.</p>
 </div>
 {% endif %}
 

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Сообщения — Digital Student Assistant{% endblock %}
 
@@ -17,7 +17,7 @@
   </div>
 
   {% if threads_with_unread %}
-    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+    <div class="bg-white border border-gray-500 rounded-xl overflow-hidden divide-y divide-gray-100">
       {% for thread, unread in threads_with_unread %}
         <a href="{% url 'messaging:thread_detail' thread.pk %}"
            class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"

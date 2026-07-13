@@ -1,4 +1,4 @@
-{% comment %}
+﻿{% comment %}
   Context: project, application_status (str or None), ApplicationStatus, ProjectStatus
   Rendered inside .apply-area[data-project-id="{{ project.pk }}"] wrapper.
 {% endcomment %}
@@ -9,7 +9,7 @@
 
 {% elif project.status == ProjectStatus.STAFFED %}
   <button disabled
-    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 cursor-not-allowed">
     Набор закрыт
   </button>
 
@@ -35,7 +35,7 @@
   <button
     type="button"
     onclick="window.openApplyModal && window.openApplyModal({{ project.pk }}, '{{ project.title|escapejs }}')"
-    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer">
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-white border border-gray-500 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer">
     Откликнуться снова
   </button>
 

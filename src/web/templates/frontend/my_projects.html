@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Мои проекты — Digital Student Assistant{% endblock %}
 
@@ -7,7 +7,7 @@
 <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.75rem;">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Кабинет преподавателя</h1>
-    <p class="text-sm text-gray-500 mt-1">Управляйте проектами, изучайте публикации и коллег</p>
+    <p class="text-sm text-gray-600 mt-1">Управляйте проектами, изучайте публикации и коллег</p>
   </div>
   <a href="{% url 'frontend:project_create' %}"
      class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex-shrink-0">
@@ -18,35 +18,35 @@
   </a>
 </div>
 
-<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-200 rounded-xl p-1"
+<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-500 rounded-xl p-1"
      style="width:fit-content;">
   <button id="tab-btn-summary"
           onclick="switchTab('summary')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors font-medium bg-gray-100 text-gray-900">
     Сводка
-    {% if dashboard.pending_apps %}<span class="ml-1 text-xs text-red-500 font-bold">{{ dashboard.pending_apps }}</span>{% endif %}
+    {% if dashboard.pending_apps %}<span class="ml-1 text-xs text-red-600 font-bold">{{ dashboard.pending_apps }}</span>{% endif %}
   </button>
   <button id="tab-btn-projects"
           onclick="switchTab('projects')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Мои проекты
-    {% if total_count %}<span class="ml-1 text-xs text-gray-400">{{ total_count }}</span>{% endif %}
+    {% if total_count %}<span class="ml-1 text-xs text-gray-600">{{ total_count }}</span>{% endif %}
   </button>
   <button id="tab-btn-articles"
           onclick="switchTab('articles')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Статьи
-    <span class="ml-1 text-xs text-gray-400">{% if using_faculty_data %}{{ faculty_articles_total }}{% else %}{{ sample_articles|length }}{% endif %}</span>
+    <span class="ml-1 text-xs text-gray-600">{% if using_faculty_data %}{{ faculty_articles_total }}{% else %}{{ sample_articles|length }}{% endif %}</span>
   </button>
   <button id="tab-btn-staff"
           onclick="switchTab('staff')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Сотрудники
-    <span class="ml-1 text-xs text-gray-400">{% if using_faculty_data %}{{ faculty_staff_total }}{% else %}{{ sample_staff|length }}{% endif %}</span>
+    <span class="ml-1 text-xs text-gray-600">{% if using_faculty_data %}{{ faculty_staff_total }}{% else %}{{ sample_staff|length }}{% endif %}</span>
   </button>
   <button id="tab-btn-graph"
           onclick="switchTab('graph')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Граф соавторства
   </button>
 </div>
@@ -55,8 +55,8 @@
 
   <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 mb-6">
 
-    <div class="bg-white border border-gray-200 rounded-xl px-4 py-4">
-      <p class="text-xs text-gray-400 mb-1">Опубликованных</p>
+    <div class="bg-white border border-gray-500 rounded-xl px-4 py-4">
+      <p class="text-xs text-gray-600 mb-1">Опубликованных</p>
       <p class="text-2xl font-bold text-gray-900">{{ dashboard.active_projects }}</p>
     </div>
 
@@ -70,15 +70,15 @@
       <p class="text-2xl font-bold text-{% if dashboard.pending_apps %}red-600{% else %}gray-900{% endif %}">{{ dashboard.pending_apps }}</p>
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-xl px-4 py-4">
-      <p class="text-xs text-gray-400 mb-1">Свободных мест</p>
+    <div class="bg-white border border-gray-500 rounded-xl px-4 py-4">
+      <p class="text-xs text-gray-600 mb-1">Свободных мест</p>
       <p class="text-2xl font-bold text-gray-900">{{ dashboard.spots_left_total }}</p>
     </div>
 
   </div>
 
   {% if dashboard.projects_with_pending %}
-  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-6">
+  <div class="bg-white border border-gray-500 rounded-2xl overflow-hidden mb-6">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
       <h2 class="text-base font-semibold text-gray-900">Требуют внимания</h2>
       <span class="px-2 py-0.5 text-xs font-semibold bg-red-50 border border-red-100 text-red-600 rounded-full">
@@ -93,7 +93,7 @@
              class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors truncate block">
             {{ proj.title }}
           </a>
-          <p class="text-xs text-gray-400 mt-0.5">
+          <p class="text-xs text-gray-600 mt-0.5">
             {{ proj.accepted_participants_count }}&thinsp;/&thinsp;{{ proj.team_size }} принято
           </p>
         </div>
@@ -109,12 +109,12 @@
     </div>
   </div>
   {% else %}
-  <div class="bg-white border border-gray-200 rounded-2xl mb-6 px-5 py-10 text-center">
+  <div class="bg-white border border-gray-500 rounded-2xl mb-6 px-5 py-10 text-center">
     {% if dashboard.active_projects %}
-    <p class="text-gray-500 font-medium">Новых заявок нет</p>
-    <p class="text-xs text-gray-400 mt-1">Ожидайте — студенты видят ваши проекты в каталоге</p>
+    <p class="text-gray-600 font-medium">Новых заявок нет</p>
+    <p class="text-xs text-gray-600 mt-1">Ожидайте — студенты видят ваши проекты в каталоге</p>
     {% else %}
-    <p class="text-gray-500 font-medium">Пока нет опубликованных проектов</p>
+    <p class="text-gray-600 font-medium">Пока нет опубликованных проектов</p>
     <a href="{% url 'frontend:project_create' %}"
        class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -127,7 +127,7 @@
   {% endif %}
 
   {% if dashboard.total_apps %}
-  <div class="flex items-center gap-3 text-sm text-gray-400 px-1">
+  <div class="flex items-center gap-3 text-sm text-gray-600 px-1">
     <span>Всего заявок за всё время: <strong class="text-gray-600">{{ dashboard.total_apps }}</strong></span>
     {% if dashboard.accepted_apps %}
     <span class="text-gray-200">·</span>
@@ -141,46 +141,46 @@
 <div id="tab-panel-projects" style="display:none;">
 
   {% if total_count %}
-  <div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-200 rounded-xl p-1 flex-wrap"
+  <div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-500 rounded-xl p-1 flex-wrap"
        style="width:fit-content;">
     <a href="?status="
-       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if not status_filter %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if not status_filter %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-600 hover:text-gray-700{% endif %}">
       Все
-      <span class="ml-1 text-xs {% if not status_filter %}text-gray-500{% else %}text-gray-400{% endif %}">{{ total_count }}</span>
+      <span class="ml-1 text-xs {% if not status_filter %}text-gray-600{% else %}text-gray-600{% endif %}">{{ total_count }}</span>
     </a>
     {% if counts.draft %}
     <a href="?status=draft"
-       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'draft' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'draft' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-600 hover:text-gray-700{% endif %}">
       Черновики
-      <span class="ml-1 text-xs {% if status_filter == 'draft' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.draft }}</span>
+      <span class="ml-1 text-xs {% if status_filter == 'draft' %}text-gray-600{% else %}text-gray-600{% endif %}">{{ counts.draft }}</span>
     </a>
     {% endif %}
     {% if counts.on_moderation %}
     <a href="?status=on_moderation"
-       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'on_moderation' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'on_moderation' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-600 hover:text-gray-700{% endif %}">
       На модерации
-      <span class="ml-1 text-xs {% if status_filter == 'on_moderation' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.on_moderation }}</span>
+      <span class="ml-1 text-xs {% if status_filter == 'on_moderation' %}text-gray-600{% else %}text-gray-600{% endif %}">{{ counts.on_moderation }}</span>
     </a>
     {% endif %}
     {% if counts.published %}
     <a href="?status=published"
-       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'published' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'published' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-600 hover:text-gray-700{% endif %}">
       Опубликованные
-      <span class="ml-1 text-xs {% if status_filter == 'published' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.published }}</span>
+      <span class="ml-1 text-xs {% if status_filter == 'published' %}text-gray-600{% else %}text-gray-600{% endif %}">{{ counts.published }}</span>
     </a>
     {% endif %}
     {% if counts.staffed %}
     <a href="?status=staffed"
-       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'staffed' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'staffed' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-600 hover:text-gray-700{% endif %}">
       Укомплектованные
-      <span class="ml-1 text-xs {% if status_filter == 'staffed' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.staffed }}</span>
+      <span class="ml-1 text-xs {% if status_filter == 'staffed' %}text-gray-600{% else %}text-gray-600{% endif %}">{{ counts.staffed }}</span>
     </a>
     {% endif %}
     {% if counts.rejected %}
     <a href="?status=rejected"
-       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'rejected' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+       class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if status_filter == 'rejected' %}bg-gray-100 text-gray-900 font-medium{% else %}text-gray-600 hover:text-gray-700{% endif %}">
       Отклонённые
-      <span class="ml-1 text-xs {% if status_filter == 'rejected' %}text-gray-500{% else %}text-gray-400{% endif %}">{{ counts.rejected }}</span>
+      <span class="ml-1 text-xs {% if status_filter == 'rejected' %}text-gray-600{% else %}text-gray-600{% endif %}">{{ counts.rejected }}</span>
     </a>
     {% endif %}
   </div>
@@ -191,7 +191,7 @@
 
     {% for project in page_obj %}
     <a href="{% url 'frontend:project_detail' project.pk %}"
-       class="block bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all"
+       class="block bg-white border border-gray-500 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all"
        style="text-decoration:none;">
 
       <div style="display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;">
@@ -199,12 +199,12 @@
         <div style="min-width:0;">
           <div class="mb-2">
             {% if project.status == "draft" %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                <span style="width:5px;height:5px;border-radius:50%;background:#9ca3af;display:inline-block;"></span>Черновик
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                <span style="width:5px;height:5px;border-radius:50%;background:#4b5563;display:inline-block;"></span>Черновик
               </span>
             {% elif project.status == "created" %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                <span style="width:5px;height:5px;border-radius:50%;background:#9ca3af;display:inline-block;"></span>Создан
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                <span style="width:5px;height:5px;border-radius:50%;background:#4b5563;display:inline-block;"></span>Создан
               </span>
             {% elif project.status == "on_moderation" %}
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
@@ -231,8 +231,8 @@
                 <span style="width:5px;height:5px;border-radius:50%;background:#14b8a6;display:inline-block;"></span>Завершён
               </span>
             {% elif project.status == "cancelled" %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                <span style="width:5px;height:5px;border-radius:50%;background:#6b7280;display:inline-block;"></span>Отменён
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                <span style="width:5px;height:5px;border-radius:50%;background:#4b5563;display:inline-block;"></span>Отменён
               </span>
             {% elif project.status == "rejected" %}
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
@@ -244,7 +244,7 @@
           <h2 class="text-base font-semibold text-gray-900 truncate mb-1">{{ project.title }}</h2>
 
           {% if project.description %}
-          <p class="text-sm text-gray-500 leading-snug"
+          <p class="text-sm text-gray-600 leading-snug"
              style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
             {{ project.description }}
           </p>
@@ -256,7 +256,7 @@
             <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-md">{{ tag }}</span>
             {% endfor %}
             {% if project.tech_tags|length > 5 %}
-            <span class="px-2 py-0.5 text-xs text-gray-400">+{{ project.tech_tags|length|add:"-5" }}</span>
+            <span class="px-2 py-0.5 text-xs text-gray-600">+{{ project.tech_tags|length|add:"-5" }}</span>
             {% endif %}
           </div>
           {% endif %}
@@ -266,9 +266,9 @@
           <p class="text-sm font-semibold text-gray-900">
             {{ project.accepted_participants_count }}&nbsp;/&nbsp;{{ project.team_size }}
           </p>
-          <p class="text-xs text-gray-400 mt-0.5">участников</p>
+          <p class="text-xs text-gray-600 mt-0.5">участников</p>
           {% if project.created_at %}
-          <p class="text-xs text-gray-400 mt-2">{{ project.created_at|date:"d.m.Y" }}</p>
+          <p class="text-xs text-gray-600 mt-2">{{ project.created_at|date:"d.m.Y" }}</p>
           {% endif %}
         </div>
 
@@ -276,7 +276,7 @@
 
       {% if project.status == "rejected" and project.moderation_comment %}
       <div class="mt-3 pt-3 border-t border-gray-100">
-        <p class="text-xs text-red-500 font-medium mb-0.5">Причина отклонения</p>
+        <p class="text-xs text-red-600 font-medium mb-0.5">Причина отклонения</p>
         <p class="text-xs text-red-700">{{ project.moderation_comment|truncatechars:200 }}</p>
       </div>
       {% endif %}
@@ -290,31 +290,31 @@
   <div class="flex items-center justify-center gap-1 mt-8">
     {% if page_obj.has_previous %}
     <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">←</a>
+       class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">←</a>
     {% endif %}
     {% for num in page_obj.paginator.page_range %}
       {% if page_obj.number == num %}
       <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
       {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
       <a href="?status={{ status_filter }}&page={{ num }}"
-         class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+         class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
       {% endif %}
     {% endfor %}
     {% if page_obj.has_next %}
     <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">→</a>
+       class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">→</a>
     {% endif %}
   </div>
   {% endif %}
 
   {% elif status_filter %}
-  <div class="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+  <div class="text-center py-16 bg-white border border-gray-500 rounded-2xl">
     <p class="text-gray-700 font-medium mb-1">Нет проектов с таким статусом</p>
     <a href="?" class="text-blue-600 text-sm hover:underline">Показать все</a>
   </div>
 
   {% else %}
-  <div class="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+  <div class="text-center py-20 bg-white border border-gray-500 rounded-2xl">
     <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
       <svg class="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round"
@@ -322,7 +322,7 @@
       </svg>
     </div>
     <h2 class="text-gray-900 font-semibold text-lg mb-1">Пока нет проектов</h2>
-    <p class="text-gray-400 text-sm mb-6">Создайте первый проект и найдите команду</p>
+    <p class="text-gray-600 text-sm mb-6">Создайте первый проект и найдите команду</p>
     <a href="{% url 'frontend:project_create' %}"
        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -338,19 +338,19 @@
 <div id="tab-panel-articles" style="display:none;">
 
   <div class="flex flex-wrap items-center gap-3 mb-5">
-    <p class="text-sm text-gray-500 flex-1 min-w-0">
+    <p class="text-sm text-gray-600 flex-1 min-w-0">
       Научные публикации по тематике ваших проектов.
       {% if using_faculty_data %}
-      <span class="text-gray-400">Показано {{ faculty_articles_displayed }} из {{ faculty_articles_total }} публикаций локального зеркала faculty service.</span>
+      <span class="text-gray-600">Показано {{ faculty_articles_displayed }} из {{ faculty_articles_total }} публикаций локального зеркала faculty service.</span>
       {% else %}
-      <span class="text-gray-400">Показаны демонстрационные данные.</span>
+      <span class="text-gray-600">Показаны демонстрационные данные.</span>
       {% endif %}
     </p>
     {% if article_years or article_directions %}
     <div class="flex flex-wrap gap-2 flex-shrink-0">
       {% if article_years %}
       <select id="article-year-filter" onchange="filterArticles()"
-              class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
+              class="text-xs border border-gray-500 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
         <option value="">Все годы</option>
         {% for yr in article_years %}
         <option value="{{ yr }}">{{ yr }}</option>
@@ -359,7 +359,7 @@
       {% endif %}
       {% if article_directions %}
       <select id="article-dir-filter" onchange="filterArticles()"
-              class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
+              class="text-xs border border-gray-500 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-blue-400 cursor-pointer">
         <option value="">Все направления</option>
         {% for dir in article_directions %}
         <option value="{{ dir }}">{{ dir }}</option>
@@ -372,7 +372,7 @@
 
   <div style="display:flex;flex-direction:column;gap:12px;" id="articles-list">
     {% for article in sample_articles %}
-    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all article-card"
+    <div class="bg-white border border-gray-500 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all article-card"
          data-year="{{ article.year|default:'' }}"
          data-direction="{{ article.direction|default:'' }}">
 
@@ -404,7 +404,7 @@
           {% endif %}
 
           {% if article.venue %}
-          <p class="text-xs text-gray-400 italic mb-2">{{ article.venue }}</p>
+          <p class="text-xs text-gray-600 italic mb-2">{{ article.venue }}</p>
           {% endif %}
 
           {% if article.keywords %}
@@ -432,15 +432,15 @@
       </div>
     </div>
     {% empty %}
-    <div class="text-center py-16 bg-white border border-gray-200 rounded-2xl">
-      <p class="text-gray-500">Статьи пока не загружены</p>
+    <div class="text-center py-16 bg-white border border-gray-500 rounded-2xl">
+      <p class="text-gray-600">Статьи пока не загружены</p>
     </div>
     {% endfor %}
 
     <div id="articles-filter-empty" style="display:none;"
-         class="text-center py-12 bg-white border border-gray-200 rounded-2xl">
+         class="text-center py-12 bg-white border border-gray-500 rounded-2xl">
       <p class="text-sm font-medium text-gray-700 mb-1">Нет статей по выбранным критериям</p>
-      <p class="text-xs text-gray-400">Попробуйте изменить год или направление</p>
+      <p class="text-xs text-gray-600">Попробуйте изменить год или направление</p>
     </div>
   </div>
 
@@ -448,18 +448,18 @@
 
 <div id="tab-panel-staff" style="display:none;">
 
-  <p class="text-sm text-gray-500 mb-5">
+  <p class="text-sm text-gray-600 mb-5">
     Научные сотрудники и преподаватели НИУ ВШЭ.
     {% if using_faculty_data %}
-    <span class="text-gray-400">Показано {{ faculty_staff_displayed }} из {{ faculty_staff_total }} сотрудников; курсов в зеркале: {{ faculty_courses_total }}.</span>
+    <span class="text-gray-600">Показано {{ faculty_staff_displayed }} из {{ faculty_staff_total }} сотрудников; курсов в зеркале: {{ faculty_courses_total }}.</span>
     {% else %}
-    <span class="text-gray-400">Показаны демонстрационные данные.</span>
+    <span class="text-gray-600">Показаны демонстрационные данные.</span>
     {% endif %}
   </p>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
     {% for person in sample_staff %}
-    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all flex flex-col gap-3">
+    <div class="bg-white border border-gray-500 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all flex flex-col gap-3">
 
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -470,13 +470,13 @@
         <div style="min-width:0;">
           <p class="text-sm font-semibold text-gray-900 truncate">{{ person.name }}</p>
           {% if person.position %}
-          <p class="text-xs text-gray-500 truncate">{{ person.position }}</p>
+          <p class="text-xs text-gray-600 truncate">{{ person.position }}</p>
           {% endif %}
         </div>
       </div>
 
       {% if person.department %}
-      <p class="text-xs text-gray-500 leading-snug">{{ person.department }}</p>
+      <p class="text-xs text-gray-600 leading-snug">{{ person.department }}</p>
       {% endif %}
 
       {% if person.research_areas %}
@@ -489,7 +489,7 @@
 
       <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
         {% if person.works_count %}
-        <span class="text-xs text-gray-400">{{ person.works_count }} публикаций</span>
+        <span class="text-xs text-gray-600">{{ person.works_count }} публикаций</span>
         {% else %}
         <span></span>
         {% endif %}
@@ -501,8 +501,8 @@
 
     </div>
     {% empty %}
-    <div class="text-center py-16 bg-white border border-gray-200 rounded-2xl col-span-full">
-      <p class="text-gray-500">Данные о сотрудниках пока не загружены</p>
+    <div class="text-center py-16 bg-white border border-gray-500 rounded-2xl col-span-full">
+      <p class="text-gray-600">Данные о сотрудниках пока не загружены</p>
     </div>
     {% endfor %}
   </div>
@@ -511,7 +511,7 @@
 
 <div id="tab-panel-graph" style="display:none;">
 
-  <p class="text-sm text-gray-500 mb-2">
+  <p class="text-sm text-gray-600 mb-2">
     Граф соавторства по научным публикациям.
     Узел — автор, ребро — совместная публикация.
     Размер узла пропорционален числу публикаций в выборке.
@@ -520,13 +520,13 @@
   <div class="flex items-center gap-4 mb-4 flex-wrap">
     <div class="flex items-center gap-2">
       <span class="inline-block w-4 h-4 rounded-full bg-blue-200 border-2 border-blue-500"></span>
-      <span class="text-xs text-gray-500">Автор</span>
+      <span class="text-xs text-gray-600">Автор</span>
     </div>
     <div class="flex items-center gap-2">
       <span class="inline-block w-6 border-t-2 border-gray-300"></span>
-      <span class="text-xs text-gray-500">Совместная публикация</span>
+      <span class="text-xs text-gray-600">Совместная публикация</span>
     </div>
-    <span class="text-xs text-gray-400">Наведите на узел или ребро для подсказки</span>
+    <span class="text-xs text-gray-600">Наведите на узел или ребро для подсказки</span>
   </div>
 
   <div id="vis-graph-container"
@@ -535,15 +535,15 @@
   <div class="flex gap-6 mt-4">
     <div class="text-center">
       <p class="text-lg font-bold text-gray-900" id="graph-stat-nodes">—</p>
-      <p class="text-xs text-gray-500">авторов</p>
+      <p class="text-xs text-gray-600">авторов</p>
     </div>
     <div class="text-center">
       <p class="text-lg font-bold text-gray-900" id="graph-stat-edges">—</p>
-      <p class="text-xs text-gray-500">связей</p>
+      <p class="text-xs text-gray-600">связей</p>
     </div>
     <div class="text-center">
       <p class="text-lg font-bold text-gray-900" id="graph-stat-articles">{{ graph_articles_count }}</p>
-      <p class="text-xs text-gray-500">публикаций в выборке</p>
+      <p class="text-xs text-gray-600">публикаций в выборке</p>
     </div>
   </div>
 
@@ -619,11 +619,11 @@ function switchTab(tab) {
     if (t === tab) {
       panel.style.display = '';
       btn.classList.add('bg-gray-100', 'text-gray-900', 'font-medium');
-      btn.classList.remove('text-gray-500', 'hover:text-gray-700');
+      btn.classList.remove('text-gray-600', 'hover:text-gray-700');
     } else {
       panel.style.display = 'none';
       btn.classList.remove('bg-gray-100', 'text-gray-900', 'font-medium');
-      btn.classList.add('text-gray-500', 'hover:text-gray-700');
+      btn.classList.add('text-gray-600', 'hover:text-gray-700');
     }
   });
 

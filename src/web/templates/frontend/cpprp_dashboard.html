@@ -8,11 +8,11 @@
 <div class="flex items-start justify-between gap-4 mb-6">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Кабинет администратора</h1>
-    <p class="text-sm text-gray-500 mt-1">Управление платформой</p>
+    <p class="text-sm text-gray-600 mt-1">Управление платформой</p>
   </div>
   <a href="{% url 'frontend:moderation_list' %}"
      class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
-            {% if project_counts.on_moderation %}text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100{% else %}text-gray-600 bg-white border border-gray-200 hover:border-gray-300{% endif %} transition-colors">
+            {% if project_counts.on_moderation %}text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100{% else %}text-gray-600 bg-white border border-gray-500 hover:border-gray-300{% endif %} transition-colors">
     Очередь модерации
     {% if project_counts.on_moderation %}
     <span class="font-bold">{{ project_counts.on_moderation }}</span>
@@ -20,43 +20,43 @@
   </a>
 </div>
 
-<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-200 rounded-xl p-1 flex-wrap"
+<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-500 rounded-xl p-1 flex-wrap"
      style="width:fit-content;">
   <button id="tab-btn-overview" onclick="switchTab('overview')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors font-medium bg-gray-100 text-gray-900">
     Сводка
   </button>
   <button id="tab-btn-applications" onclick="switchTab('applications')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Заявки
-    {% if app_totals.submitted %}<span class="ml-1 text-xs text-red-500 font-bold">{{ app_totals.submitted }}</span>{% endif %}
+    {% if app_totals.submitted %}<span class="ml-1 text-xs text-red-600 font-bold">{{ app_totals.submitted }}</span>{% endif %}
   </button>
   <button id="tab-btn-deadlines" onclick="switchTab('deadlines')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Дедлайны
-    <span class="ml-1 text-xs text-gray-400">{{ deadlines|length }}</span>
+    <span class="ml-1 text-xs text-gray-600">{{ deadlines|length }}</span>
   </button>
   <button id="tab-btn-templates" onclick="switchTab('templates')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Шаблоны
-    <span class="ml-1 text-xs text-gray-400">{{ templates|length }}</span>
+    <span class="ml-1 text-xs text-gray-600">{{ templates|length }}</span>
   </button>
   <button id="tab-btn-external-access" onclick="switchTab('external-access')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Внешний доступ
     {% if external_pending_requests %}
-    <span class="ml-1 text-xs text-red-500 font-bold">{{ external_pending_requests|length }}</span>
+    <span class="ml-1 text-xs text-red-600 font-bold">{{ external_pending_requests|length }}</span>
     {% endif %}
   </button>
   <button id="tab-btn-export" onclick="switchTab('export')"
-          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+          class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Экспорт
   </button>
 </div>
 
 <div id="tab-panel-overview">
 
-  <p class="text-xs font-semibold uppercase text-gray-400 tracking-wide mb-3">Проекты</p>
+  <p class="text-xs font-semibold uppercase text-gray-600 tracking-wide mb-3">Проекты</p>
   <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
     <div class="bg-white border border-green-100 rounded-xl px-4 py-4">
       <p class="text-xs text-green-600 mb-1">Опубликованных</p>
@@ -70,16 +70,16 @@
       <p class="text-xs text-blue-600 mb-1">Укомплектованных</p>
       <p class="text-2xl font-bold text-blue-700">{{ project_counts.staffed }}</p>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl px-4 py-4">
-      <p class="text-xs text-gray-400 mb-1">Черновиков</p>
+    <div class="bg-white border border-gray-500 rounded-xl px-4 py-4">
+      <p class="text-xs text-gray-600 mb-1">Черновиков</p>
       <p class="text-2xl font-bold text-gray-900">{{ project_counts.draft }}</p>
     </div>
   </div>
 
-  <p class="text-xs font-semibold uppercase text-gray-400 tracking-wide mb-3">Заявки</p>
+  <p class="text-xs font-semibold uppercase text-gray-600 tracking-wide mb-3">Заявки</p>
   <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
-    <div class="bg-white border border-gray-200 rounded-xl px-4 py-4">
-      <p class="text-xs text-gray-400 mb-1">Всего</p>
+    <div class="bg-white border border-gray-500 rounded-xl px-4 py-4">
+      <p class="text-xs text-gray-600 mb-1">Всего</p>
       <p class="text-2xl font-bold text-gray-900">{{ app_totals.total }}</p>
     </div>
     <div class="bg-white border border-{% if app_totals.submitted %}red{% else %}gray{% endif %}-{% if app_totals.submitted %}100{% else %}200{% endif %} rounded-xl px-4 py-4">
@@ -90,8 +90,8 @@
       <p class="text-xs text-green-600 mb-1">Принятых</p>
       <p class="text-2xl font-bold text-green-700">{{ app_totals.accepted }}</p>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl px-4 py-4">
-      <p class="text-xs text-gray-400 mb-1">Отклонённых</p>
+    <div class="bg-white border border-gray-500 rounded-xl px-4 py-4">
+      <p class="text-xs text-gray-600 mb-1">Отклонённых</p>
       <p class="text-2xl font-bold text-gray-900">{{ app_totals.rejected }}</p>
     </div>
   </div>
@@ -105,11 +105,11 @@
       {% endif %}
     </a>
     <button onclick="switchTab('applications')"
-            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:border-gray-300 rounded-lg transition-colors">
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-500 hover:border-gray-300 rounded-lg transition-colors">
       Все заявки платформы →
     </button>
     <button onclick="switchTab('export')"
-            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:border-gray-300 rounded-lg transition-colors">
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-500 hover:border-gray-300 rounded-lg transition-colors">
       Экспорт данных →
     </button>
   </div>
@@ -118,34 +118,34 @@
 
 <div id="tab-panel-applications" style="display:none;">
 
-  <div class="flex items-center gap-1 mb-5 border-b border-gray-200">
+  <div class="flex items-center gap-1 mb-5 border-b border-gray-500">
     <a href="?tab=applications"
        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px
-              {% if not app_status_filter %}border-blue-600 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-900{% endif %}">
-      Все <span class="ml-1 text-xs px-1.5 rounded-full {% if not app_status_filter %}bg-blue-50 text-blue-600{% else %}bg-gray-100 text-gray-500{% endif %}">{{ app_totals.total }}</span>
+              {% if not app_status_filter %}border-blue-600 text-blue-600{% else %}border-transparent text-gray-600 hover:text-gray-900{% endif %}">
+      Все <span class="ml-1 text-xs px-1.5 rounded-full {% if not app_status_filter %}bg-blue-50 text-blue-600{% else %}bg-gray-100 text-gray-600{% endif %}">{{ app_totals.total }}</span>
     </a>
     <a href="?tab=applications&status=submitted"
        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px
-              {% if app_status_filter == 'submitted' %}border-yellow-500 text-yellow-700{% else %}border-transparent text-gray-500 hover:text-gray-900{% endif %}">
-      На рассмотрении <span class="ml-1 text-xs px-1.5 rounded-full {% if app_status_filter == 'submitted' %}bg-yellow-50 text-yellow-700{% else %}bg-gray-100 text-gray-500{% endif %}">{{ app_totals.submitted }}</span>
+              {% if app_status_filter == 'submitted' %}border-yellow-500 text-yellow-700{% else %}border-transparent text-gray-600 hover:text-gray-900{% endif %}">
+      На рассмотрении <span class="ml-1 text-xs px-1.5 rounded-full {% if app_status_filter == 'submitted' %}bg-yellow-50 text-yellow-700{% else %}bg-gray-100 text-gray-600{% endif %}">{{ app_totals.submitted }}</span>
     </a>
     <a href="?tab=applications&status=accepted"
        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px
-              {% if app_status_filter == 'accepted' %}border-green-500 text-green-700{% else %}border-transparent text-gray-500 hover:text-gray-900{% endif %}">
-      Принятые <span class="ml-1 text-xs px-1.5 rounded-full {% if app_status_filter == 'accepted' %}bg-green-50 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">{{ app_totals.accepted }}</span>
+              {% if app_status_filter == 'accepted' %}border-green-500 text-green-700{% else %}border-transparent text-gray-600 hover:text-gray-900{% endif %}">
+      Принятые <span class="ml-1 text-xs px-1.5 rounded-full {% if app_status_filter == 'accepted' %}bg-green-50 text-green-700{% else %}bg-gray-100 text-gray-600{% endif %}">{{ app_totals.accepted }}</span>
     </a>
     <a href="?tab=applications&status=rejected"
        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px
-              {% if app_status_filter == 'rejected' %}border-red-400 text-red-600{% else %}border-transparent text-gray-500 hover:text-gray-900{% endif %}">
-      Отклонённые <span class="ml-1 text-xs px-1.5 rounded-full {% if app_status_filter == 'rejected' %}bg-red-50 text-red-600{% else %}bg-gray-100 text-gray-500{% endif %}">{{ app_totals.rejected }}</span>
+              {% if app_status_filter == 'rejected' %}border-red-500 text-red-600{% else %}border-transparent text-gray-600 hover:text-gray-900{% endif %}">
+      Отклонённые <span class="ml-1 text-xs px-1.5 rounded-full {% if app_status_filter == 'rejected' %}bg-red-50 text-red-600{% else %}bg-gray-100 text-gray-600{% endif %}">{{ app_totals.rejected }}</span>
     </a>
   </div>
 
   {% if apps_page_obj.object_list %}
-  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+  <div class="bg-white border border-gray-500 rounded-2xl overflow-hidden">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+        <tr class="border-b border-gray-100 text-xs text-gray-600 uppercase tracking-wide">
           <th class="px-5 py-3 text-left font-semibold">Проект</th>
           <th class="px-5 py-3 text-left font-semibold">Студент</th>
           <th class="px-5 py-3 text-left font-semibold">Статус</th>
@@ -163,7 +163,7 @@
           </td>
           <td class="px-5 py-3 text-gray-600">
             {{ app.applicant.get_full_name|default:app.applicant.username }}
-            <span class="block text-xs text-gray-400">{{ app.applicant.email }}</span>
+            <span class="block text-xs text-gray-600">{{ app.applicant.email }}</span>
           </td>
           <td class="px-5 py-3">
             <span class="px-2 py-0.5 rounded-full text-xs font-semibold
@@ -173,7 +173,7 @@
               {% if app.status == 'accepted' %}Принята{% elif app.status == 'rejected' %}Отклонена{% else %}На рассмотрении{% endif %}
             </span>
           </td>
-          <td class="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
+          <td class="px-5 py-3 text-gray-600 text-xs whitespace-nowrap">
             {{ app.created_at|date:"d.m.Y H:i" }}
           </td>
         </tr>
@@ -186,26 +186,26 @@
   <div class="flex items-center justify-center gap-1 mt-6">
     {% if apps_page_obj.has_previous %}
     <a href="?tab=applications&status={{ app_status_filter }}&page={{ apps_page_obj.previous_page_number }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">←</a>
+       class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50">←</a>
     {% endif %}
     {% for num in apps_page_obj.paginator.page_range %}
       {% if apps_page_obj.number == num %}
       <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
       {% elif num > apps_page_obj.number|add:"-3" and num < apps_page_obj.number|add:"3" %}
       <a href="?tab=applications&status={{ app_status_filter }}&page={{ num }}"
-         class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">{{ num }}</a>
+         class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50">{{ num }}</a>
       {% endif %}
     {% endfor %}
     {% if apps_page_obj.has_next %}
     <a href="?tab=applications&status={{ app_status_filter }}&page={{ apps_page_obj.next_page_number }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">→</a>
+       class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50">→</a>
     {% endif %}
   </div>
   {% endif %}
 
   {% else %}
-  <div class="py-16 text-center bg-white border border-gray-200 rounded-2xl">
-    <p class="text-gray-400 text-sm">Заявок с таким статусом нет</p>
+  <div class="py-16 text-center bg-white border border-gray-500 rounded-2xl">
+    <p class="text-gray-600 text-sm">Заявок с таким статусом нет</p>
   </div>
   {% endif %}
 
@@ -233,11 +233,11 @@
                   {{ dl.audience }}
                 </span>
                 {% if not dl.is_active %}
-                <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">неактивен</span>
+                <span class="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">неактивен</span>
                 {% endif %}
               </div>
               {% if dl.description %}
-              <p class="text-xs text-gray-400 mt-0.5 truncate">{{ dl.description }}</p>
+              <p class="text-xs text-gray-600 mt-0.5 truncate">{{ dl.description }}</p>
               {% endif %}
               {% if dl.ends_at %}
               <p class="text-xs text-amber-600 mt-0.5">до {{ dl.ends_at|date:"d.m.Y H:i" }}</p>
@@ -248,7 +248,7 @@
                 {% csrf_token %}
                 <button type="submit"
                         class="px-2 py-1 text-xs rounded-lg border transition-colors
-                               {% if dl.is_active %}border-gray-200 text-gray-500 hover:bg-gray-50{% else %}border-green-200 text-green-700 hover:bg-green-50{% endif %}">
+                               {% if dl.is_active %}border-gray-500 text-gray-600 hover:bg-gray-50{% else %}border-green-200 text-green-700 hover:bg-green-50{% endif %}">
                   {% if dl.is_active %}Выкл{% else %}Вкл{% endif %}
                 </button>
               </form>
@@ -256,7 +256,7 @@
                     onsubmit="return confirm('Удалить дедлайн «{{ dl.title }}»?')">
                 {% csrf_token %}
                 <button type="submit"
-                        class="px-2 py-1 text-xs rounded-lg border border-red-100 text-red-500 hover:bg-red-50 transition-colors">
+                        class="px-2 py-1 text-xs rounded-lg border border-red-100 text-red-600 hover:bg-red-50 transition-colors">
                   ✕
                 </button>
               </form>
@@ -266,30 +266,30 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="py-12 text-center bg-white border border-gray-200 rounded-2xl">
-        <p class="text-gray-400 text-sm">Дедлайнов пока нет</p>
+      <div class="py-12 text-center bg-white border border-gray-500 rounded-2xl">
+        <p class="text-gray-600 text-sm">Дедлайнов пока нет</p>
       </div>
       {% endif %}
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+    <div class="bg-white border border-gray-500 rounded-2xl p-5">
       <h3 class="text-sm font-semibold text-gray-800 mb-4">Новый дедлайн</h3>
       <form method="post" action="{% url 'frontend:cpprp_deadline_create' %}" class="flex flex-col gap-3">
         {% csrf_token %}
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Slug *</label>
+          <label class="block text-xs text-gray-600 mb-1">Slug *</label>
           <input type="text" name="slug" required placeholder="application-deadline"
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                 class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Название *</label>
+          <label class="block text-xs text-gray-600 mb-1">Название *</label>
           <input type="text" name="title" required placeholder="Срок подачи заявок"
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                 class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Аудитория</label>
+          <label class="block text-xs text-gray-600 mb-1">Аудитория</label>
           <select name="audience"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
             <option value="global">Все (global)</option>
             <option value="student">Студенты</option>
             <option value="customer">Заказчики</option>
@@ -297,14 +297,14 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Описание</label>
+          <label class="block text-xs text-gray-600 mb-1">Описание</label>
           <textarea name="description" rows="2" placeholder="Необязательно"
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
+                    class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Дата окончания</label>
+          <label class="block text-xs text-gray-600 mb-1">Дата окончания</label>
           <input type="datetime-local" name="ends_at"
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                 class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
           <input type="checkbox" name="is_active" checked class="rounded">
@@ -342,11 +342,11 @@
                   {{ tpl.audience }}
                 </span>
                 {% if not tpl.is_active %}
-                <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">неактивен</span>
+                <span class="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">неактивен</span>
                 {% endif %}
               </div>
               {% if tpl.description %}
-              <p class="text-xs text-gray-400 mt-0.5 truncate">{{ tpl.description }}</p>
+              <p class="text-xs text-gray-600 mt-0.5 truncate">{{ tpl.description }}</p>
               {% endif %}
               <a href="{{ tpl.url }}" target="_blank" rel="noopener"
                  class="text-xs text-blue-500 hover:text-blue-700 truncate block mt-0.5">{{ tpl.url }}</a>
@@ -356,7 +356,7 @@
                 {% csrf_token %}
                 <button type="submit"
                         class="px-2 py-1 text-xs rounded-lg border transition-colors
-                               {% if tpl.is_active %}border-gray-200 text-gray-500 hover:bg-gray-50{% else %}border-green-200 text-green-700 hover:bg-green-50{% endif %}">
+                               {% if tpl.is_active %}border-gray-500 text-gray-600 hover:bg-gray-50{% else %}border-green-200 text-green-700 hover:bg-green-50{% endif %}">
                   {% if tpl.is_active %}Выкл{% else %}Вкл{% endif %}
                 </button>
               </form>
@@ -364,7 +364,7 @@
                     onsubmit="return confirm('Удалить шаблон «{{ tpl.title }}»?')">
                 {% csrf_token %}
                 <button type="submit"
-                        class="px-2 py-1 text-xs rounded-lg border border-red-100 text-red-500 hover:bg-red-50 transition-colors">
+                        class="px-2 py-1 text-xs rounded-lg border border-red-100 text-red-600 hover:bg-red-50 transition-colors">
                   ✕
                 </button>
               </form>
@@ -374,35 +374,35 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="py-12 text-center bg-white border border-gray-200 rounded-2xl">
-        <p class="text-gray-400 text-sm">Шаблонов пока нет</p>
+      <div class="py-12 text-center bg-white border border-gray-500 rounded-2xl">
+        <p class="text-gray-600 text-sm">Шаблонов пока нет</p>
       </div>
       {% endif %}
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+    <div class="bg-white border border-gray-500 rounded-2xl p-5">
       <h3 class="text-sm font-semibold text-gray-800 mb-4">Новый шаблон</h3>
       <form method="post" action="{% url 'frontend:cpprp_template_create' %}" class="flex flex-col gap-3">
         {% csrf_token %}
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Slug *</label>
+          <label class="block text-xs text-gray-600 mb-1">Slug *</label>
           <input type="text" name="slug" required placeholder="pz-template"
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                 class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Название *</label>
+          <label class="block text-xs text-gray-600 mb-1">Название *</label>
           <input type="text" name="title" required placeholder="Шаблон ПЗ"
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                 class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">URL файла *</label>
+          <label class="block text-xs text-gray-600 mb-1">URL файла *</label>
           <input type="url" name="url" required placeholder="https://..."
-                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                 class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Аудитория</label>
+          <label class="block text-xs text-gray-600 mb-1">Аудитория</label>
           <select name="audience"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
             <option value="global">Все (global)</option>
             <option value="student">Студенты</option>
             <option value="customer">Заказчики</option>
@@ -410,9 +410,9 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs text-gray-500 mb-1">Описание</label>
+          <label class="block text-xs text-gray-600 mb-1">Описание</label>
           <textarea name="description" rows="2" placeholder="Необязательно"
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
+                    class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
         </div>
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
           <input type="checkbox" name="is_active" checked class="rounded">
@@ -433,13 +433,13 @@
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
     <div class="lg:col-span-2 flex flex-col gap-6">
-      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="bg-white border border-gray-500 rounded-2xl p-5">
         <div class="flex items-center justify-between gap-3 mb-4">
           <div>
             <h3 class="text-sm font-semibold text-gray-800">Заявки на внешний доступ</h3>
-            <p class="text-xs text-gray-400 mt-1">Неизвестные внешние заказчики попадают сюда до регистрации.</p>
+            <p class="text-xs text-gray-600 mt-1">Неизвестные внешние заказчики попадают сюда до регистрации.</p>
           </div>
-          <span class="text-xs px-2 py-1 rounded-full {% if external_pending_requests %}bg-red-50 text-red-600{% else %}bg-gray-100 text-gray-500{% endif %}">
+          <span class="text-xs px-2 py-1 rounded-full {% if external_pending_requests %}bg-red-50 text-red-600{% else %}bg-gray-100 text-gray-600{% endif %}">
             pending: {{ external_pending_requests|length }}
           </span>
         </div>
@@ -447,11 +447,11 @@
         {% if external_pending_requests %}
         <div class="flex flex-col gap-3">
           {% for item in external_pending_requests %}
-          <div class="border border-gray-200 rounded-xl px-4 py-3">
+          <div class="border border-gray-500 rounded-xl px-4 py-3">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
                 <p class="text-sm font-semibold text-gray-900">{{ item.email }}</p>
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-gray-600 mt-1">
                   {{ item.full_name|default:"Имя не указано" }} • role: {{ item.requested_role }} •
                   {{ item.created_at|date:"d.m.Y H:i" }}
                 </p>
@@ -477,17 +477,17 @@
           {% endfor %}
         </div>
         {% else %}
-        <p class="text-sm text-gray-400">Новых заявок на внешний доступ нет.</p>
+        <p class="text-sm text-gray-600">Новых заявок на внешний доступ нет.</p>
         {% endif %}
       </div>
 
-      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="bg-white border border-gray-500 rounded-2xl p-5">
         <h3 class="text-sm font-semibold text-gray-800 mb-4">Последние заявки</h3>
         {% if external_recent_requests %}
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+              <tr class="border-b border-gray-100 text-xs text-gray-600 uppercase tracking-wide">
                 <th class="px-3 py-2 text-left font-semibold">Email</th>
                 <th class="px-3 py-2 text-left font-semibold">Роль</th>
                 <th class="px-3 py-2 text-left font-semibold">Статус</th>
@@ -498,7 +498,7 @@
               {% for item in external_recent_requests %}
               <tr>
                 <td class="px-3 py-2 text-gray-700">{{ item.email }}</td>
-                <td class="px-3 py-2 text-gray-500">{{ item.requested_role }}</td>
+                <td class="px-3 py-2 text-gray-600">{{ item.requested_role }}</td>
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold
                     {% if item.status == 'approved' %}bg-green-50 text-green-700
@@ -507,7 +507,7 @@
                     {{ item.status }}
                   </span>
                 </td>
-                <td class="px-3 py-2 text-gray-400 text-xs">
+                <td class="px-3 py-2 text-gray-600 text-xs">
                   {% if item.reviewed_at %}{{ item.reviewed_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
                 </td>
               </tr>
@@ -516,25 +516,25 @@
           </table>
         </div>
         {% else %}
-        <p class="text-sm text-gray-400">Истории заявок пока нет.</p>
+        <p class="text-sm text-gray-600">Истории заявок пока нет.</p>
         {% endif %}
       </div>
     </div>
 
     <div class="flex flex-col gap-6">
-      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="bg-white border border-gray-500 rounded-2xl p-5">
         <h3 class="text-sm font-semibold text-gray-800 mb-4">Массовое добавление внешних почт</h3>
         <form method="post" action="{% url 'frontend:cpprp_external_allowlist_bulk_add' %}" class="flex flex-col gap-3">
           {% csrf_token %}
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Email-адреса</label>
+            <label class="block text-xs text-gray-600 mb-1">Email-адреса</label>
             <textarea name="emails" rows="8" placeholder="teacher1@example.com&#10;teacher2@example.com"
-                      class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
+                      class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Комментарий</label>
+            <label class="block text-xs text-gray-600 mb-1">Комментарий</label>
             <input type="text" name="note" placeholder="Например: согласованный список кафедры"
-                   class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                   class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
           </div>
           <button type="submit"
                   class="w-full px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
@@ -543,19 +543,19 @@
         </form>
       </div>
 
-      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="bg-white border border-gray-500 rounded-2xl p-5">
         <div class="flex items-center justify-between gap-3 mb-4">
           <h3 class="text-sm font-semibold text-gray-800">Allowlist внешних почт</h3>
-          <span class="text-xs text-gray-400">{{ external_allowlist|length }} показано</span>
+          <span class="text-xs text-gray-600">{{ external_allowlist|length }} показано</span>
         </div>
         {% if external_allowlist %}
         <div class="flex flex-col gap-2 max-h-[34rem] overflow-y-auto">
           {% for item in external_allowlist %}
-          <div class="border border-gray-200 rounded-xl px-3 py-3">
+          <div class="border border-gray-500 rounded-xl px-3 py-3">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="text-sm font-medium text-gray-900 break-all">{{ item.email }}</p>
-                <p class="text-xs text-gray-400 mt-1">
+                <p class="text-xs text-gray-600 mt-1">
                   role: {{ item.allowed_role }}
                   {% if item.note %}• {{ item.note }}{% endif %}
                 </p>
@@ -564,7 +564,7 @@
                 {% csrf_token %}
                 <button type="submit"
                         class="px-2 py-1 text-xs rounded-lg border transition-colors
-                               {% if item.is_active %}border-gray-200 text-gray-500 hover:bg-gray-50{% else %}border-green-200 text-green-700 hover:bg-green-50{% endif %}">
+                               {% if item.is_active %}border-gray-500 text-gray-600 hover:bg-gray-50{% else %}border-green-200 text-green-700 hover:bg-green-50{% endif %}">
                   {% if item.is_active %}Выкл{% else %}Вкл{% endif %}
                 </button>
               </form>
@@ -573,7 +573,7 @@
           {% endfor %}
         </div>
         {% else %}
-        <p class="text-sm text-gray-400">Allowlist пока пуст.</p>
+        <p class="text-sm text-gray-600">Allowlist пока пуст.</p>
         {% endif %}
       </div>
     </div>
@@ -584,7 +584,7 @@
 
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-2xl">
 
-    <div class="bg-white border border-gray-200 rounded-2xl p-6">
+    <div class="bg-white border border-gray-500 rounded-2xl p-6">
       <div class="flex items-center gap-3 mb-3">
         <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -593,10 +593,10 @@
         </div>
         <div>
           <h3 class="text-sm font-semibold text-gray-800">Проекты</h3>
-          <p class="text-xs text-gray-400">CSV — все проекты платформы</p>
+          <p class="text-xs text-gray-600">CSV — все проекты платформы</p>
         </div>
       </div>
-      <p class="text-xs text-gray-500 mb-4">id, title, status, source_type, team_size, accepted, program, course, created_at</p>
+      <p class="text-xs text-gray-600 mb-4">id, title, status, source_type, team_size, accepted, program, course, created_at</p>
       <div class="flex flex-wrap gap-2">
         <a href="{% url 'frontend:cpprp_export_projects' %}"
            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
@@ -613,10 +613,10 @@
           Скачать projects.xlsx (EPP + DSA)
         </a>
       </div>
-      <p class="text-xs text-gray-400 mt-3">XLSX: лист совместимый с импортом EPP и лист <code class="text-gray-500">DSA_extended</code>. Параметр <code class="text-gray-500">?variant=compatible|extended|both</code></p>
+      <p class="text-xs text-gray-600 mt-3">XLSX: лист совместимый с импортом EPP и лист <code class="text-gray-600">DSA_extended</code>. Параметр <code class="text-gray-600">?variant=compatible|extended|both</code></p>
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-2xl p-6">
+    <div class="bg-white border border-gray-500 rounded-2xl p-6">
       <div class="flex items-center gap-3 mb-3">
         <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -625,10 +625,10 @@
         </div>
         <div>
           <h3 class="text-sm font-semibold text-gray-800">Заявки</h3>
-          <p class="text-xs text-gray-400">CSV — все заявки платформы</p>
+          <p class="text-xs text-gray-600">CSV — все заявки платформы</p>
         </div>
       </div>
-      <p class="text-xs text-gray-500 mb-4">id, project_id, project_title, applicant_id, email, status, created_at</p>
+      <p class="text-xs text-gray-600 mb-4">id, project_id, project_title, applicant_id, email, status, created_at</p>
       <a href="{% url 'frontend:cpprp_export_applications' %}"
          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -650,11 +650,11 @@ function switchTab(tab) {
     if (t === tab) {
       panel.style.display = '';
       btn.classList.add('bg-gray-100', 'text-gray-900', 'font-medium');
-      btn.classList.remove('text-gray-500', 'hover:text-gray-700');
+      btn.classList.remove('text-gray-600', 'hover:text-gray-700');
     } else {
       panel.style.display = 'none';
       btn.classList.remove('bg-gray-100', 'text-gray-900', 'font-medium');
-      btn.classList.add('text-gray-500', 'hover:text-gray-700');
+      btn.classList.add('text-gray-600', 'hover:text-gray-700');
     }
   });
   var url = new URL(window.location);

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load frontend_extras %}
 
 {% block title %}Рекомендации — Digital Student Assistant{% endblock %}
@@ -8,7 +8,7 @@
 <div class="flex items-start justify-between gap-4 mb-6">
   <div>
     <h1 class="text-xl font-semibold text-gray-900">Рекомендации</h1>
-    <p class="text-sm text-gray-500 mt-1">
+    <p class="text-sm text-gray-600 mt-1">
       {% if rec_mode == "semantic" %}
         Подбор на основе ML-анализа ваших интересов
       {% elif rec_mode %}
@@ -31,7 +31,7 @@
 {% if projects %}
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {% for project in projects %}
-      <article class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all" style="transition-duration:150ms;">
+      <article class="bg-white border border-gray-500 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all" style="transition-duration:150ms;">
 
         <div class="flex items-start justify-between gap-2">
           <a href="{% url 'frontend:project_detail' project.pk %}"
@@ -39,13 +39,13 @@
             {{ project.title }}
           </a>
           {% if project.status == ProjectStatus.STAFFED %}
-            <span class="flex-shrink-0 text-xs text-gray-400 bg-gray-100 px-2 rounded-full" style="padding-top:2px;padding-bottom:2px;">Закрыт</span>
+            <span class="flex-shrink-0 text-xs text-gray-600 bg-gray-100 px-2 rounded-full" style="padding-top:2px;padding-bottom:2px;">Закрыт</span>
           {% else %}
             <span class="flex-shrink-0 text-xs text-green-700 bg-green-50 px-2 rounded-full" style="padding-top:2px;padding-bottom:2px;">Открыт</span>
           {% endif %}
         </div>
 
-        <p class="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">
+        <p class="text-xs text-gray-600 leading-relaxed line-clamp-3 flex-1">
           {{ project.description|default:"—" }}
         </p>
 
@@ -64,7 +64,7 @@
         {% endwith %}
 
         <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-          <span class="text-xs text-gray-400">
+          <span class="text-xs text-gray-600">
             {{ project.accepted_participants_count }}&thinsp;/&thinsp;{{ project.team_size }} участников
           </span>
           <div class="apply-area" data-project-id="{{ project.pk }}">
@@ -77,7 +77,7 @@
   </div>
 
 {% else %}
-  <div class="text-center py-20 text-gray-400">
+  <div class="text-center py-20 text-gray-600">
     <p class="text-sm">Нет подходящих проектов</p>
     <p class="text-xs mt-1">
       Попробуйте обновить <a href="{% url 'frontend:profile' %}" class="underline">интересы в профиле</a>

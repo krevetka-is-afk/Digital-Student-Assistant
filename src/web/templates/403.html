@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Доступ запрещён — Digital Student Assistant{% endblock %}
 
@@ -9,7 +9,7 @@
 
   <div style="margin-top:-1rem;">
     <h1 class="text-xl font-semibold text-gray-900 mb-2">Доступ запрещён</h1>
-    <p class="text-sm text-gray-500 max-w-sm">
+    <p class="text-sm text-gray-600 max-w-sm">
       У вас нет прав для просмотра этой страницы.
       Если вы считаете, что это ошибка — обратитесь к администратору.
     </p>
@@ -17,7 +17,7 @@
 
   <div class="flex items-center gap-3 mt-8">
     <a href="javascript:history.back()"
-       class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+       class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">
       ← Назад
     </a>
     <a href="{% url 'frontend:project_list' %}"

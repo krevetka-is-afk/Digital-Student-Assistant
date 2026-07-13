@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Преподаватели — Digital Student Assistant{% endblock %}
 
@@ -7,7 +7,7 @@
 <div class="flex items-start justify-between gap-4 mb-6">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Преподаватели</h1>
-    <p class="text-sm text-gray-500 mt-1">
+    <p class="text-sm text-gray-600 mt-1">
       {% if query %}Результаты поиска: {{ total }}{% else %}{{ total }} преподавател{% if total == 1 %}ь{% elif total < 5 %}я{% else %}ей{% endif %} в базе{% endif %}
     </p>
   </div>
@@ -17,14 +17,14 @@
   <div class="flex gap-2 max-w-md">
     <input type="text" name="q" value="{{ query }}"
            placeholder="Поиск по фамилии или имени…"
-           class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+           class="flex-1 px-3 py-2 text-sm border border-gray-500 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
     <button type="submit"
             class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
       Найти
     </button>
     {% if query %}
     <a href="{% url 'frontend:faculty_list' %}"
-       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+       class="px-3 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">
       ✕
     </a>
     {% endif %}
@@ -36,34 +36,34 @@
 
   {% for person in page_obj %}
   <a href="{% url 'frontend:faculty_detail' person.source_key %}"
-     class="block bg-white border border-gray-200 rounded-2xl p-5 hover:border-blue-300 hover:shadow-sm transition-all">
+     class="block bg-white border border-gray-500 rounded-2xl p-5 hover:border-blue-300 hover:shadow-sm transition-all">
 
     <div class="flex items-start justify-between gap-3 mb-3">
       <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
         <span class="text-base font-bold text-blue-600">{{ person.full_name|slice:":1" }}</span>
       </div>
       {% if person.publications_total %}
-      <span class="flex-shrink-0 text-xs text-gray-400 mt-1">{{ person.publications_total }} публ.</span>
+      <span class="flex-shrink-0 text-xs text-gray-600 mt-1">{{ person.publications_total }} публ.</span>
       {% endif %}
     </div>
 
     <p class="text-sm font-semibold text-gray-900 mb-1 leading-snug">{{ person.full_name }}</p>
 
     {% if person.primary_unit %}
-    <p class="text-xs text-gray-500 mb-2 leading-snug">{{ person.primary_unit }}</p>
+    <p class="text-xs text-gray-600 mb-2 leading-snug">{{ person.primary_unit }}</p>
     {% endif %}
 
     {% if person.campus_name %}
-    <p class="text-xs text-gray-400 mb-3">{{ person.campus_name }}</p>
+    <p class="text-xs text-gray-600 mb-3">{{ person.campus_name }}</p>
     {% endif %}
 
     {% if person.interests %}
     <div class="flex flex-wrap gap-1">
       {% for interest in person.interests|slice:":3" %}
-      <span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">{{ interest }}</span>
+      <span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">{{ interest }}</span>
       {% endfor %}
       {% if person.interests|length > 3 %}
-      <span class="px-1.5 py-0.5 text-xs text-gray-400">+{{ person.interests|length|add:"-3" }}</span>
+      <span class="px-1.5 py-0.5 text-xs text-gray-600">+{{ person.interests|length|add:"-3" }}</span>
       {% endif %}
     </div>
     {% endif %}
@@ -77,29 +77,29 @@
 <div class="flex items-center justify-center gap-1 mt-8">
   {% if page_obj.has_previous %}
   <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.previous_page_number }}"
-     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">←</a>
+     class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">←</a>
   {% endif %}
   {% for num in page_obj.paginator.page_range %}
     {% if page_obj.number == num %}
     <span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
     {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
     <a href="?{% if query %}q={{ query }}&{% endif %}page={{ num }}"
-       class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
+       class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">{{ num }}</a>
     {% endif %}
   {% endfor %}
   {% if page_obj.has_next %}
   <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.next_page_number }}"
-     class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">→</a>
+     class="px-3 py-1.5 text-sm border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors">→</a>
   {% endif %}
 </div>
 {% endif %}
 
 {% else %}
-<div class="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+<div class="text-center py-20 bg-white border border-gray-500 rounded-2xl">
   <p class="text-gray-900 font-semibold mb-1">
     {% if query %}Никого не найдено{% else %}Данные пока не загружены{% endif %}
   </p>
-  <p class="text-gray-400 text-sm">
+  <p class="text-gray-600 text-sm">
     {% if query %}Попробуйте изменить запрос{% else %}База преподавателей синхронизируется автоматически{% endif %}
   </p>
 </div>
