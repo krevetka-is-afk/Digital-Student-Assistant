@@ -33,7 +33,7 @@
             <p class="text-sm font-semibold text-gray-900 truncate">{{ thread.subject }}</p>
             {% with last=thread.last_message %}
               {% if last %}
-                <p class="text-xs text-gray-500 truncate mt-0.5">
+                <p class="text-xs text-gray-600 truncate mt-0.5">
                   {{ last.sender.get_full_name|default:last.sender.username }}: {{ last.body|truncatechars:60 }}
                 </p>
               {% endif %}

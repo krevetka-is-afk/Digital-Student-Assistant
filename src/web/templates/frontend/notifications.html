@@ -32,9 +32,9 @@
         {% if n.body %}
         <p style="margin:0 0 4px;font-size:0.8125rem;color:#6b7280;">{{ n.body|truncatechars:120 }}</p>
         {% endif %}
-        <p style="margin:0;font-size:0.75rem;color:#9ca3af;">
+        <p style="margin:0;font-size:0.75rem;color:#4b5563;">
           {{ n.created_at|date:"d.m.Y H:i" }}
-          {% if n.read_at %}&nbsp;·&nbsp;<span style="color:#9ca3af;">прочитано</span>{% endif %}
+          {% if n.read_at %}&nbsp;·&nbsp;<span style="color:#4b5563;">прочитано</span>{% endif %}
         </p>
       </div>
     </li>
