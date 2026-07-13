@@ -137,8 +137,8 @@
         {% csrf_token %}
 
         <div class="mb-3">
-          <label class="block text-xs text-gray-600 mb-1">Вид деятельности</label>
-          <input type="text" name="activity_type"
+          <label for="mod-activity-type" class="block text-xs text-gray-600 mb-1">Вид деятельности</label>
+          <input type="text" id="mod-activity-type" name="activity_type"
                  value="{{ fields_form.activity_type.value|default:'' }}"
                  maxlength="255"
                  placeholder="—"
@@ -148,16 +148,16 @@
 
         <div class="mb-3 grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs text-gray-600 mb-1">Курс</label>
-            <input type="number" name="study_course"
+            <label for="mod-study-course" class="block text-xs text-gray-600 mb-1">Курс</label>
+            <input type="number" id="mod-study-course" name="study_course"
                    value="{{ fields_form.study_course.value|default:'' }}"
                    min="1" max="6" placeholder="—"
                    class="w-full px-2.5 py-1.5 text-sm border border-gray-500 rounded-lg bg-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
             {% if fields_form.study_course.errors %}<p class="mt-0.5 text-xs text-red-600">{{ fields_form.study_course.errors.0 }}</p>{% endif %}
           </div>
           <div>
-            <label class="block text-xs text-gray-600 mb-1">Кредиты</label>
-            <input type="number" name="credits"
+            <label for="mod-credits" class="block text-xs text-gray-600 mb-1">Кредиты</label>
+            <input type="number" id="mod-credits" name="credits"
                    value="{{ fields_form.credits.value|default:'' }}"
                    min="0" step="0.5" placeholder="—"
                    class="w-full px-2.5 py-1.5 text-sm border border-gray-500 rounded-lg bg-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
@@ -166,8 +166,8 @@
         </div>
 
         <div class="mb-3">
-          <label class="block text-xs text-gray-600 mb-1">Образовательная программа</label>
-          <input type="text" name="education_program"
+          <label for="mod-education-program" class="block text-xs text-gray-600 mb-1">Образовательная программа</label>
+          <input type="text" id="mod-education-program" name="education_program"
                  value="{{ fields_form.education_program.value|default:'' }}"
                  maxlength="255"
                  placeholder="—"
@@ -175,8 +175,8 @@
         </div>
 
         <div class="mb-3">
-          <label class="block text-xs text-gray-600 mb-1">Форма контроля</label>
-          <input type="text" name="control_form"
+          <label for="mod-control-form" class="block text-xs text-gray-600 mb-1">Форма контроля</label>
+          <input type="text" id="mod-control-form" name="control_form"
                  value="{{ fields_form.control_form.value|default:'' }}"
                  maxlength="255"
                  placeholder="—"
@@ -184,8 +184,8 @@
         </div>
 
         <div class="mb-3">
-          <label class="block text-xs text-gray-600 mb-1">Формат участия студента</label>
-          <input type="text" name="student_participation_format"
+          <label for="mod-participation-format" class="block text-xs text-gray-600 mb-1">Формат участия студента</label>
+          <input type="text" id="mod-participation-format" name="student_participation_format"
                  value="{{ fields_form.student_participation_format.value|default:'' }}"
                  maxlength="255"
                  placeholder="—"
@@ -193,8 +193,8 @@
         </div>
 
         <div class="mb-3">
-          <label class="block text-xs text-gray-600 mb-1">Формат представления результатов</label>
-          <textarea name="results_presentation_format"
+          <label for="mod-results-format" class="block text-xs text-gray-600 mb-1">Формат представления результатов</label>
+          <textarea id="mod-results-format" name="results_presentation_format"
                     rows="2"
                     placeholder="—"
                     class="w-full px-2.5 py-1.5 text-sm border border-gray-500 rounded-lg bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
@@ -202,8 +202,8 @@
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs text-gray-600 mb-1">Формула оценки</label>
-          <textarea name="grading_formula"
+          <label for="mod-grading" class="block text-xs text-gray-600 mb-1">Формула оценки</label>
+          <textarea id="mod-grading" name="grading_formula"
                     rows="2"
                     placeholder="—"
                     class="w-full px-2.5 py-1.5 text-sm border border-gray-500 rounded-lg bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"

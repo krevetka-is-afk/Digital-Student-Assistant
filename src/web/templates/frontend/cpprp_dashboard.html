@@ -20,41 +20,48 @@
   </a>
 </div>
 
-<div class="flex items-center gap-0.5 mb-6 bg-white border border-gray-500 rounded-xl p-1 flex-wrap"
+<div role="tablist" aria-label="Разделы кабинета администратора"
+     class="flex items-center gap-0.5 mb-6 bg-white border border-gray-500 rounded-xl p-1 flex-wrap"
      style="width:fit-content;">
-  <button id="tab-btn-overview" onclick="switchTab('overview')"
+  <button id="tab-btn-overview" role="tab" aria-selected="true" aria-controls="tab-panel-overview" tabindex="0"
+          onclick="switchTab('overview')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors font-medium bg-gray-100 text-gray-900">
     Сводка
   </button>
-  <button id="tab-btn-applications" onclick="switchTab('applications')"
+  <button id="tab-btn-applications" role="tab" aria-selected="false" aria-controls="tab-panel-applications" tabindex="-1"
+          onclick="switchTab('applications')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Заявки
     {% if app_totals.submitted %}<span class="ml-1 text-xs text-red-600 font-bold">{{ app_totals.submitted }}</span>{% endif %}
   </button>
-  <button id="tab-btn-deadlines" onclick="switchTab('deadlines')"
+  <button id="tab-btn-deadlines" role="tab" aria-selected="false" aria-controls="tab-panel-deadlines" tabindex="-1"
+          onclick="switchTab('deadlines')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Дедлайны
     <span class="ml-1 text-xs text-gray-600">{{ deadlines|length }}</span>
   </button>
-  <button id="tab-btn-templates" onclick="switchTab('templates')"
+  <button id="tab-btn-templates" role="tab" aria-selected="false" aria-controls="tab-panel-templates" tabindex="-1"
+          onclick="switchTab('templates')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Шаблоны
     <span class="ml-1 text-xs text-gray-600">{{ templates|length }}</span>
   </button>
-  <button id="tab-btn-external-access" onclick="switchTab('external-access')"
+  <button id="tab-btn-external-access" role="tab" aria-selected="false" aria-controls="tab-panel-external-access" tabindex="-1"
+          onclick="switchTab('external-access')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Внешний доступ
     {% if external_pending_requests %}
     <span class="ml-1 text-xs text-red-600 font-bold">{{ external_pending_requests|length }}</span>
     {% endif %}
   </button>
-  <button id="tab-btn-export" onclick="switchTab('export')"
+  <button id="tab-btn-export" role="tab" aria-selected="false" aria-controls="tab-panel-export" tabindex="-1"
+          onclick="switchTab('export')"
           class="px-4 py-1.5 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-700">
     Экспорт
   </button>
 </div>
 
-<div id="tab-panel-overview">
+<div id="tab-panel-overview" role="tabpanel" aria-labelledby="tab-btn-overview" tabindex="0">
 
   <p class="text-xs font-semibold uppercase text-gray-600 tracking-wide mb-3">Проекты</p>
   <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
@@ -116,7 +123,7 @@
 
 </div>
 
-<div id="tab-panel-applications" style="display:none;">
+<div id="tab-panel-applications" role="tabpanel" aria-labelledby="tab-btn-applications" tabindex="-1" style="display:none;">
 
   <div class="flex items-center gap-1 mb-5 border-b border-gray-500">
     <a href="?tab=applications"
@@ -143,13 +150,14 @@
 
   {% if apps_page_obj.object_list %}
   <div class="bg-white border border-gray-500 rounded-2xl overflow-hidden">
-    <table class="w-full text-sm">
+    <table class="w-full text-sm" aria-label="Заявки на проекты">
+      <caption class="sr-only">Список заявок на проекты студентов</caption>
       <thead>
         <tr class="border-b border-gray-100 text-xs text-gray-600 uppercase tracking-wide">
-          <th class="px-5 py-3 text-left font-semibold">Проект</th>
-          <th class="px-5 py-3 text-left font-semibold">Студент</th>
-          <th class="px-5 py-3 text-left font-semibold">Статус</th>
-          <th class="px-5 py-3 text-left font-semibold">Дата</th>
+          <th scope="col" class="px-5 py-3 text-left font-semibold">Проект</th>
+          <th scope="col" class="px-5 py-3 text-left font-semibold">Студент</th>
+          <th scope="col" class="px-5 py-3 text-left font-semibold">Статус</th>
+          <th scope="col" class="px-5 py-3 text-left font-semibold">Дата</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-50">
@@ -211,7 +219,7 @@
 
 </div>
 
-<div id="tab-panel-deadlines" style="display:none;">
+<div id="tab-panel-deadlines" role="tabpanel" aria-labelledby="tab-btn-deadlines" tabindex="-1" style="display:none;">
 
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
@@ -273,22 +281,22 @@
     </div>
 
     <div class="bg-white border border-gray-500 rounded-2xl p-5">
-      <h3 class="text-sm font-semibold text-gray-800 mb-4">Новый дедлайн</h3>
+      <h2 class="text-sm font-semibold text-gray-800 mb-4">Новый дедлайн</h2>
       <form method="post" action="{% url 'frontend:cpprp_deadline_create' %}" class="flex flex-col gap-3">
         {% csrf_token %}
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Slug *</label>
-          <input type="text" name="slug" required placeholder="application-deadline"
+          <label for="dl-slug" class="block text-xs text-gray-600 mb-1">Slug *</label>
+          <input type="text" id="dl-slug" name="slug" required placeholder="application-deadline"
                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Название *</label>
-          <input type="text" name="title" required placeholder="Срок подачи заявок"
+          <label for="dl-title" class="block text-xs text-gray-600 mb-1">Название *</label>
+          <input type="text" id="dl-title" name="title" required placeholder="Срок подачи заявок"
                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Аудитория</label>
-          <select name="audience"
+          <label for="dl-audience" class="block text-xs text-gray-600 mb-1">Аудитория</label>
+          <select id="dl-audience" name="audience"
                   class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
             <option value="global">Все (global)</option>
             <option value="student">Студенты</option>
@@ -297,13 +305,13 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Описание</label>
-          <textarea name="description" rows="2" placeholder="Необязательно"
+          <label for="dl-description" class="block text-xs text-gray-600 mb-1">Описание</label>
+          <textarea id="dl-description" name="description" rows="2" placeholder="Необязательно"
                     class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Дата окончания</label>
-          <input type="datetime-local" name="ends_at"
+          <label for="dl-ends-at" class="block text-xs text-gray-600 mb-1">Дата окончания</label>
+          <input type="datetime-local" id="dl-ends-at" name="ends_at"
                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
@@ -320,7 +328,7 @@
   </div>
 </div>
 
-<div id="tab-panel-templates" style="display:none;">
+<div id="tab-panel-templates" role="tabpanel" aria-labelledby="tab-btn-templates" tabindex="-1" style="display:none;">
 
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
@@ -381,27 +389,27 @@
     </div>
 
     <div class="bg-white border border-gray-500 rounded-2xl p-5">
-      <h3 class="text-sm font-semibold text-gray-800 mb-4">Новый шаблон</h3>
+      <h2 class="text-sm font-semibold text-gray-800 mb-4">Новый шаблон</h2>
       <form method="post" action="{% url 'frontend:cpprp_template_create' %}" class="flex flex-col gap-3">
         {% csrf_token %}
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Slug *</label>
-          <input type="text" name="slug" required placeholder="pz-template"
+          <label for="tpl-slug" class="block text-xs text-gray-600 mb-1">Slug *</label>
+          <input type="text" id="tpl-slug" name="slug" required placeholder="pz-template"
                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Название *</label>
-          <input type="text" name="title" required placeholder="Шаблон ПЗ"
+          <label for="tpl-title" class="block text-xs text-gray-600 mb-1">Название *</label>
+          <input type="text" id="tpl-title" name="title" required placeholder="Шаблон ПЗ"
                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">URL файла *</label>
-          <input type="url" name="url" required placeholder="https://..."
+          <label for="tpl-url" class="block text-xs text-gray-600 mb-1">URL файла *</label>
+          <input type="url" id="tpl-url" name="url" required placeholder="https://..."
                  class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Аудитория</label>
-          <select name="audience"
+          <label for="tpl-audience" class="block text-xs text-gray-600 mb-1">Аудитория</label>
+          <select id="tpl-audience" name="audience"
                   class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
             <option value="global">Все (global)</option>
             <option value="student">Студенты</option>
@@ -410,8 +418,8 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Описание</label>
-          <textarea name="description" rows="2" placeholder="Необязательно"
+          <label for="tpl-description" class="block text-xs text-gray-600 mb-1">Описание</label>
+          <textarea id="tpl-description" name="description" rows="2" placeholder="Необязательно"
                     class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
         </div>
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
@@ -428,7 +436,7 @@
   </div>
 </div>
 
-<div id="tab-panel-external-access" style="display:none;">
+<div id="tab-panel-external-access" role="tabpanel" aria-labelledby="tab-btn-external-access" tabindex="-1" style="display:none;">
 
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
@@ -436,7 +444,7 @@
       <div class="bg-white border border-gray-500 rounded-2xl p-5">
         <div class="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h3 class="text-sm font-semibold text-gray-800">Заявки на внешний доступ</h3>
+            <h2 class="text-sm font-semibold text-gray-800">Заявки на внешний доступ</h2>
             <p class="text-xs text-gray-600 mt-1">Неизвестные внешние заказчики попадают сюда до регистрации.</p>
           </div>
           <span class="text-xs px-2 py-1 rounded-full {% if external_pending_requests %}bg-red-50 text-red-600{% else %}bg-gray-100 text-gray-600{% endif %}">
@@ -482,16 +490,17 @@
       </div>
 
       <div class="bg-white border border-gray-500 rounded-2xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 mb-4">Последние заявки</h3>
+        <h2 class="text-sm font-semibold text-gray-800 mb-4">Последние заявки</h2>
         {% if external_recent_requests %}
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-sm" aria-label="Заявки на внешний доступ">
+            <caption class="sr-only">Последние заявки на внешний доступ к платформе</caption>
             <thead>
               <tr class="border-b border-gray-100 text-xs text-gray-600 uppercase tracking-wide">
-                <th class="px-3 py-2 text-left font-semibold">Email</th>
-                <th class="px-3 py-2 text-left font-semibold">Роль</th>
-                <th class="px-3 py-2 text-left font-semibold">Статус</th>
-                <th class="px-3 py-2 text-left font-semibold">Рассмотрена</th>
+                <th scope="col" class="px-3 py-2 text-left font-semibold">Email</th>
+                <th scope="col" class="px-3 py-2 text-left font-semibold">Роль</th>
+                <th scope="col" class="px-3 py-2 text-left font-semibold">Статус</th>
+                <th scope="col" class="px-3 py-2 text-left font-semibold">Рассмотрена</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
@@ -523,17 +532,17 @@
 
     <div class="flex flex-col gap-6">
       <div class="bg-white border border-gray-500 rounded-2xl p-5">
-        <h3 class="text-sm font-semibold text-gray-800 mb-4">Массовое добавление внешних почт</h3>
+        <h2 class="text-sm font-semibold text-gray-800 mb-4">Массовое добавление внешних почт</h2>
         <form method="post" action="{% url 'frontend:cpprp_external_allowlist_bulk_add' %}" class="flex flex-col gap-3">
           {% csrf_token %}
           <div>
-            <label class="block text-xs text-gray-600 mb-1">Email-адреса</label>
-            <textarea name="emails" rows="8" placeholder="teacher1@example.com&#10;teacher2@example.com"
+            <label for="bulk-emails" class="block text-xs text-gray-600 mb-1">Email-адреса</label>
+            <textarea id="bulk-emails" name="emails" rows="8" placeholder="teacher1@example.com&#10;teacher2@example.com"
                       class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
           </div>
           <div>
-            <label class="block text-xs text-gray-600 mb-1">Комментарий</label>
-            <input type="text" name="note" placeholder="Например: согласованный список кафедры"
+            <label for="bulk-note" class="block text-xs text-gray-600 mb-1">Комментарий</label>
+            <input type="text" id="bulk-note" name="note" placeholder="Например: согласованный список кафедры"
                    class="w-full px-3 py-2 text-sm border border-gray-500 rounded-lg focus:outline-none focus:border-blue-400">
           </div>
           <button type="submit"
@@ -545,7 +554,7 @@
 
       <div class="bg-white border border-gray-500 rounded-2xl p-5">
         <div class="flex items-center justify-between gap-3 mb-4">
-          <h3 class="text-sm font-semibold text-gray-800">Allowlist внешних почт</h3>
+          <h2 class="text-sm font-semibold text-gray-800">Allowlist внешних почт</h2>
           <span class="text-xs text-gray-600">{{ external_allowlist|length }} показано</span>
         </div>
         {% if external_allowlist %}
@@ -580,7 +589,7 @@
   </div>
 </div>
 
-<div id="tab-panel-export" style="display:none;">
+<div id="tab-panel-export" role="tabpanel" aria-labelledby="tab-btn-export" tabindex="-1" style="display:none;">
 
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-2xl">
 
@@ -592,7 +601,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-semibold text-gray-800">Проекты</h3>
+          <h2 class="text-sm font-semibold text-gray-800">Проекты</h2>
           <p class="text-xs text-gray-600">CSV — все проекты платформы</p>
         </div>
       </div>
@@ -624,7 +633,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-semibold text-gray-800">Заявки</h3>
+          <h2 class="text-sm font-semibold text-gray-800">Заявки</h2>
           <p class="text-xs text-gray-600">CSV — все заявки платформы</p>
         </div>
       </div>
@@ -649,12 +658,18 @@ function switchTab(tab) {
     var btn   = document.getElementById('tab-btn-' + t);
     if (t === tab) {
       panel.style.display = '';
+      panel.setAttribute('tabindex', '0');
       btn.classList.add('bg-gray-100', 'text-gray-900', 'font-medium');
       btn.classList.remove('text-gray-600', 'hover:text-gray-700');
+      btn.setAttribute('aria-selected', 'true');
+      btn.setAttribute('tabindex', '0');
     } else {
       panel.style.display = 'none';
+      panel.setAttribute('tabindex', '-1');
       btn.classList.remove('bg-gray-100', 'text-gray-900', 'font-medium');
       btn.classList.add('text-gray-600', 'hover:text-gray-700');
+      btn.setAttribute('aria-selected', 'false');
+      btn.setAttribute('tabindex', '-1');
     }
   });
   var url = new URL(window.location);

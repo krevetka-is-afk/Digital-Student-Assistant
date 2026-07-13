@@ -53,7 +53,8 @@
               {% include "frontend/partials/bookmark_button.html" with pk=project.pk %}
             {% endif %}
             <a href="/projects/{{ project.pk }}/"
-               class="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+               class="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+               aria-label="Подробнее о {{ project.title }}">
               Подробнее
             </a>
             <div class="apply-area" data-project-id="{{ project.pk }}">

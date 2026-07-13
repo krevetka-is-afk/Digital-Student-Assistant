@@ -115,6 +115,7 @@
                  value="{{ profile_user.get_full_name }}"
                  placeholder="Иван Иванов"
                  maxlength="100"
+                 autocomplete="name"
                  class="w-full border {% if profile_errors.full_name %}border-red-500{% else %}border-gray-500{% endif %} rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
                  style="background:#fafafa;">
           {% if profile_errors.full_name %}
@@ -149,7 +150,7 @@
 
         {% if role == 'student' %}
         <div class="mb-6">
-          <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+          <label for="interests-input" class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
             Интересы
           </label>
           <input type="hidden" name="interests_raw" id="interests_raw_input"
