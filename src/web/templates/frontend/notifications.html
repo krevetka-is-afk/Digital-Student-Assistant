@@ -30,7 +30,7 @@
           {{ n.title }}
         </p>
         {% if n.body %}
-        <p style="margin:0 0 4px;font-size:0.8125rem;color:#6b7280;">{{ n.body|truncatechars:120 }}</p>
+        <p style="margin:0 0 4px;font-size:0.8125rem;color:#4b5563;">{{ n.body|truncatechars:120 }}</p>
         {% endif %}
         <p style="margin:0;font-size:0.75rem;color:#4b5563;">
           {{ n.created_at|date:"d.m.Y H:i" }}
@@ -41,7 +41,7 @@
     {% endfor %}
   </ul>
   {% else %}
-  <div style="text-align:center;padding:4rem 1rem;color:#9ca3af;" role="status">
+  <div style="text-align:center;padding:4rem 1rem;color:#4b5563;" role="status">
     <p style="font-size:0.875rem;">У вас пока нет уведомлений</p>
   </div>
   {% endif %}
