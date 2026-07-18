@@ -13,15 +13,20 @@ def project_detail(request, pk):
     is_owner = project.owner == request.user
     is_public = project.status in ProjectStatus.catalog_values()
 
-    if not is_public and not is_owner and not request.user.is_staff:
-        raise PermissionDenied
-
     application = None
     if not is_owner:
         application = Application.objects.filter(
             project=project,
             applicant=request.user,
         ).first()
+
+    is_participant = (
+        application is not None
+        and application.status == ApplicationStatus.ACCEPTED
+    )
+
+    if not is_public and not is_owner and not is_participant and not request.user.is_staff:
+        raise PermissionDenied
 
     spots_left = max(0, project.team_size - project.accepted_participants_count)
 

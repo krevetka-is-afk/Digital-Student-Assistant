@@ -1,68 +1,153 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}{{ thread.subject }} — Сообщения{% endblock %}
 
-{% block content %}
-<div class="max-w-2xl mx-auto">
-  <div class="flex items-center gap-3 mb-6">
-    <a href="{% url 'messaging:thread_list' %}"
-       class="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-       aria-label="Назад к списку сообщений">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-           aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </a>
-    <h1 class="text-xl font-semibold text-gray-900">{{ thread.subject }}</h1>
-  </div>
+{% block main_class %}flex-1 px-4 sm:px-6 lg:px-8 py-6{% endblock %}
 
-  <div class="bg-white border border-gray-500 rounded-xl overflow-hidden mb-4">
-    <div class="divide-y divide-gray-100 max-h-96 overflow-y-auto" id="messages-container"
-         role="log" aria-label="Сообщения в диалоге" aria-live="polite">
-      {% for msg in messages %}
-        <div class="px-5 py-4 {% if msg.sender == request.user %}bg-blue-50{% endif %}">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-sm font-semibold text-gray-900">
-              {{ msg.sender.get_full_name|default:msg.sender.username }}
-            </span>
-            <time class="text-xs text-gray-600"
-                  datetime="{{ msg.created_at|date:'c' }}">
-              {{ msg.created_at|date:"d.m.Y H:i" }}
-            </time>
-            {% if msg.sender == request.user %}
-              <span class="text-xs text-blue-500 font-medium">Вы</span>
+{% block content %}
+<div class="flex gap-0 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm" style="height: calc(100vh - 140px); min-height: 500px;">
+
+  <!-- Left: thread list -->
+  <div class="flex flex-col w-80 flex-shrink-0 border-r border-gray-200">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+      <span class="text-base font-semibold text-gray-900">Сообщения</span>
+      <a href="{% url 'messaging:thread_create' %}"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+         aria-label="Написать новое сообщение">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Новое
+      </a>
+    </div>
+
+    <div class="flex-1 overflow-y-auto divide-y divide-gray-100">
+      {% for t, unread, others in threads_with_meta %}
+        {% with last=t.last_message %}
+        <a href="{% url 'messaging:thread_detail' t.pk %}"
+           class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors
+                  {% if t.pk == thread.pk %}bg-blue-50 border-l-2 border-l-blue-600{% elif unread %}bg-blue-50 hover:bg-blue-50{% endif %}"
+           aria-label="Диалог с {% for p in others %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+          <div class="flex-shrink-0 w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm select-none">
+            {% for p in others %}{{ p.get_full_name|default:p.username|slice:":1"|upper }}{% endfor %}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline justify-between gap-1">
+              <p class="text-sm font-semibold text-gray-900 truncate">
+                {% for p in others %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              </p>
+              {% if last %}
+                <time class="flex-shrink-0 text-xs text-gray-600" datetime="{{ last.created_at|date:'c' }}">{{ last.created_at|date:"d.m" }}</time>
+              {% endif %}
+            </div>
+            <p class="text-xs text-gray-600 truncate">{{ t.subject }}</p>
+            {% if last %}
+              <p class="text-xs text-gray-600 truncate">{% if last.sender == request.user %}Вы: {% endif %}{{ last.body|truncatechars:40 }}</p>
             {% endif %}
           </div>
-          <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ msg.body }}</p>
-        </div>
+          {% if unread %}
+            <span class="flex-shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">{{ unread }}</span>
+          {% endif %}
+        </a>
+        {% endwith %}
       {% empty %}
-        <p class="px-5 py-8 text-center text-sm text-gray-600">Сообщений пока нет</p>
+        <div class="px-4 py-8 text-center">
+          <p class="text-sm text-gray-600">Нет диалогов</p>
+        </div>
       {% endfor %}
     </div>
   </div>
 
-  <form method="post" class="bg-white border border-gray-500 rounded-xl p-4">
-    {% csrf_token %}
-    <label for="reply-body" class="block text-sm font-medium text-gray-700 mb-2">
-      Ответить
-    </label>
-    <textarea id="reply-body" name="body" rows="3"
-              placeholder="Введите сообщение..."
-              required
-              class="w-full px-3 py-2 text-sm border border-gray-400 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"></textarea>
-    <div class="flex justify-end mt-3">
-      <button type="submit"
-              class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-        Отправить
-      </button>
+  <!-- Right: chat -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- Chat header -->
+    <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+      <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm select-none">
+        {% for p in other_participants %}{{ p.get_full_name|default:p.username|slice:":1"|upper }}{% endfor %}
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">
+          {% for p in other_participants %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </p>
+        <p class="text-xs text-gray-600">{{ thread.subject }}</p>
+      </div>
     </div>
-  </form>
+
+    <!-- Messages (HTMX polling — обновляется каждые 3 сек без перезагрузки страницы) -->
+    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-3"
+         id="messages-container"
+         role="log" aria-label="Сообщения в диалоге" aria-live="polite"
+         hx-get="{% url 'messaging:thread_messages_partial' thread.pk %}"
+         hx-trigger="every 3s"
+         hx-swap="innerHTML"
+         hx-indicator="#messages-loading">
+      {% include "messaging/partials/thread_messages.html" with chat_messages=chat_messages %}
+    </div>
+    <div id="messages-loading" class="htmx-indicator flex justify-center py-1">
+      <span class="text-xs text-gray-600">обновление…</span>
+    </div>
+
+    <!-- Reply form -->
+    <div class="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white">
+      {% if errors.body %}
+        <p class="mb-2 text-xs text-red-600" role="alert" id="reply-body-error">{{ errors.body }}</p>
+      {% endif %}
+      <form method="post" class="flex items-end gap-2">
+        {% csrf_token %}
+        <textarea id="reply-body" name="body" rows="2"
+                  placeholder="Введите сообщение… (Enter — отправить, Shift+Enter — перенос)"
+                  maxlength="5000"
+                  required
+                  aria-label="Текст сообщения"
+                  {% if errors.body %}aria-describedby="reply-body-error" aria-invalid="true"{% endif %}
+                  class="flex-1 px-3 py-2 text-sm border {% if errors.body %}border-red-500{% else %}border-gray-400{% endif %} rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">{{ post.body }}</textarea>
+        <button type="submit"
+                class="flex-shrink-0 p-2.5 rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                aria-label="Отправить сообщение">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+  </div>
 </div>
 
 {% block extra_js %}
 <script>
   var container = document.getElementById('messages-container');
-  if (container) container.scrollTop = container.scrollHeight;
+
+  function scrollToBottom(force) {
+    if (!container) return;
+    // Scroll to bottom only if user is already near the bottom (within 120px),
+    // or forced (initial load / own message sent).
+    var distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (force || distFromBottom < 120) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  // Initial scroll on page load
+  scrollToBottom(true);
+
+  // After each HTMX poll swap — scroll only if user hasn't scrolled up to read history
+  document.body.addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail.target && e.detail.target.id === 'messages-container') {
+      scrollToBottom(false);
+    }
+  });
+
+  var ta = document.getElementById('reply-body');
+  if (ta) {
+    ta.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        ta.closest('form').submit();
+      }
+    });
+  }
 </script>
 {% endblock %}
 {% endblock %}

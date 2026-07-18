@@ -136,6 +136,8 @@ def project_list(request):
         "bookmarked_ids": set(),
         "bookmark_page_obj": None,
         "bookmark_user_applications": {},
+        "show_history_tab": False,
+        "history_by_year": {},
     }
 
     if _is_student:
@@ -204,6 +206,20 @@ def _student_catalog_context(request) -> dict:
         ).order_by("-created_at")
     )
 
+    # History: accepted applications including archived projects, grouped by academic year
+    history_applications = list(
+        Application.objects.filter(
+            applicant=request.user,
+            status=ApplicationStatus.ACCEPTED,
+        )
+        .select_related("project", "project__owner")
+        .order_by("-project__academic_year", "-reviewed_at")
+    )
+    history_by_year: dict[str, list] = {}
+    for app in history_applications:
+        year = app.project.academic_year or "Год не указан"
+        history_by_year.setdefault(year, []).append(app)
+
     return {
         "show_recs_tab": True,
         "rec_projects": rec_projects,
@@ -216,6 +232,8 @@ def _student_catalog_context(request) -> dict:
         "app_counts": app_counts,
         "suggested_interests": suggested_interests,
         "owned_initiative_projects": owned_initiative_projects,
+        "history_by_year": history_by_year,
+        "show_history_tab": bool(history_applications),
     }
 
 

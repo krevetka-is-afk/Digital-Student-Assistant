@@ -90,6 +90,8 @@ def create_application(
 
     Raises ``ValidationError`` if the project cannot accept applications.
     """
+    if project.owner_id and project.owner_id == getattr(applicant, "pk", None):
+        raise ValidationError({"project": ["Project owners cannot apply to their own project."]})
     _assert_project_accepts_applications(project)
 
     application, created = Application.objects.get_or_create(

@@ -106,7 +106,7 @@ def _build_project_from_submission(
     tech_tags_raw = snapshot.get("tech_tags")
     participants_raw = snapshot.get("participants")
     return Project.objects.create(
-        owner=None,
+        owner=proposal.owner,
         title=snapshot.get("title", proposal.title),
         description=snapshot.get("description", proposal.description),
         tech_tags=list(tech_tags_raw) if isinstance(tech_tags_raw, list) else [],

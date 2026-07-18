@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import urllib.request
 from urllib.parse import urlencode
 
@@ -9,6 +10,8 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.shortcuts import redirect
 from django.urls import reverse
+
+_SESSION_STATE_KEY = "oauth2_hse_state"
 
 
 def sso_hse_redirect(request):
@@ -19,6 +22,10 @@ def sso_hse_redirect(request):
             "SSO через edu.hse.ru временно недоступен — обратитесь к администратору.",
         )
         return redirect(reverse("frontend:auth"))
+
+    # RFC 6749 §10.12 — generate opaque state token to prevent CSRF
+    state = secrets.token_urlsafe(32)
+    request.session[_SESSION_STATE_KEY] = state
 
     callback_url = request.build_absolute_uri(reverse("frontend:sso_hse_callback"))
     authorize_url = getattr(
@@ -32,6 +39,7 @@ def sso_hse_redirect(request):
             "redirect_uri": callback_url,
             "response_type": "code",
             "scope": "openid email profile",
+            "state": state,
         }
     )
     return redirect(f"{authorize_url}?{params}")
@@ -43,6 +51,13 @@ def sso_hse_callback(request):
 
     if error or not code:
         messages.error(request, f"SSO: {error or 'авторизация отменена'}")
+        return redirect(reverse("frontend:auth"))
+
+    # Verify state to prevent CSRF (RFC 6749 §10.12)
+    returned_state = request.GET.get("state", "")
+    expected_state = request.session.pop(_SESSION_STATE_KEY, None)
+    if not expected_state or not secrets.compare_digest(returned_state, expected_state):
+        messages.error(request, "SSO: недействительный параметр state — попробуйте войти снова")
         return redirect(reverse("frontend:auth"))
 
     client_id = getattr(settings, "HSE_OAUTH2_CLIENT_ID", "").strip()

@@ -4,7 +4,10 @@
 {% endcomment %}
 {% load frontend_extras %}
 
-{% if user|user_role == 'cpprp' %}
+{% if project.owner == user %}
+  {# Project owner cannot apply to their own project #}
+
+{% elif user|user_role == 'cpprp' %}
   {# Moderators cannot apply #}
 
 {% elif project.status == ProjectStatus.STAFFED %}
@@ -37,6 +40,18 @@
     onclick="window.openApplyModal && window.openApplyModal({{ project.pk }}, '{{ project.title|escapejs }}')"
     class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-white border border-gray-500 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer">
     Откликнуться снова
+  </button>
+
+{% elif project.application_window_state == 'closed' %}
+  <button disabled
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 cursor-not-allowed">
+    Приём завершён
+  </button>
+
+{% elif project.application_window_state == 'upcoming' %}
+  <button disabled
+    class="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 cursor-not-allowed">
+    Скоро откроется
   </button>
 
 {% else %}

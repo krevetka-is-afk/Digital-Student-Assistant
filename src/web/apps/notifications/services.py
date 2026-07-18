@@ -55,6 +55,8 @@ def _should_send_email(user) -> bool:
 
 
 def _email_subject(notification: Notification) -> str:
+    if notification.event_type == "messaging.new_message":
+        return "DSA: У вас новые сообщения"
     return f"DSA: {notification.title}"
 
 
@@ -92,6 +94,29 @@ def _send_email_for_notification(notification_id: int) -> None:
         notification.email_error = ""
         notification.save(update_fields=["email_status", "email_sent_at", "email_error"])
         return
+
+    # Digest deduplication: for messaging notifications send at most one email
+    # per recipient per calendar day. Subsequent messages arrive as in-app
+    # notifications (visible via SSE) but do not trigger additional emails.
+    if notification.event_type == "messaging.new_message":
+        today = timezone.now().date()
+        already_sent_today = (
+            Notification.objects
+            .filter(
+                recipient_id=notification.recipient_id,
+                event_type="messaging.new_message",
+                email_status=NotificationEmailStatus.SENT,
+                email_sent_at__date=today,
+            )
+            .exclude(pk=notification.pk)
+            .exists()
+        )
+        if already_sent_today:
+            notification.email_status = NotificationEmailStatus.SKIPPED
+            notification.email_sent_at = timezone.now()
+            notification.email_error = ""
+            notification.save(update_fields=["email_status", "email_sent_at", "email_error"])
+            return
 
     try:
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
@@ -131,17 +156,18 @@ def create_notifications(
     notifications: list[Notification] = []
     for recipient_id in recipient_ids:
         try:
-            notification = Notification.objects.create(
-                recipient_id=recipient_id,
-                actor_id=spec.actor_id,
-                event_type=spec.event_type,
-                title=spec.title,
-                body=spec.body,
-                target_type=spec.target_type,
-                target_id=str(spec.target_id),
-                dedupe_key=spec.dedupe_key,
-                email_status=NotificationEmailStatus.PENDING,
-            )
+            with transaction.atomic():
+                notification = Notification.objects.create(
+                    recipient_id=recipient_id,
+                    actor_id=spec.actor_id,
+                    event_type=spec.event_type,
+                    title=spec.title,
+                    body=spec.body,
+                    target_type=spec.target_type,
+                    target_id=str(spec.target_id),
+                    dedupe_key=spec.dedupe_key,
+                    email_status=NotificationEmailStatus.PENDING,
+                )
         except IntegrityError:
             if spec.dedupe_key:
                 existing = Notification.objects.filter(dedupe_key=spec.dedupe_key).first()

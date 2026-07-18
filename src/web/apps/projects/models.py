@@ -317,6 +317,14 @@ class Project(models.Model):
         verbose_name="Study course",
         help_text="Recommended course for applicants when known.",
     )
+    academic_year = models.CharField(
+        max_length=9,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name="Academic year",
+        help_text='Academic year this project belongs to, e.g. "2024-2025".',
+    )
     education_program = models.CharField(
         max_length=255,
         blank=True,

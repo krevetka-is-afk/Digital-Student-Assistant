@@ -378,7 +378,7 @@
   {% endwith %}
 
   <!-- Main -->
-  <main id="main-content" class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" tabindex="-1">
+  <main id="main-content" class="{% block main_class %}flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8{% endblock %}" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
 
@@ -486,7 +486,7 @@
 
     {% if user.is_authenticated %}
     (function() {
-      var lastId = 0;
+      var lastId = parseInt(localStorage.getItem('dsa_notif_lastId') || '0', 10);
       var unreadCount = 0;
       var badge = document.getElementById('notif-badge');
       var list  = document.getElementById('notif-list');
@@ -530,8 +530,10 @@
               updateBadge(data.unread_count || 0);
             } else if (data.type === 'notification') {
               lastId = data.id;
+              localStorage.setItem('dsa_notif_lastId', lastId);
               addItem(data);
-              updateBadge(unreadCount + 1);
+              // Use server-provided unread_count for accuracy; fall back to +1 increment
+              updateBadge(data.unread_count !== undefined ? data.unread_count : unreadCount + 1);
               if (window.showToast) window.showToast(data.title, 'info');
             }
           } catch(err) {}

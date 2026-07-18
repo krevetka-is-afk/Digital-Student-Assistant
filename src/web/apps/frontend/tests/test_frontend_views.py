@@ -514,7 +514,7 @@ def test_customer_sees_own_projects():
     other = _make_project(owner=other_customer, status=ProjectStatus.PUBLISHED)
     client = Client()
     client.force_login(customer)
-    response = client.get(reverse("frontend:project_list"))
+    response = client.get(reverse("frontend:project_list"), follow=True)
     assert response.status_code == 200
     content = response.content.decode()
     assert own.title in content
@@ -527,7 +527,7 @@ def test_customer_project_list_total_count_in_context():
     _make_project(owner=customer, status=ProjectStatus.PUBLISHED)
     client = Client()
     client.force_login(customer)
-    response = client.get(reverse("frontend:project_list"))
+    response = client.get(reverse("frontend:project_list"), follow=True)
     assert response.status_code == 200
     assert response.context["total_count"] == 2
 

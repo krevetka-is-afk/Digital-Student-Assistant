@@ -79,6 +79,11 @@
       {% endif %}
     </button>
     {% endif %}
+    {% if show_history_tab %}
+    <button id="tab-btn-history" class="proj-tab" onclick="switchProjectTab('history')">
+      История
+    </button>
+    {% endif %}
   </div>
 </div>
 {% endif %}
@@ -662,6 +667,51 @@
 </div>
 {% endif %}
 
+{% if show_history_tab %}
+<div id="tab-panel-history" style="display:none;">
+  <div class="mb-6">
+    <h2 class="text-lg font-semibold text-gray-900">История участия в проектах</h2>
+    <p class="text-sm text-gray-500 mt-1">Проекты, в которых вы были приняты в предыдущие годы.</p>
+  </div>
+
+  {% for year, apps in history_by_year.items %}
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide">{{ year }}</span>
+      <div class="flex-1 h-px bg-gray-200"></div>
+      <span class="text-xs text-gray-400">{{ apps|length }} проект{{ apps|length|pluralize:",,ов" }}</span>
+    </div>
+    <div class="space-y-3">
+      {% for app in apps %}
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <a href="{% url 'frontend:project_detail' app.project.pk %}"
+             class="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate block">
+            {{ app.project.title }}
+          </a>
+          {% if app.project.owner %}
+          <p class="text-xs text-gray-500 mt-0.5">
+            Куратор: {{ app.project.owner.get_full_name|default:app.project.owner.username }}
+          </p>
+          {% endif %}
+          {% if app.reviewed_at %}
+          <p class="text-xs text-gray-400 mt-1">Принят {{ app.reviewed_at|date:"d.m.Y" }}</p>
+          {% endif %}
+        </div>
+        <div class="flex flex-col items-end gap-1 flex-shrink-0">
+          <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Принят</span>
+          {% if app.project.status == 'archived' %}
+          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Архив</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -800,7 +850,7 @@
     });
   });
 
-  var _panels = ['catalog', 'recs', 'bookmarks', 'applications'];
+  var _panels = ['catalog', 'recs', 'bookmarks', 'applications', 'history'];
 
   function switchProjectTab(tab) {
     _panels.forEach(function(name) {

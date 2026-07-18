@@ -19,6 +19,10 @@ class Thread(models.Model):
         return self.subject
 
     def last_message(self):
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if "messages" in cache:
+            msgs = cache["messages"]
+            return msgs[0] if msgs else None
         return self.messages.order_by("-created_at").first()
 
     def unread_count_for(self, user) -> int:
