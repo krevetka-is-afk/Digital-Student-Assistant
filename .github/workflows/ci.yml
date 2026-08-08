@@ -283,7 +283,7 @@ jobs:
           if-no-files-found: error
 
       - name: Lint Web Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: src/web/Dockerfile
 
@@ -364,7 +364,7 @@ jobs:
           if-no-files-found: error
 
       - name: Lint ML Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: src/ml/Dockerfile
 
